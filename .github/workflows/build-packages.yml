@@ -67,8 +67,12 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force packages | Out-Null
-          $ffmpeg = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe"
-          $ffprobe = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"
+          $ffmpegTools = Join-Path $env:ChocolateyInstall "lib\ffmpeg\tools"
+          $ffmpeg = (Get-ChildItem $ffmpegTools -Filter ffmpeg.exe -File -Recurse | Select-Object -First 1).FullName
+          $ffprobe = (Get-ChildItem $ffmpegTools -Filter ffprobe.exe -File -Recurse | Select-Object -First 1).FullName
+          if (-not $ffmpeg -or -not $ffprobe) {
+            throw "Could not locate the installed FFmpeg binaries under $ffmpegTools"
+          }
           pyinstaller --noconfirm --windowed --name AVID --add-data "LICENSE;." --add-binary "${ffmpeg};." --add-binary "${ffprobe};." avid_gui.py
           Compress-Archive -Path dist\AVID -DestinationPath packages\AVID-windows-x64.zip -Force
 
@@ -91,14 +95,21 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-tk
+          sudo apt-get install -y python3-tk xz-utils
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
       - name: Build Linux package
         run: |
           mkdir -p packages
-          pyinstaller --noconfirm --name AVID --add-data "LICENSE:." --add-binary "/usr/bin/ffmpeg:." --add-binary "/usr/bin/ffprobe:." avid_gui.py
+          curl --fail --location --silent --show-error \
+            https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+            --output ffmpeg-static.tar.xz
+          mkdir -p ffmpeg-static
+          tar -xJf ffmpeg-static.tar.xz --strip-components=1 -C ffmpeg-static
+          test -x ffmpeg-static/ffmpeg
+          test -x ffmpeg-static/ffprobe
+          pyinstaller --noconfirm --name AVID --add-data "LICENSE:." --add-binary "ffmpeg-static/ffmpeg:." --add-binary "ffmpeg-static/ffprobe:." avid_gui.py
           tar -C dist -czf packages/AVID-linux-x64.tar.gz AVID
 
       - uses: actions/upload-artifact@v4

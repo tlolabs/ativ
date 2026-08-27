@@ -99,13 +99,15 @@ class AvidGUI:
         self.resolution_var = tk.StringVar()
         self.audio_bitrate_var = tk.StringVar(value="128k")
         self.fps_var = tk.StringVar(value="30")
+        self.flip_horizontal_var = tk.BooleanVar(value=False)
+        self.flip_vertical_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="Select files and settings.")
 
         self.preview_photo: ImageTk.PhotoImage | None = None
         self.preview_after_id: str | None = None
-        self.stop_button_after_id: str | None = None
         self.render_stop_event: threading.Event | None = None
         self.render_in_progress = False
+        self.closing = False
         self.command_tray_open = False
         self.audio_duration_seconds: float | None = None
         self.progress_var = tk.DoubleVar(value=0.0)
@@ -167,6 +169,15 @@ class AvidGUI:
         ttk.Label(controls, text="FPS").grid(row=9, column=0, sticky="w", pady=4)
         ttk.Entry(controls, textvariable=self.fps_var, width=20).grid(row=9, column=1, sticky="w", pady=4)
 
+        flip_controls = ttk.Frame(controls)
+        flip_controls.grid(row=10, column=1, columnspan=2, sticky="w", pady=4)
+        ttk.Checkbutton(flip_controls, text="Flip horizontally", variable=self.flip_horizontal_var).grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Checkbutton(flip_controls, text="Flip vertically", variable=self.flip_vertical_var).grid(
+            row=0, column=1, sticky="w", padx=(12, 0)
+        )
+
         self.progress_bar = ttk.Progressbar(
             controls,
             mode="determinate",
@@ -174,11 +185,11 @@ class AvidGUI:
             variable=self.progress_var,
             length=360,
         )
-        self.progress_bar.grid(row=10, column=0, columnspan=3, sticky="ew", pady=(12, 6))
-        ttk.Label(controls, textvariable=self.progress_text_var).grid(row=11, column=0, columnspan=3, sticky="w")
+        self.progress_bar.grid(row=11, column=0, columnspan=3, sticky="ew", pady=(12, 6))
+        ttk.Label(controls, textvariable=self.progress_text_var).grid(row=12, column=0, columnspan=3, sticky="w")
 
         self.render_button = ttk.Button(controls, text="Create Video", command=self.on_render)
-        self.render_button.grid(row=12, column=0, columnspan=2, sticky="ew", pady=(6, 6))
+        self.render_button.grid(row=13, column=0, columnspan=2, sticky="ew", pady=(6, 6))
 
         self.preview_label = ttk.Label(preview_panel, text="Choose an image to see the styled preview.", anchor="center")
         self.preview_label.grid(row=0, column=0)
@@ -189,7 +200,7 @@ class AvidGUI:
         )
 
         self.command_toggle_button = ttk.Button(controls, text="Show FFmpeg Console", command=self.toggle_command_tray)
-        self.command_toggle_button.grid(row=12, column=2, sticky="ew", padx=(6, 0), pady=(6, 6))
+        self.command_toggle_button.grid(row=13, column=2, sticky="ew", padx=(6, 0), pady=(6, 6))
 
         self.command_tray = ttk.Frame(outer)
         self.command_output = scrolledtext.ScrolledText(self.command_tray, width=95, height=10, state="disabled")
@@ -198,6 +209,7 @@ class AvidGUI:
         self.platform_var.set("Instagram")
         self._update_aspect_ratio_options()
         self._bind_preview_updates()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_window_close)
         self.root.after(150, self._check_ffmpeg_on_launch)
 
     def _build_row(
@@ -213,8 +225,29 @@ class AvidGUI:
         ttk.Button(parent, text="Browse", command=button_command).grid(row=row, column=2, padx=(6, 0), pady=4)
 
     def _bind_preview_updates(self) -> None:
-        for variable in (self.image_var, self.platform_var, self.aspect_ratio_var, self.resolution_var):
+        for variable in (
+            self.image_var,
+            self.platform_var,
+            self.aspect_ratio_var,
+            self.resolution_var,
+            self.flip_horizontal_var,
+            self.flip_vertical_var,
+        ):
             variable.trace_add("write", self._schedule_preview_update)
+
+    def _run_on_ui_thread(self, callback) -> None:
+        if self.closing:
+            return
+        try:
+            self.root.after(0, callback)
+        except tk.TclError:
+            pass
+
+    def _on_window_close(self) -> None:
+        self.closing = True
+        if self.render_stop_event is not None:
+            self.render_stop_event.set()
+        self.root.destroy()
 
     def _schedule_preview_update(self, *_args: object) -> None:
         if self.preview_after_id is not None:
@@ -295,7 +328,7 @@ class AvidGUI:
 
     def _load_audio_duration(self, audio_path: Path) -> None:
         duration = get_media_duration(audio_path)
-        self.root.after(0, lambda: self._set_audio_duration(audio_path, duration))
+        self._run_on_ui_thread(lambda: self._set_audio_duration(audio_path, duration))
 
     def toggle_command_tray(self) -> None:
         self.command_tray_open = not self.command_tray_open
@@ -318,10 +351,10 @@ class AvidGUI:
         self.command_output.configure(state="disabled")
 
     def _enqueue_command_output(self, line: str) -> None:
-        self.root.after(0, lambda: self._append_command_output(line))
+        self._run_on_ui_thread(lambda: self._append_command_output(line))
 
     def _handle_progress_update(self, progress: dict[str, float | str | None]) -> None:
-        self.root.after(0, lambda: self._apply_progress_update(progress))
+        self._run_on_ui_thread(lambda: self._apply_progress_update(progress))
 
     def _apply_progress_update(self, progress: dict[str, float | str | None]) -> None:
         fraction = progress.get("fraction")
@@ -363,8 +396,8 @@ class AvidGUI:
             preview_image = build_composite(
                 image_path=image_path,
                 output_size=preview_size,
-                flip_horizontal=False,
-                flip_vertical=False,
+                flip_horizontal=self.flip_horizontal_var.get(),
+                flip_vertical=self.flip_vertical_var.get(),
             )
             self.preview_photo = ImageTk.PhotoImage(preview_image)
             self.preview_label.configure(image=self.preview_photo, text="")
@@ -454,16 +487,12 @@ class AvidGUI:
         self.render_stop_event = threading.Event()
         self.progress_var.set(2.0)
         self.progress_text_var.set("Preparing render...")
-        self.render_button.configure(text="Preparing video...", command=self.stop_render)
-        self.render_button.state(["disabled"])
-        self.status_var.set("Preparing video. The stop control will activate in a moment.")
+        self.render_button.configure(text="Stop Video Creation", command=self.stop_render)
+        self.render_button.state(["!disabled"])
+        self.status_var.set("Preparing video. Click stop to cancel.")
         self._reset_command_output()
         if not self.command_tray_open:
             self.toggle_command_tray()
-
-        if self.stop_button_after_id is not None:
-            self.root.after_cancel(self.stop_button_after_id)
-        self.stop_button_after_id = self.root.after(2200, self._enable_stop_button)
 
         thread = threading.Thread(
             target=self._render_worker,
@@ -474,18 +503,13 @@ class AvidGUI:
                 output_size,
                 self.audio_bitrate_var.get().strip(),
                 fps,
+                self.flip_horizontal_var.get(),
+                self.flip_vertical_var.get(),
                 self.render_stop_event,
             ),
             daemon=True,
         )
         thread.start()
-
-    def _enable_stop_button(self) -> None:
-        self.stop_button_after_id = None
-        if self.render_in_progress:
-            self.render_button.state(["!disabled"])
-            self.render_button.configure(text="Stop Video Creation", command=self.stop_render)
-            self.status_var.set("Rendering video. Click stop to cancel.")
 
     def stop_render(self) -> None:
         if self.render_stop_event is None:
@@ -503,6 +527,8 @@ class AvidGUI:
         output_size: tuple[int, int],
         audio_bitrate: str,
         fps: int,
+        flip_horizontal: bool,
+        flip_vertical: bool,
         stop_event: threading.Event,
     ) -> None:
         try:
@@ -527,29 +553,27 @@ class AvidGUI:
                 audio_path=audio_path,
                 output_path=output_path,
                 output_size=output_size,
+                flip_horizontal=flip_horizontal,
+                flip_vertical=flip_vertical,
                 audio_bitrate=audio_bitrate,
                 fps=fps,
                 stop_event=stop_event,
                 progress_callback=self._handle_progress_update,
                 command_callback=self._enqueue_command_output,
             )
-            self.root.after(0, lambda: self._render_done(f"Done: {output_path}", success=True))
+            self._run_on_ui_thread(lambda: self._render_done(f"Done: {output_path}", success=True))
         except RenderCancelledError as exc:
             msg = str(exc)
-            self.root.after(0, lambda m=msg: self._render_done(m, success=False, cancelled=True))
+            self._run_on_ui_thread(lambda m=msg: self._render_done(m, success=False, cancelled=True))
         except Exception as exc:  # noqa: BLE001
             msg = f"Error: {exc}"
-            self.root.after(0, lambda m=msg: self._render_done(m, success=False))
+            self._run_on_ui_thread(lambda m=msg: self._render_done(m, success=False))
 
     def _render_done(self, status: str, success: bool, cancelled: bool = False) -> None:
         self.render_in_progress = False
         self.render_stop_event = None
         self.progress_var.set(100.0 if success else 0.0)
         self.progress_text_var.set("Complete" if success else ("Stopped" if cancelled else "Idle"))
-        if self.stop_button_after_id is not None:
-            self.root.after_cancel(self.stop_button_after_id)
-            self.stop_button_after_id = None
-
         self.render_button.state(["!disabled"])
         self.render_button.configure(text="Create Video", command=self.on_render)
         self.status_var.set(status)

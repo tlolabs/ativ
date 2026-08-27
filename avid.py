@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import argparse
+import queue
 import platform
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
 import threading
-import time
+from collections import deque
 from pathlib import Path
 
 from PIL import Image, ImageFilter, ImageOps
@@ -46,6 +48,17 @@ class RenderCancelledError(RuntimeError):
     pass
 
 
+class FFmpegExecutionError(RuntimeError):
+    def __init__(self, returncode: int, command: list[str], output: str) -> None:
+        self.returncode = returncode
+        self.command = command
+        self.output = output
+        message = f"FFmpeg failed with exit code {returncode}."
+        if output:
+            message += f"\n\nLast FFmpeg output:\n{output}"
+        super().__init__(message)
+
+
 def parse_size(size_text: str) -> tuple[int, int]:
     if "x" not in size_text.lower():
         raise argparse.ArgumentTypeError("Size must be in WIDTHxHEIGHT format (example: 1080x1920)")
@@ -57,6 +70,8 @@ def parse_size(size_text: str) -> tuple[int, int]:
         raise argparse.ArgumentTypeError("Width and height must be integers") from exc
     if width <= 0 or height <= 0:
         raise argparse.ArgumentTypeError("Width and height must be positive")
+    if width % 2 or height % 2:
+        raise argparse.ArgumentTypeError("Width and height must be even numbers for H.264 video")
     return width, height
 
 
@@ -159,6 +174,10 @@ def find_ffmpeg() -> tuple[str | None, str | None]:
     if bundled is not None:
         return str(bundled), "bundled"
 
+    system_binary = shutil.which(ffmpeg_binary_name())
+    if system_binary is not None:
+        return system_binary, "system"
+
     return None, None
 
 
@@ -166,6 +185,10 @@ def find_ffprobe() -> tuple[str | None, str | None]:
     bundled = bundled_ffprobe_path()
     if bundled is not None:
         return str(bundled), "bundled"
+
+    system_binary = shutil.which(ffprobe_binary_name())
+    if system_binary is not None:
+        return system_binary, "system"
 
     return None, None
 
@@ -180,7 +203,7 @@ def ensure_ffmpeg() -> str:
             "FFmpeg is not available.\n"
             f"Platform: {platform_name} ({arch})\n"
             f"Expected bundled binary: {bundle_target}\n"
-            "Rebuild A.V.I.D. with a bundled platform-specific FFmpeg binary."
+            "Install FFmpeg system-wide or rebuild A.V.I.D. with a bundled platform-specific binary."
         )
     return ffmpeg_path
 
@@ -240,8 +263,8 @@ def build_composite(
     flip_vertical: bool,
 ) -> Image.Image:
     out_w, out_h = output_size
-    base = Image.open(image_path)
-    base = ImageOps.exif_transpose(base).convert("RGB")
+    with Image.open(image_path) as raw_image:
+        base = ImageOps.exif_transpose(raw_image).convert("RGBA")
 
     if flip_horizontal:
         base = base.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
@@ -253,7 +276,8 @@ def build_composite(
         max(1, int(round(base.width * bg_scale))),
         max(1, int(round(base.height * bg_scale))),
     )
-    background = base.resize(bg_size, Image.Resampling.LANCZOS)
+    background_source = Image.alpha_composite(Image.new("RGBA", base.size, "black"), base).convert("RGB")
+    background = background_source.resize(bg_size, Image.Resampling.LANCZOS)
     bg_x = (bg_size[0] - out_w) // 2
     bg_y = (bg_size[1] - out_h) // 2
     background = background.crop((bg_x, bg_y, bg_x + out_w, bg_y + out_h))
@@ -270,7 +294,7 @@ def build_composite(
     fg_y = (out_h - fg_size[1]) // 2
 
     composed = background.copy()
-    composed.paste(foreground, (fg_x, fg_y))
+    composed.paste(foreground, (fg_x, fg_y), foreground.getchannel("A"))
     return composed
 
 
@@ -326,6 +350,19 @@ def run_ffmpeg(
         bufsize=1,
     )
     progress_state: dict[str, str] = {}
+    output_tail: deque[str] = deque(maxlen=20)
+    output_queue: queue.Queue[str | None] = queue.Queue()
+
+    def read_output() -> None:
+        if process.stdout is None:
+            output_queue.put(None)
+            return
+        for output_line in iter(process.stdout.readline, ""):
+            output_queue.put(output_line)
+        output_queue.put(None)
+
+    reader = threading.Thread(target=read_output, name="avid-ffmpeg-output", daemon=True)
+    reader.start()
     try:
         while True:
             if stop_event is not None and stop_event.is_set():
@@ -340,9 +377,20 @@ def run_ffmpeg(
             if process.stdout is None:
                 raise RuntimeError("FFmpeg output stream was not available.")
 
-            line = process.stdout.readline()
+            try:
+                raw_line = output_queue.get(timeout=0.1)
+            except queue.Empty:
+                raw_line = ""
+
+            if raw_line is None:
+                return_code = process.wait()
+                if return_code != 0:
+                    raise FFmpegExecutionError(return_code, cmd, "\n".join(output_tail))
+                return
+
+            line = raw_line.strip()
             if line:
-                line = line.strip()
+                output_tail.append(line)
                 if command_callback is not None:
                     command_callback(line)
 
@@ -375,17 +423,12 @@ def run_ffmpeg(
                             }
                         )
 
-            return_code = process.poll()
-            if return_code is not None:
-                if return_code != 0:
-                    raise subprocess.CalledProcessError(return_code, cmd)
-                return
-            if not line:
-                time.sleep(0.05)
     finally:
         if process.poll() is None:
             process.kill()
             process.wait()
+        if process.stdout is not None:
+            process.stdout.close()
 
 
 def create_video(
@@ -409,6 +452,10 @@ def create_video(
         raise FileNotFoundError(f"Audio not found: {audio_path}")
     if fps <= 0:
         raise ValueError("fps must be a positive integer")
+    if output_size[0] <= 0 or output_size[1] <= 0:
+        raise ValueError("Output width and height must be positive")
+    if output_size[0] % 2 or output_size[1] % 2:
+        raise ValueError("Output width and height must be even numbers for H.264 video")
     duration_seconds = get_media_duration(audio_path)
 
     composite = build_composite(
@@ -500,8 +547,8 @@ def main() -> int:
 
         print(f"Video written to: {args.output}")
         return 0
-    except subprocess.CalledProcessError as exc:
-        print(f"ffmpeg failed with exit code {exc.returncode}", file=sys.stderr)
+    except FFmpegExecutionError as exc:
+        print(str(exc), file=sys.stderr)
         return exc.returncode
     except Exception as exc:  # noqa: BLE001
         print(f"Error: {exc}", file=sys.stderr)

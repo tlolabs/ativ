@@ -32,7 +32,7 @@ Why GPLv3 for this project:
 - Uses FFmpeg to loop that composite frame for the full audio duration.
 - Compresses audio with AAC.
 - GUI presets for social media outlet, supported resolution, and matching aspect ratio.
-- Uses bundled FFmpeg/ffprobe locations inside packaged apps; system FFmpeg is intentionally not used.
+- Prefers bundled FFmpeg/ffprobe binaries, then falls back to binaries installed on the system `PATH`.
 - On launch, the GUI guides the user to current FFmpeg download pages if FFmpeg is missing.
 
 ## Setup
@@ -55,6 +55,8 @@ A.V.I.D. looks for bundled FFmpeg and ffprobe binaries in common source and PyIn
 - direct app executable paths such as `AVID.app/Contents/MacOS/ffmpeg`
 
 On Windows, the binary names must be `ffmpeg.exe` and `ffprobe.exe`.
+
+If no bundled binary is found, A.V.I.D. uses `ffmpeg` and `ffprobe` from the system `PATH`.
 
 Example bundle paths:
 
@@ -105,7 +107,8 @@ The GUI now uses platform-specific presets:
 - A live preview thumbnail shows the styled frame with the selected aspect ratio and composition treatment, without forced square letterboxing.
 - The progress bar uses FFmpeg progress updates to show an approximate percentage and ETA.
 - A collapsible FFmpeg console tray below the UI shows the exact command and live progress output.
-- The render button switches to a stop action shortly after rendering starts.
+- Horizontal and vertical flip controls update both the live preview and rendered video.
+- The render button switches to a stop action immediately when rendering starts.
 
 ### CLI
 

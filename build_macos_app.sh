@@ -30,7 +30,9 @@ if [[ ! -x "${FFPROBE_BIN}" ]]; then
   exit 1
 fi
 
-source "${ROOT_DIR}/.venv/bin/activate"
+if [[ -f "${ROOT_DIR}/.venv/bin/activate" ]]; then
+  source "${ROOT_DIR}/.venv/bin/activate"
+fi
 export PYINSTALLER_CONFIG_DIR="${ROOT_DIR}/.pyinstaller"
 
 pyinstaller \
