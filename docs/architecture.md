@@ -1,23 +1,23 @@
-# A.V.I.D. native architecture
+# A.T.I.V. native architecture
 
-A.V.I.D. 0.2 is one shared Rust media engine with three independent native desktop presentations.
+A.T.I.V. 0.2 is one shared Rust media engine with three independent native desktop presentations.
 
 ```text
 SwiftUI/AppKit ─┐
-WinUI 3/C# ─────┼─ newline-delimited typed process protocol ─ avid-engine ─ FFmpeg/ffprobe
+WinUI 3/C# ─────┼─ newline-delimited typed process protocol ─ ativ-engine ─ FFmpeg/ffprobe
 GTK 4/Adwaita ──┘                                      │
-                                                avid-core library
+                                                ativ-core library
 ```
 
 The process boundary is deliberate. It contains no unsafe code, gives each UI natural asynchronous process APIs, keeps crashes and cancellation isolated, and lets each package place the engine and media tools together. Native applications send paths as individual process arguments (never shell command strings), consume JSON events from standard output, and send `cancel` on standard input.
 
-`avid-core` owns presets, validation, source resource limits, image composition, probing, FFmpeg argument construction, progress normalization, cancellation, staging, and publication. Platform applications own only file panels, drag and drop, menus, appearance, accessibility, window lifecycle, and presentation state.
+`ativ-core` owns presets, validation, source resource limits, image composition, probing, FFmpeg argument construction, progress normalization, cancellation, staging, and publication. Platform applications own only file panels, drag and drop, menus, appearance, accessibility, window lifecycle, and presentation state.
 
-## Data and compatibility
+## Data safety
 
-The Python application has no project/document format, database, preference file, credentials, or saved preset format. Its user-data contract consists of user-selected source media and MP4 output. The replacement does not modify source media. A completed output is encoded beside the destination and published only after FFmpeg succeeds. Cancellation or failure removes staging data and preserves a prior output.
+A.T.I.V. has no project/document format, database, credentials, or saved preset format. Its user-data contract consists of user-selected source media and MP4 output. It does not modify source media. A completed output is encoded beside the destination and published only after FFmpeg succeeds. Cancellation or failure removes staging data and preserves a prior output.
 
-No settings migration runs because there are no legacy settings to migrate. Native platform window restoration uses each operating system's standard facilities and cannot affect the preserved Python application.
+Native platform window restoration uses each operating system's standard facilities and cannot affect source media or completed output.
 
 ## Protocol stability
 
@@ -27,7 +27,7 @@ Cancellation is the UTF-8 line `cancel\n`. The engine terminates and reaps FFmpe
 
 ## Platform baselines
 
-- macOS 12 or later, Apple Silicon and Intel. The legacy package did not declare a minimum; macOS 12 is the lowest practical baseline for the SwiftUI and concurrency APIs used here and remains compatible with currently supported Intel Macs.
+- macOS 12 or later, Apple Silicon and Intel. macOS 12 is the lowest practical baseline for the SwiftUI and concurrency APIs used here and remains compatible with currently supported Intel Macs.
 - Windows 10 version 1809 or later, x64 and ARM64, matching the Windows App SDK 2.4 support floor.
 - Linux distributions providing GTK 4 and libadwaita 1.5 or later. Release packages target current Ubuntu/Fedora-family runtimes and bundle the Rust engine plus FFmpeg tools.
 

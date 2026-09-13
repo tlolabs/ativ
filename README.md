@@ -1,13 +1,11 @@
-# A.V.I.D. — Audio Visual Integration & Distribution
+# A.T.I.V. — Artwork + Tracks Into Video
 
-A.V.I.D. turns a still image and an audio recording into a polished H.264/AAC MP4. Version 0.2 replaces the media engine with Rust and provides native SwiftUI/AppKit, WinUI 3, and GTK 4/libadwaita applications.
-
-The original Python/Tk application remains available in [`legacy-python/`](legacy-python/) for comparison until the native replacement is manually approved.
+A.T.I.V. turns a still image and an audio track into a polished H.264/AAC MP4 with native SwiftUI/AppKit, WinUI 3, and GTK 4/libadwaita applications.
 
 ## Architecture
 
-- `crates/avid-core`: shared presets, validation, FFmpeg/ffprobe orchestration, progress, cancellation, and atomic output publication.
-- `crates/avid-engine`: stable newline-delimited process API used by every native UI.
+- `crates/ativ-core`: shared presets, validation, FFmpeg/ffprobe orchestration, progress, cancellation, and atomic output publication.
+- `crates/ativ-engine`: stable newline-delimited process API used by every native UI.
 - `platform/macos`: SwiftUI/AppKit application for Apple Silicon and Intel.
 - `platform/windows`: WinUI 3 application for x64 and ARM64.
 - `platform/linux`: GTK 4/libadwaita application.
@@ -20,7 +18,7 @@ FFmpeg 9.0.1 and ffprobe are required architectural dependencies and are bundled
 ```bash
 cargo build --workspace
 cargo test --workspace
-cargo run -p avid-engine -- check
+cargo run -p ativ-engine -- check
 ```
 
 ## Run the macOS application
@@ -33,8 +31,8 @@ The script builds the Rust engine and SwiftUI application, stages a proper local
 
 ## Safety and privacy
 
-A.V.I.D. never alters input files, writes completed output atomically, and cleans up partial renders after errors or cancellation. It does not include telemetry, analytics, hosted crash reporting, or automatic diagnostic uploads.
+A.T.I.V. never alters input files, writes completed output atomically, and cleans up partial renders after errors or cancellation. It does not include telemetry, analytics, hosted crash reporting, or automatic diagnostic uploads.
 
 ## License
 
-A.V.I.D. is GPL-3.0-or-later. FFmpeg builds and other redistributed components retain their own licenses; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+A.T.I.V. is GPL-3.0-or-later. FFmpeg builds and other redistributed components retain their own licenses; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

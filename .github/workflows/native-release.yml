@@ -64,8 +64,8 @@ jobs:
           : "${NOTARY_PASSWORD:?Missing MACOS_NOTARY_PASSWORD}"
           : "${NOTARY_TEAM_ID:?Missing MACOS_NOTARY_TEAM_ID}"
           : "${SIGNING_IDENTITY:?Missing MACOS_SIGNING_IDENTITY}"
-          KEYCHAIN="${RUNNER_TEMP}/avid-signing.keychain-db"
-          CERTIFICATE="${RUNNER_TEMP}/avid-signing.p12"
+          KEYCHAIN="${RUNNER_TEMP}/ativ-signing.keychain-db"
+          CERTIFICATE="${RUNNER_TEMP}/ativ-signing.p12"
           printf '%s' "${CERTIFICATE_BASE64}" | base64 -D > "${CERTIFICATE}"
           security create-keychain -p "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
           security set-keychain-settings -lut 21600 "${KEYCHAIN}"
@@ -73,18 +73,18 @@ jobs:
           security import "${CERTIFICATE}" -P "${CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "${KEYCHAIN}"
           security set-key-partition-list -S apple-tool:,apple: -s -k "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
           security list-keychains -d user -s "${KEYCHAIN}"
-          xcrun notarytool store-credentials avid-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
+          xcrun notarytool store-credentials ativ-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
       - name: Build and package native application
         env:
           APPLE_SIGN_IDENTITY: ${{ startsWith(github.ref, 'refs/tags/') && secrets.MACOS_SIGNING_IDENTITY || '-' }}
-          APPLE_NOTARY_PROFILE: ${{ startsWith(github.ref, 'refs/tags/') && 'avid-notary' || '' }}
+          APPLE_NOTARY_PROFILE: ${{ startsWith(github.ref, 'refs/tags/') && 'ativ-notary' || '' }}
           FFMPEG_BIN: ${{ github.workspace }}/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
           FFPROBE_BIN: ${{ github.workspace }}/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
         run: ./script/package_macos.sh "${{ matrix.arch }}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: AVID-macos-${{ matrix.arch }}
-          path: packages/AVID-*-macos-${{ matrix.arch }}.*
+          name: ATIV-macos-${{ matrix.arch }}
+          path: packages/ATIV-*-macos-${{ matrix.arch }}.*
 
   windows:
     name: Windows ${{ matrix.arch }}
@@ -122,8 +122,8 @@ jobs:
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}" -FfmpegDirectory "build/ffmpeg-windows-${{ matrix.arch }}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: AVID-windows-${{ matrix.arch }}
-          path: packages/AVID-*-windows-${{ matrix.arch }}.zip
+          name: ATIV-windows-${{ matrix.arch }}
+          path: packages/ATIV-*-windows-${{ matrix.arch }}.zip
 
   linux:
     name: Linux ${{ matrix.arch }}
@@ -149,7 +149,7 @@ jobs:
         run: ./script/package_linux.sh "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: AVID-linux-${{ matrix.arch }}
+          name: ATIV-linux-${{ matrix.arch }}
           path: packages/*
 
   release:

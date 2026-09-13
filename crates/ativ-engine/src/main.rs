@@ -1,0 +1,385 @@
+use ativ_core::{
+    AtivError, EventSink, MediaTools, PRESETS, RenderProgress, RenderRequest, Stage, ToolOverrides,
+    probe_audio_duration, render_preview, render_video,
+};
+use std::collections::{HashMap, HashSet};
+use std::env;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, BufRead};
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            append_log(&format!(
+                "error [{}]: {}",
+                error.code(),
+                error.user_message()
+            ));
+            println!(
+                "{{\"event\":\"error\",\"code\":\"{}\",\"message\":\"{}\"}}",
+                error.code(),
+                escape(&error.user_message())
+            );
+            eprintln!("{}", error.user_message());
+            if matches!(error, AtivError::Cancelled) {
+                ExitCode::from(130)
+            } else {
+                ExitCode::from(1)
+            }
+        }
+    }
+}
+
+fn run() -> ativ_core::Result<()> {
+    let mut arguments = env::args().skip(1);
+    let command = arguments.next().unwrap_or_else(|| "help".into());
+    let parsed = Arguments::parse(arguments.collect())?;
+    match command.as_str() {
+        "help" | "--help" | "-h" => {
+            print_help();
+            Ok(())
+        }
+        "version" | "--version" | "-V" => {
+            println!("ativ-engine {}", ativ_core::VERSION);
+            Ok(())
+        }
+        "presets" => {
+            print_presets();
+            Ok(())
+        }
+        "check" => {
+            let tools = tools(&parsed)?;
+            println!(
+                "{{\"event\":\"tools\",\"ffmpeg\":\"{}\",\"ffprobe\":\"{}\"}}",
+                escape(&tools.ffmpeg_version),
+                escape(&tools.ffprobe_version)
+            );
+            Ok(())
+        }
+        "probe" => {
+            let tools = tools(&parsed)?;
+            let duration = probe_audio_duration(&tools, &parsed.required_path("audio")?)?;
+            println!(
+                "{{\"event\":\"probe\",\"duration_seconds\":{}}}",
+                number(duration)
+            );
+            Ok(())
+        }
+        "preview" => {
+            let tools = tools(&parsed)?;
+            render_preview(
+                &tools,
+                &parsed.required_path("image")?,
+                &parsed.required_path("output")?,
+                parsed.required_u32("width")?,
+                parsed.required_u32("height")?,
+                parsed.flags.contains("flip-horizontal"),
+                parsed.flags.contains("flip-vertical"),
+            )?;
+            println!("{{\"event\":\"complete\",\"kind\":\"preview\"}}");
+            Ok(())
+        }
+        "render" => {
+            let tools = tools(&parsed)?;
+            let request = RenderRequest {
+                image: parsed.required_path("image")?,
+                audio: parsed.required_path("audio")?,
+                output: parsed.required_path("output")?,
+                width: parsed.required_u32("width")?,
+                height: parsed.required_u32("height")?,
+                audio_bitrate: parsed
+                    .values
+                    .get("audio-bitrate")
+                    .cloned()
+                    .unwrap_or_else(|| "128k".into()),
+                fps: parsed.values.get("fps").map_or(Ok(30), |value| {
+                    value.parse::<u32>().map_err(|_| {
+                        AtivError::InvalidInput("FPS must be a positive integer.".into())
+                    })
+                })?,
+                flip_horizontal: parsed.flags.contains("flip-horizontal"),
+                flip_vertical: parsed.flags.contains("flip-vertical"),
+            };
+            let cancelled = Arc::new(AtomicBool::new(false));
+            let input_cancelled = Arc::clone(&cancelled);
+            thread::spawn(move || {
+                for line in io::stdin().lock().lines().map_while(Result::ok) {
+                    if line.trim().eq_ignore_ascii_case("cancel") {
+                        input_cancelled.store(true, Ordering::SeqCst);
+                        break;
+                    }
+                }
+            });
+            let events = JsonEvents::new();
+            render_video(&tools, &request, cancelled, &events)
+        }
+        _ => Err(AtivError::InvalidInput(format!(
+            "Unknown command '{command}'. Run ativ-engine help."
+        ))),
+    }
+}
+
+fn tools(arguments: &Arguments) -> ativ_core::Result<MediaTools> {
+    MediaTools::discover(ToolOverrides {
+        ffmpeg: arguments.values.get("ffmpeg").map(PathBuf::from),
+        ffprobe: arguments.values.get("ffprobe").map(PathBuf::from),
+    })
+}
+
+#[derive(Default)]
+struct Arguments {
+    values: HashMap<String, String>,
+    flags: HashSet<String>,
+}
+
+impl Arguments {
+    fn parse(raw: Vec<String>) -> ativ_core::Result<Self> {
+        let mut parsed = Self::default();
+        let mut index = 0;
+        while index < raw.len() {
+            let key = raw[index]
+                .strip_prefix("--")
+                .ok_or_else(|| {
+                    AtivError::InvalidInput(format!("Unexpected argument '{}'.", raw[index]))
+                })?
+                .to_owned();
+            if matches!(key.as_str(), "flip-horizontal" | "flip-vertical") {
+                parsed.flags.insert(key);
+                index += 1;
+            } else {
+                let value = raw
+                    .get(index + 1)
+                    .ok_or_else(|| AtivError::InvalidInput(format!("--{key} requires a value.")))?
+                    .to_owned();
+                parsed.values.insert(key, value);
+                index += 2;
+            }
+        }
+        Ok(parsed)
+    }
+
+    fn required_path(&self, name: &str) -> ativ_core::Result<PathBuf> {
+        self.values
+            .get(name)
+            .map(PathBuf::from)
+            .ok_or_else(|| AtivError::InvalidInput(format!("--{name} is required.")))
+    }
+    fn required_u32(&self, name: &str) -> ativ_core::Result<u32> {
+        self.values
+            .get(name)
+            .ok_or_else(|| AtivError::InvalidInput(format!("--{name} is required.")))?
+            .parse()
+            .map_err(|_| AtivError::InvalidInput(format!("--{name} must be a positive integer.")))
+    }
+}
+
+struct JsonEvents {
+    log: Mutex<Option<File>>,
+}
+
+impl JsonEvents {
+    fn new() -> Self {
+        Self {
+            log: Mutex::new(open_log()),
+        }
+    }
+
+    fn log(&self, line: &str) {
+        use std::io::Write;
+        if let Ok(mut guard) = self.log.lock()
+            && let Some(file) = guard.as_mut()
+        {
+            let _ = writeln!(file, "{line}");
+        }
+    }
+}
+
+impl EventSink for JsonEvents {
+    fn stage(&self, stage: Stage) {
+        self.log(&format!("stage: {}", stage.as_str()));
+        println!("{{\"event\":\"stage\",\"stage\":\"{}\"}}", stage.as_str());
+    }
+    fn progress(&self, progress: RenderProgress) {
+        println!(
+            "{{\"event\":\"progress\",\"elapsed_seconds\":{},\"duration_seconds\":{},\"fraction\":{},\"eta_seconds\":{}}}",
+            number(progress.elapsed_seconds),
+            number(progress.duration_seconds),
+            number(progress.fraction),
+            number(progress.eta_seconds)
+        );
+    }
+    fn diagnostic(&self, line: &str) {
+        self.log(line);
+    }
+}
+
+fn append_log(line: &str) {
+    use std::io::Write;
+    if let Some(mut file) = open_log() {
+        let _ = writeln!(file, "{line}");
+    }
+}
+
+fn open_log() -> Option<File> {
+    if let Some(path) = env::var_os("ATIV_LOG_PATH") {
+        return open_log_at(&PathBuf::from(path), false);
+    }
+    open_log_at(&default_diagnostic_log_path()?, true)
+}
+
+fn open_log_at(path: &Path, protect_parent: bool) -> Option<File> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).ok()?;
+        #[cfg(unix)]
+        if protect_parent {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).ok()?;
+        }
+    }
+    if fs::metadata(path).is_ok_and(|metadata| metadata.len() > 1_048_576) {
+        let rotated = path.with_extension("log.old");
+        let _ = fs::remove_file(&rotated);
+        let _ = fs::rename(path, &rotated);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&rotated, fs::Permissions::from_mode(0o600));
+        }
+    }
+    let mut options = OpenOptions::new();
+    options.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let file = options.open(path).ok()?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).ok()?;
+    }
+    Some(file)
+}
+
+#[cfg(target_os = "macos")]
+fn default_diagnostic_log_path() -> Option<PathBuf> {
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .map(|home| home.join("Library/Logs/ATIV/ativ-engine.log"))
+}
+
+#[cfg(target_os = "windows")]
+fn default_diagnostic_log_path() -> Option<PathBuf> {
+    env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .map(|root| root.join("ATIV/Logs/ativ-engine.log"))
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn default_diagnostic_log_path() -> Option<PathBuf> {
+    if let Some(root) = env::var_os("XDG_STATE_HOME") {
+        return Some(PathBuf::from(root).join("ativ/ativ-engine.log"));
+    }
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .map(|home| home.join(".local/state/ativ/ativ-engine.log"))
+}
+
+fn print_presets() {
+    print!("{{\"event\":\"presets\",\"items\":[");
+    for (index, preset) in PRESETS.iter().enumerate() {
+        if index > 0 {
+            print!(",");
+        }
+        print!(
+            "{{\"platform\":\"{}\",\"aspect\":\"{}\",\"width\":{},\"height\":{}}}",
+            escape(preset.platform),
+            escape(preset.aspect),
+            preset.width,
+            preset.height
+        );
+    }
+    println!("]}}");
+}
+
+fn number(value: Option<f64>) -> String {
+    value
+        .filter(|value| value.is_finite())
+        .map_or_else(|| "null".into(), |value| value.to_string())
+}
+fn escape(value: &str) -> String {
+    value
+        .chars()
+        .flat_map(|character| match character {
+            '\\' => "\\\\".chars().collect::<Vec<_>>(),
+            '"' => "\\\"".chars().collect(),
+            '\n' => "\\n".chars().collect(),
+            '\r' => "\\r".chars().collect(),
+            '\t' => "\\t".chars().collect(),
+            value if value.is_control() => "�".chars().collect(),
+            value => vec![value],
+        })
+        .collect()
+}
+
+fn print_help() {
+    println!(
+        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--flip-horizontal] [--flip-vertical]\n\nDuring render, write 'cancel' followed by a newline to standard input to stop safely."
+    );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn json_escape_handles_control_characters() {
+        assert_eq!(escape("a\"b\\c\n"), "a\\\"b\\\\c\\n");
+    }
+    #[test]
+    fn parser_preserves_paths_with_spaces() {
+        let parsed = Arguments::parse(vec![
+            "--image".into(),
+            "/tmp/my image.png".into(),
+            "--flip-horizontal".into(),
+        ])
+        .unwrap();
+        assert_eq!(parsed.values["image"], "/tmp/my image.png");
+        assert!(parsed.flags.contains("flip-horizontal"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn diagnostic_logs_are_private() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let directory =
+            env::temp_dir().join(format!("ativ-log-test-{}-{unique}", std::process::id()));
+        let path = directory.join("ativ-engine.log");
+        drop(open_log_at(&path, true).expect("open private log"));
+        assert_eq!(
+            fs::metadata(&directory)
+                .expect("directory")
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
+        assert_eq!(
+            fs::metadata(&path).expect("log").permissions().mode() & 0o777,
+            0o600
+        );
+        fs::remove_dir_all(directory).expect("cleanup");
+    }
+}

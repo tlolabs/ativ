@@ -1,0 +1,11 @@
+[package]
+name = "ativ-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "ativ_core"
+path = "src/lib.rs"

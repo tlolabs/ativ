@@ -15,15 +15,15 @@ struct ContentView: View {
             Divider()
             statusBar
         }
-        .navigationTitle("A.V.I.D.")
+        .navigationTitle("A.T.I.V.")
         .task { store.start() }
-        .alert("A.V.I.D. couldn’t complete the operation", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
+        .alert("A.T.I.V. couldn’t complete the operation", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "Unknown error") }
-        .onReceive(NotificationCenter.default.publisher(for: .avidChooseImage)) { _ in store.chooseImage() }
-        .onReceive(NotificationCenter.default.publisher(for: .avidChooseAudio)) { _ in store.chooseAudio() }
-        .onReceive(NotificationCenter.default.publisher(for: .avidChooseOutput)) { _ in store.chooseOutput() }
-        .onReceive(NotificationCenter.default.publisher(for: .avidStartRender)) { _ in if store.canRender { store.render() } }
+        .onReceive(NotificationCenter.default.publisher(for: .ativChooseImage)) { _ in store.chooseImage() }
+        .onReceive(NotificationCenter.default.publisher(for: .ativChooseAudio)) { _ in store.chooseAudio() }
+        .onReceive(NotificationCenter.default.publisher(for: .ativChooseOutput)) { _ in store.chooseOutput() }
+        .onReceive(NotificationCenter.default.publisher(for: .ativStartRender)) { _ in if store.canRender { store.render() } }
     }
 
     private var controls: some View {

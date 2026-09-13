@@ -19,12 +19,12 @@ $ffmpegVersion = & $ffmpeg -version | Select-Object -First 1
 if ($ffmpegVersion -notmatch 'ffmpeg version n9\.0\.1') { throw "Expected the pinned FFmpeg 9.0.1 build, got: $ffmpegVersion" }
 
 rustup target add $rustTarget
-cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p avid-engine
+cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p ativ-engine
 if (Test-Path $build) { Remove-Item -Recurse -Force $build }
 New-Item -ItemType Directory -Force -Path $publish, $packages | Out-Null
-dotnet publish (Join-Path $root "platform/windows/AVID/AVID.csproj") -c Release -r $runtime --self-contained true -p:Platform=$Architecture -o $publish
+dotnet publish (Join-Path $root "platform/windows/ATIV/ATIV.csproj") -c Release -r $runtime --self-contained true -p:Platform=$Architecture -o $publish
 
-Copy-Item (Join-Path $root "target/$rustTarget/release/avid-engine.exe") $publish
+Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-engine.exe") $publish
 Copy-Item $ffmpeg $publish
 Copy-Item $ffprobe $publish
 Copy-Item (Join-Path $root "LICENSE") $publish
@@ -44,7 +44,7 @@ if ($env:WINDOWS_CERTIFICATE_BASE64) {
     Remove-Item $certificate
 }
 
-$zip = Join-Path $packages "AVID-$version-windows-$Architecture.zip"
+$zip = Join-Path $packages "ATIV-$version-windows-$Architecture.zip"
 if (Test-Path $zip) { Remove-Item $zip }
 Compress-Archive -Path "$publish/*" -DestinationPath $zip -CompressionLevel Optimal
 Write-Output $zip

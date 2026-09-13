@@ -2,13 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/avid integration ü.XXXXXX")"
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ativ integration ü.XXXXXX")"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 MEDIA_DIR="${WORK_DIR}/media with spaces"
-ENGINE="${ROOT_DIR}/target/debug/avid-engine"
+ENGINE="${ROOT_DIR}/target/debug/ativ-engine"
 mkdir -p "${MEDIA_DIR}"
 
-cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --locked -p avid-engine
+cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --locked -p ativ-engine
 ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=0x355070:s=640x360 -frames:v 1 "${MEDIA_DIR}/cover art.png"
 ffmpeg -hide_banner -loglevel error -f lavfi -i sine=frequency=523:duration=2 -c:a pcm_s16le "${MEDIA_DIR}/voice track.wav"
 
@@ -29,6 +29,6 @@ STATUS=$?
 set -e
 test "${STATUS}" -eq 130
 grep -F 'existing output must survive' "${MEDIA_DIR}/preserved.mp4"
-test -z "$(find "${MEDIA_DIR}" -maxdepth 1 -name '.avid-*.tmp.*' -print -quit)"
+test -z "$(find "${MEDIA_DIR}" -maxdepth 1 -name '.ativ-*.tmp.*' -print -quit)"
 
 echo "Engine integration checks passed."

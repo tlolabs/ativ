@@ -2,12 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleDisplayName</key><string>AVID</string>
-  <key>CFBundleExecutable</key><string>AVID</string>
-  <key>CFBundleIdentifier</key><string>AVID</string>
+  <key>CFBundleDisplayName</key><string>ATIV</string>
+  <key>CFBundleExecutable</key><string>ATIV</string>
+  <key>CFBundleIdentifier</key><string>com.tlolabs.ativ</string>
   <key>CFBundleIconFile</key><string>icon-windowed</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-  <key>CFBundleName</key><string>AVID</string>
+  <key>CFBundleName</key><string>ATIV</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.2.1</string>
   <key>CFBundleVersion</key><string>3</string>

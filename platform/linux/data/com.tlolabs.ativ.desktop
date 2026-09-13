@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=A.T.I.V.
+Comment=Create video from an image and audio recording
+Exec=ativ
+Icon=com.tlolabs.ativ
+Terminal=false
+Type=Application
+Categories=AudioVideo;Video;
+Keywords=video;audio;social;ffmpeg;

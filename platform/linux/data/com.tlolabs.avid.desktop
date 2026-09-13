@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=A.V.I.D.
-Comment=Create video from an image and audio recording
-Exec=avid
-Icon=com.tlolabs.avid
-Terminal=false
-Type=Application
-Categories=AudioVideo;Video;
-Keywords=video;audio;social;ffmpeg;

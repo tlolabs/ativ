@@ -1,4 +1,4 @@
-# Building A.V.I.D.
+# Building A.T.I.V.
 
 ## Prerequisites
 
@@ -12,12 +12,12 @@
 
 ```bash
 cargo test --workspace
-cargo build --release -p avid-engine
+cargo build --release -p ativ-engine
 ```
 
 The engine has no third-party Rust dependencies and does not use unsafe Rust.
 
-Local diagnostics are appended to the platform log directory and rotated at 1 MiB. Set `AVID_LOG_PATH` to use an explicit location during development or test automation. Logs remain on the device and are never uploaded by A.V.I.D.
+Local diagnostics are appended to the platform log directory and rotated at 1 MiB. Set `ATIV_LOG_PATH` to use an explicit location during development or test automation. Logs remain on the device and are never uploaded by A.T.I.V.
 
 ## macOS
 
@@ -27,14 +27,14 @@ Local bundles use ad-hoc signing. For distribution, first run `script/fetch_ffmp
 
 ## Windows
 
-Build the Rust engine for `x86_64-pc-windows-msvc` or `aarch64-pc-windows-msvc`, then build `platform/windows/AVID.sln` with the matching platform. Release automation places `avid-engine.exe`, `ffmpeg.exe`, and `ffprobe.exe` beside the packaged WinUI executable.
+Build the Rust engine for `x86_64-pc-windows-msvc` or `aarch64-pc-windows-msvc`, then build `platform/windows/ATIV.sln` with the matching platform. Release automation places `ativ-engine.exe`, `ffmpeg.exe`, and `ffprobe.exe` beside the packaged WinUI executable.
 
 ## Linux
 
 Build the Rust engine, then configure the native UI with Meson:
 
 ```bash
-meson setup build/linux platform/linux -Dengine_path="$PWD/target/release/avid-engine"
+meson setup build/linux platform/linux -Dengine_path="$PWD/target/release/ativ-engine"
 meson compile -C build/linux
 meson test -C build/linux
 ```

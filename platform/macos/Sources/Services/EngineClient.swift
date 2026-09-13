@@ -7,7 +7,7 @@ enum EngineClientError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingEngine: return "The A.V.I.D. media engine is missing. Reinstall the application."
+        case .missingEngine: return "The A.T.I.V. media engine is missing. Reinstall the application."
         case .launchFailed(let detail), .operationFailed(let detail): return detail
         }
     }
@@ -18,10 +18,10 @@ final class EngineClient {
     private var renderProcess: Process?
 
     private var engineURL: URL? {
-        if let configured = ProcessInfo.processInfo.environment["AVID_ENGINE_PATH"] { return URL(fileURLWithPath: configured) }
-        let bundled = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/avid-engine")
+        if let configured = ProcessInfo.processInfo.environment["ATIV_ENGINE_PATH"] { return URL(fileURLWithPath: configured) }
+        let bundled = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ativ-engine")
         if FileManager.default.isExecutableFile(atPath: bundled.path) { return bundled }
-        let local = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("target/debug/avid-engine")
+        let local = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("target/debug/ativ-engine")
         return FileManager.default.isExecutableFile(atPath: local.path) ? local : nil
     }
 

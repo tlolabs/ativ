@@ -30,7 +30,7 @@ verify_system_dependencies() {
 verify_system_dependencies "${FFMPEG_BIN}"
 verify_system_dependencies "${FFPROBE_BIN}"
 
-APP="${ROOT_DIR}/build/package-macos-${ARCH}/AVID.app"
+APP="${ROOT_DIR}/build/package-macos-${ARCH}/ATIV.app"
 CONTENTS="${APP}/Contents"
 MACOS="${CONTENTS}/MacOS"
 RESOURCES="${CONTENTS}/Resources"
@@ -38,14 +38,14 @@ SWIFT_BUILD="${ROOT_DIR}/build/swift-release-${ARCH}"
 PACKAGES="${ROOT_DIR}/packages"
 
 rustup target add "${RUST_TARGET}"
-cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked --target "${RUST_TARGET}" -p avid-engine
+cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked --target "${RUST_TARGET}" -p ativ-engine
 swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD}" -c release --arch "${ARCH}"
-SWIFT_BIN="$(swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD}" -c release --arch "${ARCH}" --show-bin-path)/AVID"
+SWIFT_BIN="$(swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD}" -c release --arch "${ARCH}" --show-bin-path)/ATIV"
 
 rm -rf "${APP}"
 mkdir -p "${MACOS}" "${RESOURCES}" "${PACKAGES}"
-cp "${SWIFT_BIN}" "${MACOS}/AVID"
-cp "${ROOT_DIR}/target/${RUST_TARGET}/release/avid-engine" "${MACOS}/avid-engine"
+cp "${SWIFT_BIN}" "${MACOS}/ATIV"
+cp "${ROOT_DIR}/target/${RUST_TARGET}/release/ativ-engine" "${MACOS}/ativ-engine"
 cp "${FFMPEG_BIN}" "${MACOS}/ffmpeg"
 cp "${FFPROBE_BIN}" "${MACOS}/ffprobe"
 cp "${ROOT_DIR}/platform/macos/Info.plist" "${CONTENTS}/Info.plist"
@@ -54,22 +54,22 @@ cp "${ROOT_DIR}/LICENSE" "${RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${RESOURCES}/THIRD_PARTY_NOTICES.md"
 "${MACOS}/ffmpeg" -buildconf > "${RESOURCES}/FFMPEG_BUILD_CONFIGURATION.txt" 2>&1
 cp "${FFMPEG_LICENSE_FILE:-${ROOT_DIR}/LICENSE}" "${RESOURCES}/FFMPEG_LICENSE.txt"
-chmod +x "${MACOS}/AVID" "${MACOS}/avid-engine" "${MACOS}/ffmpeg" "${MACOS}/ffprobe"
+chmod +x "${MACOS}/ATIV" "${MACOS}/ativ-engine" "${MACOS}/ffmpeg" "${MACOS}/ffprobe"
 
 SIGN_ARGS=(--force --options runtime --sign "${SIGN_IDENTITY}")
 if [[ "${SIGN_IDENTITY}" != "-" ]]; then SIGN_ARGS+=(--timestamp); fi
-codesign "${SIGN_ARGS[@]}" "${MACOS}/avid-engine"
+codesign "${SIGN_ARGS[@]}" "${MACOS}/ativ-engine"
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ffmpeg"
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ffprobe"
-codesign "${SIGN_ARGS[@]}" "${MACOS}/AVID"
+codesign "${SIGN_ARGS[@]}" "${MACOS}/ATIV"
 codesign --deep "${SIGN_ARGS[@]}" "${APP}"
 codesign --verify --deep --strict "${APP}"
 
-ZIP="${PACKAGES}/AVID-${VERSION}-macos-${ARCH}.zip"
-DMG="${PACKAGES}/AVID-${VERSION}-macos-${ARCH}.dmg"
+ZIP="${PACKAGES}/ATIV-${VERSION}-macos-${ARCH}.zip"
+DMG="${PACKAGES}/ATIV-${VERSION}-macos-${ARCH}.dmg"
 rm -f "${ZIP}" "${DMG}"
 ditto -c -k --sequesterRsrc --keepParent "${APP}" "${ZIP}"
-hdiutil create -quiet -volname "A.V.I.D. ${VERSION}" -srcfolder "${APP}" -ov -format UDZO "${DMG}"
+hdiutil create -quiet -volname "A.T.I.V. ${VERSION}" -srcfolder "${APP}" -ov -format UDZO "${DMG}"
 
 if [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
   xcrun notarytool submit "${DMG}" --keychain-profile "${APPLE_NOTARY_PROFILE}" --wait

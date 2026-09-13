@@ -3,12 +3,12 @@
 version = 4
 
 [[package]]
-name = "avid-core"
+name = "ativ-core"
 version = "0.2.1"
 
 [[package]]
-name = "avid-engine"
+name = "ativ-engine"
 version = "0.2.1"
 dependencies = [
- "avid-core",
+ "ativ-core",
 ]

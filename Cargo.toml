@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/avid-core",
-    "crates/avid-engine",
+    "crates/ativ-core",
+    "crates/ativ-engine",
 ]
 resolver = "2"
 
@@ -9,7 +9,7 @@ resolver = "2"
 version = "0.2.1"
 edition = "2024"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/tlolabs/avid"
+repository = "https://github.com/tlolabs/ativ"
 rust-version = "1.85"
 
 [profile.release]

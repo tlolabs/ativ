@@ -2,8 +2,8 @@
 #include <json-glib/json-glib.h>
 #include <glib/gstdio.h>
 
-#ifndef AVID_ENGINE_PATH
-#define AVID_ENGINE_PATH "avid-engine"
+#ifndef ATIV_ENGINE_PATH
+#define ATIV_ENGINE_PATH "ativ-engine"
 #endif
 
 typedef struct {
@@ -38,17 +38,17 @@ typedef struct {
   guint preview_generation;
   gboolean render_owner_ref_held;
   gboolean close_after_render;
-} AvidWindow;
+} AtivWindow;
 
 typedef struct {
-  AvidWindow *window;
+  AtivWindow *window;
   AdwApplicationWindow *owner;
   gchar *path;
   guint generation;
 } PreviewRequest;
 
-static void refresh_preview(AvidWindow *self);
-static void update_aspects(AvidWindow *self);
+static void refresh_preview(AtivWindow *self);
+static void update_aspects(AtivWindow *self);
 
 static void preset_free(gpointer data) {
   Preset *preset = data;
@@ -57,8 +57,8 @@ static void preset_free(gpointer data) {
   g_free(preset);
 }
 
-static void avid_window_free(gpointer data) {
-  AvidWindow *self = data;
+static void ativ_window_free(gpointer data) {
+  AtivWindow *self = data;
   if (self->render_process) {
     GOutputStream *input = g_subprocess_get_stdin_pipe(self->render_process);
     g_output_stream_write_all(input, "cancel\n", 7, NULL, NULL, NULL);
@@ -73,7 +73,7 @@ static void avid_window_free(gpointer data) {
 }
 
 static gboolean close_requested(GtkWindow *window, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   if (!self->render_process) return FALSE;
   GOutputStream *input = g_subprocess_get_stdin_pipe(self->render_process);
   g_output_stream_write_all(input, "cancel\n", 7, NULL, NULL, NULL);
@@ -83,10 +83,10 @@ static gboolean close_requested(GtkWindow *window, gpointer user_data) {
 }
 
 static gchar *resolve_engine(void) {
-  const gchar *configured = g_getenv("AVID_ENGINE_PATH");
+  const gchar *configured = g_getenv("ATIV_ENGINE_PATH");
   if (configured && *configured) return g_strdup(configured);
-  if (g_file_test(AVID_ENGINE_PATH, G_FILE_TEST_IS_EXECUTABLE)) return g_strdup(AVID_ENGINE_PATH);
-  return g_find_program_in_path("avid-engine");
+  if (g_file_test(ATIV_ENGINE_PATH, G_FILE_TEST_IS_EXECUTABLE)) return g_strdup(ATIV_ENGINE_PATH);
+  return g_find_program_in_path("ativ-engine");
 }
 
 static gboolean parse_event(const gchar *line, JsonObject **object_out) {
@@ -103,7 +103,7 @@ static gchar *selected_text(GtkDropDown *drop) {
   return item ? g_strdup(gtk_string_object_get_string(item)) : NULL;
 }
 
-static Preset *selected_preset(AvidWindow *self) {
+static Preset *selected_preset(AtivWindow *self) {
   g_autofree gchar *platform = selected_text(self->platform_drop);
   g_autofree gchar *aspect = selected_text(self->aspect_drop);
   g_autofree gchar *resolution = selected_text(self->resolution_drop);
@@ -124,7 +124,7 @@ static gboolean model_contains(GtkStringList *list, const gchar *value) {
   return FALSE;
 }
 
-static void update_resolutions(AvidWindow *self) {
+static void update_resolutions(AtivWindow *self) {
   g_autofree gchar *platform = selected_text(self->platform_drop);
   g_autofree gchar *aspect = selected_text(self->aspect_drop);
   GtkStringList *values = gtk_string_list_new(NULL);
@@ -141,7 +141,7 @@ static void update_resolutions(AvidWindow *self) {
   refresh_preview(self);
 }
 
-static void update_aspects(AvidWindow *self) {
+static void update_aspects(AtivWindow *self) {
   g_autofree gchar *platform = selected_text(self->platform_drop);
   GtkStringList *values = gtk_string_list_new(NULL);
   for (guint i = 0; i < self->presets->len; i++) {
@@ -154,7 +154,7 @@ static void update_aspects(AvidWindow *self) {
   update_resolutions(self);
 }
 
-static gboolean load_presets(AvidWindow *self) {
+static gboolean load_presets(AtivWindow *self) {
   const gchar *argv[] = {self->engine, "presets", NULL};
   g_autoptr(GError) error = NULL;
   g_autoptr(GSubprocess) process = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_STDOUT_PIPE, &error);
@@ -182,14 +182,14 @@ static gboolean load_presets(AvidWindow *self) {
   return self->presets->len > 0;
 }
 
-static void show_error(AvidWindow *self, const gchar *message) {
-  AdwAlertDialog *dialog = adw_alert_dialog_new("A.V.I.D. couldn’t complete the operation", message);
+static void show_error(AtivWindow *self, const gchar *message) {
+  AdwAlertDialog *dialog = adw_alert_dialog_new("A.T.I.V. couldn’t complete the operation", message);
   adw_alert_dialog_add_response(dialog, "ok", "OK");
   adw_alert_dialog_set_default_response(dialog, "ok");
   adw_dialog_present(ADW_DIALOG(dialog), GTK_WIDGET(self->window));
 }
 
-static void suggest_output(AvidWindow *self, const gchar *source) {
+static void suggest_output(AtivWindow *self, const gchar *source) {
   if (*gtk_editable_get_text(GTK_EDITABLE(self->output_entry))) return;
   g_autofree gchar *directory = g_path_get_dirname(source);
   g_autofree gchar *base = g_path_get_basename(source);
@@ -202,7 +202,7 @@ static void suggest_output(AvidWindow *self, const gchar *source) {
 
 static void preview_done(GObject *source, GAsyncResult *result, gpointer user_data) {
   PreviewRequest *request = user_data;
-  AvidWindow *self = request->window;
+  AtivWindow *self = request->window;
   g_autoptr(GError) error = NULL;
   if (g_subprocess_wait_check_finish(G_SUBPROCESS(source), result, &error) && request->generation == self->preview_generation) {
     if (self->preview_path) g_unlink(self->preview_path);
@@ -217,11 +217,11 @@ static void preview_done(GObject *source, GAsyncResult *result, gpointer user_da
   g_free(request);
 }
 
-static void refresh_preview(AvidWindow *self) {
+static void refresh_preview(AtivWindow *self) {
   const gchar *image = gtk_editable_get_text(GTK_EDITABLE(self->image_entry));
   Preset *preset = selected_preset(self);
   if (!*image || !preset) return;
-  g_autofree gchar *directory = g_build_filename(g_get_user_cache_dir(), "avid", NULL);
+  g_autofree gchar *directory = g_build_filename(g_get_user_cache_dir(), "ativ", NULL);
   g_mkdir_with_parents(directory, 0700);
   guint generation = ++self->preview_generation;
   g_autofree gchar *name = g_strdup_printf("preview-%u.png", generation);
@@ -249,7 +249,7 @@ static void refresh_preview(AvidWindow *self) {
 }
 
 static void image_chosen(GObject *source, GAsyncResult *result, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   g_autoptr(GError) error = NULL;
   g_autoptr(GFile) file = gtk_file_dialog_open_finish(GTK_FILE_DIALOG(source), result, &error);
   if (!file) return;
@@ -260,7 +260,7 @@ static void image_chosen(GObject *source, GAsyncResult *result, gpointer user_da
 }
 
 static void audio_chosen(GObject *source, GAsyncResult *result, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   g_autoptr(GError) error = NULL;
   g_autoptr(GFile) file = gtk_file_dialog_open_finish(GTK_FILE_DIALOG(source), result, &error);
   if (!file) return;
@@ -271,7 +271,7 @@ static void audio_chosen(GObject *source, GAsyncResult *result, gpointer user_da
 }
 
 static void output_chosen(GObject *source, GAsyncResult *result, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   g_autoptr(GError) error = NULL;
   g_autoptr(GFile) file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(source), result, &error);
   if (!file) return;
@@ -288,7 +288,7 @@ static void choose_image(GtkButton *button, gpointer user_data) {
   g_autoptr(GListStore) filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filters, filter);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
-  gtk_file_dialog_open(dialog, GTK_WINDOW(((AvidWindow *)user_data)->window), NULL, image_chosen, user_data);
+  gtk_file_dialog_open(dialog, GTK_WINDOW(((AtivWindow *)user_data)->window), NULL, image_chosen, user_data);
   g_object_unref(dialog);
 }
 
@@ -301,7 +301,7 @@ static void choose_audio(GtkButton *button, gpointer user_data) {
   g_autoptr(GListStore) filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filters, filter);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
-  gtk_file_dialog_open(dialog, GTK_WINDOW(((AvidWindow *)user_data)->window), NULL, audio_chosen, user_data);
+  gtk_file_dialog_open(dialog, GTK_WINDOW(((AtivWindow *)user_data)->window), NULL, audio_chosen, user_data);
   g_object_unref(dialog);
 }
 
@@ -315,12 +315,12 @@ static void choose_output(GtkButton *button, gpointer user_data) {
   g_autoptr(GListStore) filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filters, filter);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
-  gtk_file_dialog_save(dialog, GTK_WINDOW(((AvidWindow *)user_data)->window), NULL, output_chosen, user_data);
+  gtk_file_dialog_save(dialog, GTK_WINDOW(((AtivWindow *)user_data)->window), NULL, output_chosen, user_data);
   g_object_unref(dialog);
 }
 
 static void render_finished(GObject *source, GAsyncResult *result, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   g_autoptr(GError) error = NULL;
   gboolean success = g_subprocess_wait_check_finish(G_SUBPROCESS(source), result, &error);
   gboolean cancelled = g_subprocess_get_if_exited(G_SUBPROCESS(source)) && g_subprocess_get_exit_status(G_SUBPROCESS(source)) == 130;
@@ -349,7 +349,7 @@ static void render_finished(GObject *source, GAsyncResult *result, gpointer user
 }
 
 static void read_render_line(GObject *source, GAsyncResult *result, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   g_autoptr(GError) error = NULL;
   gsize length = 0;
   g_autofree gchar *line = g_data_input_stream_read_line_finish_utf8(G_DATA_INPUT_STREAM(source), result, &length, &error);
@@ -376,7 +376,7 @@ static void read_render_line(GObject *source, GAsyncResult *result, gpointer use
 }
 
 static void cancel_render(GtkButton *button, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   if (!self->render_process) return;
   GOutputStream *input = g_subprocess_get_stdin_pipe(self->render_process);
   g_output_stream_write_all(input, "cancel\n", 7, NULL, NULL, NULL);
@@ -385,7 +385,7 @@ static void cancel_render(GtkButton *button, gpointer user_data) {
 }
 
 static void start_render(GtkButton *button, gpointer user_data) {
-  AvidWindow *self = user_data;
+  AtivWindow *self = user_data;
   if (self->render_process) { cancel_render(button, user_data); return; }
   Preset *preset = selected_preset(self);
   const gchar *image = gtk_editable_get_text(GTK_EDITABLE(self->image_entry));
@@ -412,7 +412,7 @@ static void start_render(GtkButton *button, gpointer user_data) {
   g_data_input_stream_read_line_async(self->render_output, G_PRIORITY_DEFAULT, NULL, read_render_line, self);
 }
 
-static GtkWidget *file_row(const gchar *label, GtkEntry **entry_out, GCallback callback, AvidWindow *self) {
+static GtkWidget *file_row(const gchar *label, GtkEntry **entry_out, GCallback callback, AtivWindow *self) {
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
   GtkWidget *title = gtk_label_new(label);
   gtk_widget_set_size_request(title, 72, -1);
@@ -438,17 +438,17 @@ static void aspect_changed(GObject *object, GParamSpec *pspec, gpointer user_dat
 }
 
 static void activate(GtkApplication *application, gpointer user_data) {
-  AvidWindow *self = g_new0(AvidWindow, 1);
+  AtivWindow *self = g_new0(AtivWindow, 1);
   self->presets = g_ptr_array_new_with_free_func(preset_free);
   self->engine = resolve_engine();
   self->window = ADW_APPLICATION_WINDOW(adw_application_window_new(application));
   g_signal_connect(self->window, "close-request", G_CALLBACK(close_requested), self);
-  gtk_window_set_title(GTK_WINDOW(self->window), "A.V.I.D. — Audio Visual Integration & Distribution");
+  gtk_window_set_title(GTK_WINDOW(self->window), "A.T.I.V. — Audio Visual Integration & Distribution");
   gtk_window_set_default_size(GTK_WINDOW(self->window), 980, 700);
 
   GtkWidget *toolbar = adw_toolbar_view_new();
   GtkWidget *header = adw_header_bar_new();
-  adw_header_bar_set_title_widget(ADW_HEADER_BAR(header), adw_window_title_new("A.V.I.D.", "Audio Visual Integration & Distribution"));
+  adw_header_bar_set_title_widget(ADW_HEADER_BAR(header), adw_window_title_new("A.T.I.V.", "Audio Visual Integration & Distribution"));
   adw_toolbar_view_add_top_bar(ADW_TOOLBAR_VIEW(toolbar), header);
   GtkWidget *split = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
   adw_toolbar_view_set_content(ADW_TOOLBAR_VIEW(toolbar), split);
@@ -502,14 +502,14 @@ static void activate(GtkApplication *application, gpointer user_data) {
 
   if (!self->engine || !load_presets(self)) {
     gtk_widget_set_sensitive(GTK_WIDGET(self->render_button), FALSE);
-    gtk_label_set_text(self->status_label, "The A.V.I.D. media engine is missing or damaged. Reinstall the application.");
+    gtk_label_set_text(self->status_label, "The A.T.I.V. media engine is missing or damaged. Reinstall the application.");
   }
-  g_object_set_data_full(G_OBJECT(self->window), "avid-state", self, avid_window_free);
+  g_object_set_data_full(G_OBJECT(self->window), "ativ-state", self, ativ_window_free);
   gtk_window_present(GTK_WINDOW(self->window));
 }
 
 int main(int argc, char **argv) {
-  g_autoptr(AdwApplication) application = adw_application_new("com.tlolabs.avid", G_APPLICATION_DEFAULT_FLAGS);
+  g_autoptr(AdwApplication) application = adw_application_new("com.tlolabs.ativ", G_APPLICATION_DEFAULT_FLAGS);
   g_signal_connect(application, "activate", G_CALLBACK(activate), NULL);
   return g_application_run(G_APPLICATION(application), argc, argv);
 }

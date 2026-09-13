@@ -1,10 +1,4 @@
 .DS_Store
-__pycache__/
-*.pyc
-.venv/
-.venv-x86_64/
-.pyinstaller/
-*.spec
 
 # Native build output
 /target/

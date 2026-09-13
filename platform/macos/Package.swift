@@ -2,8 +2,8 @@
 import PackageDescription
 
 let package = Package(
-    name: "AVIDMac",
+    name: "ATIVMac",
     platforms: [.macOS(.v12)],
-    products: [.executable(name: "AVID", targets: ["AVID"])],
-    targets: [.executableTarget(name: "AVID", path: "Sources")]
+    products: [.executable(name: "ATIV", targets: ["ATIV"])],
+    targets: [.executableTarget(name: "ATIV", path: "Sources")]
 )

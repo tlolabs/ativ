@@ -9,6 +9,6 @@ updates:
     schedule:
       interval: monthly
   - package-ecosystem: nuget
-    directory: /platform/windows/AVID
+    directory: /platform/windows/ATIV
     schedule:
       interval: monthly

@@ -109,7 +109,7 @@ final class RenderStore: ObservableObject {
         let height = ratio >= 1 ? Int(360 / ratio) : 360
         let evenWidth = max(2, width - width % 2)
         let evenHeight = max(2, height - height % 2)
-        let output = FileManager.default.temporaryDirectory.appendingPathComponent("avid-preview-\(UUID().uuidString).png")
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-preview-\(UUID().uuidString).png")
         engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] result in
             DispatchQueue.main.async {
                 if case .success(let url) = result {
