@@ -233,6 +233,9 @@ pub fn render_video(
     let monitor_result = monitor_ffmpeg(&mut child, receiver, &cancelled, duration, events);
     let stderr_tail = stderr_thread.join().unwrap_or_default();
     let _ = stdout_thread.join();
+    for line in stderr_tail.lines() {
+        events.diagnostic(line);
+    }
     monitor_result?;
     let status = child
         .wait()

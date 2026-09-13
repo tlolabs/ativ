@@ -1,0 +1,173 @@
+name: Native build, test, and package
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  engine:
+    name: Shared Rust engine
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Install test media tools
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Validate Rust workspace
+        run: |
+          rustup component add rustfmt clippy
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test --workspace --locked
+      - name: Verify executable protocol and a real encode
+        run: ./script/test_engine_integration.sh
+
+  macos:
+    name: macOS ${{ matrix.arch }}
+    needs: engine
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            fetch_arch: aarch64
+            runner: macos-15
+          - arch: x86_64
+            fetch_arch: x86_64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Fetch verified static FFmpeg 9.0.1
+        run: ./script/fetch_ffmpeg.sh macos "${{ matrix.fetch_arch }}" "build/ffmpeg-macos-${{ matrix.arch }}"
+      - name: Configure release signing and notarization
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          : "${CERTIFICATE_BASE64:?Missing MACOS_CERTIFICATE_BASE64}"
+          : "${CERTIFICATE_PASSWORD:?Missing MACOS_CERTIFICATE_PASSWORD}"
+          : "${NOTARY_APPLE_ID:?Missing MACOS_NOTARY_APPLE_ID}"
+          : "${NOTARY_PASSWORD:?Missing MACOS_NOTARY_PASSWORD}"
+          : "${NOTARY_TEAM_ID:?Missing MACOS_NOTARY_TEAM_ID}"
+          : "${SIGNING_IDENTITY:?Missing MACOS_SIGNING_IDENTITY}"
+          KEYCHAIN="${RUNNER_TEMP}/avid-signing.keychain-db"
+          CERTIFICATE="${RUNNER_TEMP}/avid-signing.p12"
+          printf '%s' "${CERTIFICATE_BASE64}" | base64 -D > "${CERTIFICATE}"
+          security create-keychain -p "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
+          security unlock-keychain -p "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
+          security import "${CERTIFICATE}" -P "${CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "${KEYCHAIN}"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
+          security list-keychains -d user -s "${KEYCHAIN}"
+          xcrun notarytool store-credentials avid-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
+      - name: Build and package native application
+        env:
+          APPLE_SIGN_IDENTITY: ${{ startsWith(github.ref, 'refs/tags/') && secrets.MACOS_SIGNING_IDENTITY || '-' }}
+          APPLE_NOTARY_PROFILE: ${{ startsWith(github.ref, 'refs/tags/') && 'avid-notary' || '' }}
+          FFMPEG_BIN: ${{ github.workspace }}/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
+          FFPROBE_BIN: ${{ github.workspace }}/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
+        run: ./script/package_macos.sh "${{ matrix.arch }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: AVID-macos-${{ matrix.arch }}
+          path: packages/AVID-*-macos-${{ matrix.arch }}.*
+
+  windows:
+    name: Windows ${{ matrix.arch }}
+    needs: engine
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            fetch_arch: x86_64
+            runner: windows-2025
+          - arch: ARM64
+            fetch_arch: aarch64
+            runner: windows-11-arm
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Fetch verified FFmpeg 9.0.1
+        shell: bash
+        run: ./script/fetch_ffmpeg.sh windows "${{ matrix.fetch_arch }}" "build/ffmpeg-windows-${{ matrix.arch }}"
+      - name: Require signing credentials for tagged releases
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if (!$env:CERTIFICATE) { throw "Missing WINDOWS_CERTIFICATE_BASE64" }
+          if (!$env:PASSWORD) { throw "Missing WINDOWS_CERTIFICATE_PASSWORD" }
+      - name: Build and package native application
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
+        run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}" -FfmpegDirectory "build/ffmpeg-windows-${{ matrix.arch }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: AVID-windows-${{ matrix.arch }}
+          path: packages/AVID-*-windows-${{ matrix.arch }}.zip
+
+  linux:
+    name: Linux ${{ matrix.arch }}
+    needs: engine
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Install native toolkit
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils
+      - name: Fetch verified FFmpeg 9.0.1
+        run: ./script/fetch_ffmpeg.sh linux "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
+      - name: Build and package native application
+        run: ./script/package_linux.sh "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: AVID-linux-${{ matrix.arch }}
+          path: packages/*
+
+  release:
+    name: Publish signed release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [macos, windows, linux]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd release-assets
+          sha256sum * > SHA256SUMS
+          gh release create "${GITHUB_REF_NAME}" * --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --generate-notes --latest

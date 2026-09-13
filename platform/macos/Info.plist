@@ -5,6 +5,7 @@
   <key>CFBundleDisplayName</key><string>AVID</string>
   <key>CFBundleExecutable</key><string>AVID</string>
   <key>CFBundleIdentifier</key><string>AVID</string>
+  <key>CFBundleIconFile</key><string>icon-windowed</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>AVID</string>
   <key>CFBundlePackageType</key><string>APPL</string>

@@ -1,0 +1,1 @@
+option('engine_path', type: 'string', value: 'avid-engine', description: 'Path to the shared Rust engine')

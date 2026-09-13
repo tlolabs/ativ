@@ -4,7 +4,11 @@ updates:
     directory: /
     schedule:
       interval: monthly
-  - package-ecosystem: pip
+  - package-ecosystem: cargo
     directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: nuget
+    directory: /platform/windows/AVID
     schedule:
       interval: monthly

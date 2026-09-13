@@ -6,6 +6,8 @@ A.V.I.D. distribution packages include FFmpeg and ffprobe 9.0.1. FFmpeg is avail
 
 Release packaging must include the exact FFmpeg build's license and configuration alongside this notice. Source and corresponding-build information are available from the distributor named in the release manifest and from <https://ffmpeg.org/download.html>.
 
+Windows and Linux packages use checksum-pinned GPL builds from BtbN's FFmpeg-Builds project. macOS packages use architecture-specific, checksum-pinned static builds distributed by Martin Riedl. The pinned URLs and SHA-256 values are recorded in `script/fetch_ffmpeg.sh` and are verified before any binary is copied or signed.
+
 ## Windows App SDK
 
 The Windows application uses Microsoft Windows App SDK 2.4 under its accompanying Microsoft license and notices.

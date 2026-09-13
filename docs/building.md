@@ -17,11 +17,13 @@ cargo build --release -p avid-engine
 
 The engine has no third-party Rust dependencies and does not use unsafe Rust.
 
+Local diagnostics are appended to the platform log directory and rotated at 1 MiB. Set `AVID_LOG_PATH` to use an explicit location during development or test automation. Logs remain on the device and are never uploaded by A.V.I.D.
+
 ## macOS
 
 `./script/build_and_run.sh` is the canonical local kill/build/package/run entrypoint. It supports `--debug`, `--logs`, `--telemetry`, and `--verify`. The Codex Run action calls the same script.
 
-Local bundles use ad-hoc signing. Distribution packages are built by `script/package_macos.sh`, signed with a Developer ID Application identity when configured, notarized, stapled, and assessed before release. Apple Silicon and Intel artifacts are built separately so their bundled FFmpeg binaries remain native and independently verifiable.
+Local bundles use ad-hoc signing. For distribution, first run `script/fetch_ffmpeg.sh macos <aarch64|x86_64> <destination>`, then provide that destination's `ffmpeg` and `ffprobe` through `FFMPEG_BIN` and `FFPROBE_BIN` to `script/package_macos.sh`. The fetch step uses immutable architecture-specific URLs and repository-pinned SHA-256 values; packaging also rejects non-system dynamic-library dependencies. The resulting bundle is signed with a Developer ID Application identity when configured, notarized, stapled, and assessed before release. Apple Silicon and Intel artifacts are built separately.
 
 ## Windows
 

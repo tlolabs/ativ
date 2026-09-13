@@ -112,10 +112,11 @@ final class RenderStore: ObservableObject {
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("avid-preview-\(UUID().uuidString).png")
         engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] result in
             DispatchQueue.main.async {
-                guard let self, generation == self.previewGeneration else { return }
                 if case .success(let url) = result {
-                    self.previewImage = NSImage(contentsOf: url)
+                    let image = NSImage(contentsOf: url)
                     try? FileManager.default.removeItem(at: url)
+                    guard let self, generation == self.previewGeneration else { return }
+                    self.previewImage = image
                 }
             }
         }

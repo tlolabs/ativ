@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.tlolabs.avid</id>
+  <name>A.V.I.D.</name>
+  <summary>Create social video from an image and audio recording</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description><p>A.V.I.D. combines a still image with an audio recording using a native desktop interface and the FFmpeg media engine.</p></description>
+  <launchable type="desktop-id">com.tlolabs.avid.desktop</launchable>
+  <provides><binary>avid</binary></provides>
+  <content_rating type="oars-1.1" />
+</component>

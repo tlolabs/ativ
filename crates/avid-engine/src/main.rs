@@ -4,17 +4,23 @@ use avid_core::{
 };
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
+            append_log(&format!(
+                "error [{}]: {}",
+                error.code(),
+                error.user_message()
+            ));
             println!(
                 "{{\"event\":\"error\",\"code\":\"{}\",\"message\":\"{}\"}}",
                 error.code(),
@@ -110,7 +116,8 @@ fn run() -> avid_core::Result<()> {
                     }
                 }
             });
-            render_video(&tools, &request, cancelled, &JsonEvents)
+            let events = JsonEvents::new();
+            render_video(&tools, &request, cancelled, &events)
         }
         _ => Err(AvidError::InvalidInput(format!(
             "Unknown command '{command}'. Run avid-engine help."
@@ -172,9 +179,30 @@ impl Arguments {
     }
 }
 
-struct JsonEvents;
+struct JsonEvents {
+    log: Mutex<Option<File>>,
+}
+
+impl JsonEvents {
+    fn new() -> Self {
+        Self {
+            log: Mutex::new(open_log()),
+        }
+    }
+
+    fn log(&self, line: &str) {
+        use std::io::Write;
+        if let Ok(mut guard) = self.log.lock()
+            && let Some(file) = guard.as_mut()
+        {
+            let _ = writeln!(file, "{line}");
+        }
+    }
+}
+
 impl EventSink for JsonEvents {
     fn stage(&self, stage: Stage) {
+        self.log(&format!("stage: {}", stage.as_str()));
         println!("{{\"event\":\"stage\",\"stage\":\"{}\"}}", stage.as_str());
     }
     fn progress(&self, progress: RenderProgress) {
@@ -186,6 +214,82 @@ impl EventSink for JsonEvents {
             number(progress.eta_seconds)
         );
     }
+    fn diagnostic(&self, line: &str) {
+        self.log(line);
+    }
+}
+
+fn append_log(line: &str) {
+    use std::io::Write;
+    if let Some(mut file) = open_log() {
+        let _ = writeln!(file, "{line}");
+    }
+}
+
+fn open_log() -> Option<File> {
+    if let Some(path) = env::var_os("AVID_LOG_PATH") {
+        return open_log_at(&PathBuf::from(path), false);
+    }
+    open_log_at(&default_diagnostic_log_path()?, true)
+}
+
+fn open_log_at(path: &Path, protect_parent: bool) -> Option<File> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).ok()?;
+        #[cfg(unix)]
+        if protect_parent {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).ok()?;
+        }
+    }
+    if fs::metadata(path).is_ok_and(|metadata| metadata.len() > 1_048_576) {
+        let rotated = path.with_extension("log.old");
+        let _ = fs::remove_file(&rotated);
+        let _ = fs::rename(path, &rotated);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&rotated, fs::Permissions::from_mode(0o600));
+        }
+    }
+    let mut options = OpenOptions::new();
+    options.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let file = options.open(path).ok()?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).ok()?;
+    }
+    Some(file)
+}
+
+#[cfg(target_os = "macos")]
+fn default_diagnostic_log_path() -> Option<PathBuf> {
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .map(|home| home.join("Library/Logs/AVID/avid-engine.log"))
+}
+
+#[cfg(target_os = "windows")]
+fn default_diagnostic_log_path() -> Option<PathBuf> {
+    env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .map(|root| root.join("AVID/Logs/avid-engine.log"))
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn default_diagnostic_log_path() -> Option<PathBuf> {
+    if let Some(root) = env::var_os("XDG_STATE_HOME") {
+        return Some(PathBuf::from(root).join("avid/avid-engine.log"));
+    }
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .map(|home| home.join(".local/state/avid/avid-engine.log"))
 }
 
 fn print_presets() {
@@ -248,5 +352,34 @@ mod tests {
         .unwrap();
         assert_eq!(parsed.values["image"], "/tmp/my image.png");
         assert!(parsed.flags.contains("flip-horizontal"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn diagnostic_logs_are_private() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let directory =
+            env::temp_dir().join(format!("avid-log-test-{}-{unique}", std::process::id()));
+        let path = directory.join("avid-engine.log");
+        drop(open_log_at(&path, true).expect("open private log"));
+        assert_eq!(
+            fs::metadata(&directory)
+                .expect("directory")
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
+        assert_eq!(
+            fs::metadata(&path).expect("log").permissions().mode() & 0o777,
+            0o600
+        );
+        fs::remove_dir_all(directory).expect("cleanup");
     }
 }
