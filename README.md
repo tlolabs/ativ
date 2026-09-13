@@ -1,19 +1,33 @@
-# A.T.I.V. — Artwork + Tracks Into Video
+# ATIV
 
-A.T.I.V. turns a still image and an audio track into a polished H.264/AAC MP4 with native SwiftUI/AppKit, WinUI 3, and GTK 4/libadwaita applications.
+**Artwork + Tracks Into Video**
 
-## Architecture
+ATIV turns one still image and one audio track into a polished H.264/AAC MP4. It is a focused, local-first desktop app for musicians, podcasters, creators, and anyone who needs a shareable video built from artwork and sound.
 
-- `crates/ativ-core`: shared presets, validation, FFmpeg/ffprobe orchestration, progress, cancellation, and atomic output publication.
-- `crates/ativ-engine`: stable newline-delimited process API used by every native UI.
-- `platform/macos`: SwiftUI/AppKit application for Apple Silicon and Intel.
-- `platform/windows`: WinUI 3 application for x64 and ARM64.
-- `platform/linux`: GTK 4/libadwaita application.
-- `docs`: behavior, architecture, protocol, build, and packaging references.
+## How it works
 
-FFmpeg 9.0.1 and ffprobe are required architectural dependencies and are bundled in release packages. Development builds may use compatible tools from `PATH`.
+1. Choose your artwork and audio track.
+2. Pick a platform-ready size or a general video format.
+3. Preview the composition, then export an MP4.
 
-## Build the shared engine
+ATIV keeps the workflow deliberately simple: no timeline, account, upload, or project format is required.
+
+## What you get
+
+- Native desktop interfaces for macOS, Windows, and Linux.
+- Platform-ready portrait, landscape, square, and 4:5 presets.
+- A styled image preview with horizontal and vertical flip controls.
+- H.264 video and AAC audio output in a single MP4.
+- Progress reporting, safe cancellation, and atomic output replacement.
+- Fully local processing with no telemetry, analytics, hosted crash reporting, or automatic uploads.
+
+## Platforms
+
+ATIV supports macOS 12 or later on Apple Silicon and Intel, Windows 10 version 1809 or later on x64 and ARM64, and current Linux distributions with GTK 4 and libadwaita 1.5 or later.
+
+Release packages bundle the ATIV engine with FFmpeg and ffprobe. See [building and packaging](docs/building.md) for development and release instructions.
+
+## Build from source
 
 ```bash
 cargo build --workspace
@@ -21,18 +35,18 @@ cargo test --workspace
 cargo run -p ativ-engine -- check
 ```
 
-## Run the macOS application
+On macOS, build and launch the complete local app bundle with:
 
 ```bash
 ./script/build_and_run.sh
 ```
 
-The script builds the Rust engine and SwiftUI application, stages a proper local `.app` bundle, includes FFmpeg/ffprobe, and launches it. See [`docs/building.md`](docs/building.md) for all platforms and release packaging.
+For architecture, validation, and release details, see the [architecture](docs/architecture.md), [acceptance matrix](docs/acceptance-matrix.md), and [release checklist](docs/release-checklist.md).
 
-## Safety and privacy
+## Privacy and file safety
 
-A.T.I.V. never alters input files, writes completed output atomically, and cleans up partial renders after errors or cancellation. It does not include telemetry, analytics, hosted crash reporting, or automatic diagnostic uploads.
+ATIV never modifies your source artwork or audio. Completed output is staged beside the destination and published only after a successful render. If rendering fails or is cancelled, partial output is cleaned up and an existing destination file is preserved.
 
 ## License
 
-A.T.I.V. is GPL-3.0-or-later. FFmpeg builds and other redistributed components retain their own licenses; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+ATIV is licensed under GPL-3.0-or-later. FFmpeg and other redistributed components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

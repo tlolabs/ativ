@@ -1,42 +1,48 @@
-# A.T.I.V. native architecture
+# ATIV architecture
 
-A.T.I.V. 0.2 is one shared Rust media engine with three independent native desktop presentations.
+ATIV is a native desktop application backed by one shared Rust media engine. The app combines artwork and an audio track into an MP4 without sending either file to a service.
 
 ```text
 SwiftUI/AppKit ─┐
-WinUI 3/C# ─────┼─ newline-delimited typed process protocol ─ ativ-engine ─ FFmpeg/ffprobe
-GTK 4/Adwaita ──┘                                      │
-                                                ativ-core library
+WinUI 3/C# ─────┼─ typed process protocol ─ ativ-engine ─ FFmpeg / ffprobe
+GTK 4/Adwaita ──┘                              │
+                                             ativ-core
 ```
 
-The process boundary is deliberate. It contains no unsafe code, gives each UI natural asynchronous process APIs, keeps crashes and cancellation isolated, and lets each package place the engine and media tools together. Native applications send paths as individual process arguments (never shell command strings), consume JSON events from standard output, and send `cancel` on standard input.
+## Components
 
-`ativ-core` owns presets, validation, source resource limits, image composition, probing, FFmpeg argument construction, progress normalization, cancellation, staging, and publication. Platform applications own only file panels, drag and drop, menus, appearance, accessibility, window lifecycle, and presentation state.
+- `ativ-core` owns presets, validation, media probing, FFmpeg argument construction, preview/rendering, progress normalization, cancellation, staging, and output publication.
+- `ativ-engine` exposes that functionality through a stable newline-delimited JSON process interface.
+- `platform/macos`, `platform/windows`, and `platform/linux` provide native file pickers, drag and drop, accessibility, window management, and each platform’s visual language.
 
-## Data safety
+The process boundary keeps media work isolated from the user interfaces. Native clients pass file paths as individual process arguments, not shell strings; receive JSON events on standard output; and send `cancel` on standard input when a render must stop.
 
-A.T.I.V. has no project/document format, database, credentials, or saved preset format. Its user-data contract consists of user-selected source media and MP4 output. It does not modify source media. A completed output is encoded beside the destination and published only after FFmpeg succeeds. Cancellation or failure removes staging data and preserves a prior output.
+## Render lifecycle
 
-Native platform window restoration uses each operating system's standard facilities and cannot affect source media or completed output.
+1. ATIV validates the artwork, audio, dimensions, and destination.
+2. It probes the audio duration and builds the image composition.
+3. FFmpeg renders to a staged file beside the requested destination.
+4. After a successful render, ATIV atomically publishes the staged file.
 
-## Protocol stability
+Cancellation and failure remove staged data and leave an existing destination untouched. Source files are never modified.
 
-The engine protocol is append-only within major version 0.2. Unknown JSON fields and event types must be ignored by clients. Current events are `tools`, `presets`, `probe`, `stage`, `progress`, `complete`, and `error`. Errors include a stable machine-readable `code` and a plain-language `message`. File paths never appear in events unless a future protocol version explicitly documents them.
+## Engine protocol
 
-Cancellation is the UTF-8 line `cancel\n`. The engine terminates and reaps FFmpeg, deletes its staged output, and exits with status 130.
+The engine protocol is append-only within the 0.2 major line. Clients must ignore event types and JSON fields they do not recognize. Current events are `tools`, `presets`, `probe`, `stage`, `progress`, `complete`, and `error`.
 
-## Platform baselines
+Errors contain a stable machine-readable `code` and a plain-language `message`. Paths are supplied as command arguments and are not emitted in events. To cancel a render, write the UTF-8 line `cancel\n`; the engine stops FFmpeg, removes its staged output, and exits with status 130.
 
-- macOS 12 or later, Apple Silicon and Intel. macOS 12 is the lowest practical baseline for the SwiftUI and concurrency APIs used here and remains compatible with currently supported Intel Macs.
-- Windows 10 version 1809 or later, x64 and ARM64, matching the Windows App SDK 2.4 support floor.
-- Linux distributions providing GTK 4 and libadwaita 1.5 or later. Release packages target current Ubuntu/Fedora-family runtimes and bundle the Rust engine plus FFmpeg tools.
+## Safety boundaries
 
-## Security boundaries
+- Inputs are local files; FFmpeg protocols are limited to `file,pipe`.
+- Source images are limited to 32,768 pixels per axis and 50 megapixels.
+- Output is limited to 8,192 pixels per axis and 33,177,600 pixels.
+- FFmpeg and ffprobe run without a shell and with standard input disabled.
+- Packaged media tools are version-checked before use.
+- Diagnostics remain local; ATIV has no telemetry or automatic diagnostic upload.
 
-- Inputs are local files and FFmpeg protocols are restricted to `file,pipe`.
-- Source images are capped at 32,768 pixels per axis and 50 megapixels before decode.
-- Output is capped at 8,192 pixels per axis and 33,177,600 pixels.
-- FFmpeg and ffprobe are launched without a shell and with standard input disabled.
-- Packaged tools are version-checked before use.
-- No telemetry or automatic diagnostic upload exists.
-- Raw tool output remains local and is never presented as the primary user-facing error.
+## Platform support
+
+- **macOS:** macOS 12 or later, Apple Silicon and Intel.
+- **Windows:** Windows 10 version 1809 or later, x64 and ARM64.
+- **Linux:** GTK 4 and libadwaita 1.5 or later on current Ubuntu- and Fedora-family distributions.
