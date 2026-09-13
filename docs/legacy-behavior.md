@@ -2,6 +2,10 @@
 
 The validated Python baseline is commit `c97aab7` and remains runnable from `legacy-python/`.
 
+![Legacy Python macOS interface](legacy-ui/macos-python-main-window.png)
+
+This records the preserved Python/Tk application as installed before the native rewrite. It is a behavioral reference, not a pixel-for-pixel design requirement.
+
 ## Workflow
 
 1. Select one local image and one local audio file.
