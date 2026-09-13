@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import argparse
+import os
 import platform
 import sys
 from pathlib import Path
@@ -31,6 +32,28 @@ def normalized_arch(machine: str) -> str:
 
 def media_tool_name(target_platform: str, tool_name: str) -> str:
     return f"{tool_name}.exe" if target_platform == "windows" else tool_name
+
+
+def media_tool_candidates(root: Path, target_platform: str, target_arch: str, tool_name: str) -> list[Path]:
+    binary_name = media_tool_name(target_platform, tool_name)
+    candidates = [
+        root / "ffmpeg" / target_platform / target_arch / binary_name,
+        root / "ffmpeg" / target_platform / binary_name,
+        root / "ffmpeg" / binary_name,
+        root / binary_name,
+    ]
+    if root.suffix.lower() == ".app":
+        candidates.extend(
+            root / "Contents" / location / binary_name
+            for location in ("Resources", "Frameworks", "MacOS")
+        )
+    unique = []
+    seen = set()
+    for candidate in candidates:
+        if candidate not in seen:
+            seen.add(candidate)
+            unique.append(candidate)
+    return unique
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,34 +88,35 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    expected_ffmpeg_path = (
-        args.root
-        / "ffmpeg"
-        / args.target_platform
-        / args.target_arch
-        / media_tool_name(args.target_platform, "ffmpeg")
-    )
-    expected_ffprobe_path = (
-        args.root
-        / "ffmpeg"
-        / args.target_platform
-        / args.target_arch
-        / media_tool_name(args.target_platform, "ffprobe")
-    )
+    candidate_sets = {
+        tool_name: media_tool_candidates(args.root, args.target_platform, args.target_arch, tool_name)
+        for tool_name in ("ffmpeg", "ffprobe")
+    }
 
     print(f"Target platform: {args.target_platform}")
     print(f"Target architecture: {args.target_arch}")
-    print(f"Expected bundled FFmpeg path: {expected_ffmpeg_path}")
-    print(f"Expected bundled ffprobe path: {expected_ffprobe_path}")
+    for tool_name, candidates in candidate_sets.items():
+        print(f"Searched bundled {tool_name} paths:")
+        for candidate in candidates:
+            print(f"  {candidate}")
 
-    missing_paths = [path for path in (expected_ffmpeg_path, expected_ffprobe_path) if not path.exists()]
-    if not missing_paths:
+    found_paths = {
+        tool_name: next(
+            (path for path in candidates if path.is_file() and os.access(path, os.X_OK)),
+            None,
+        )
+        for tool_name, candidates in candidate_sets.items()
+    }
+    if all(found_paths.values()):
+        for tool_name, path in found_paths.items():
+            print(f"Bundled {tool_name}: {path}")
         print("Bundled FFmpeg/ffprobe check: OK")
         return 0
 
     if args.require_bundled_ffmpeg:
-        for path in missing_paths:
-            print(f"Missing bundled media binary: {path}", file=sys.stderr)
+        for tool_name, path in found_paths.items():
+            if path is None:
+                print(f"Missing bundled media binary: {tool_name}", file=sys.stderr)
         return 1
 
     print("Bundled FFmpeg/ffprobe check: not complete, but not required")

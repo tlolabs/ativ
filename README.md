@@ -37,6 +37,8 @@ Why GPLv3 for this project:
 
 ## Setup
 
+Python 3.10 or newer is required.
+
 1. For source-based development, install FFmpeg or provide bundled FFmpeg/ffprobe binaries in the expected project paths. Packaged app releases include the required media binaries.
 2. Install Python dependencies:
 
@@ -90,6 +92,8 @@ Local macOS builds can be created with:
 
 The Intel macOS build requires an x86_64 Python/PyInstaller environment. The GitHub Actions workflow in `.github/workflows/build-packages.yml` builds native packages for macOS ARM64, macOS Intel, Windows x64, and Linux x64 on the appropriate runner platforms.
 
+Tagged macOS releases require Developer ID signing and notarization. Configure the repository secrets `MACOS_CERTIFICATE_BASE64`, `MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_PASSWORD`, and `MACOS_NOTARY_TEAM_ID`. Manual workflow runs may still produce unsigned test packages. Local signed builds use `MACOS_SIGNING_IDENTITY` and a `notarytool` keychain profile named by `MACOS_NOTARY_PROFILE`; set `AVID_REQUIRE_SIGNED_RELEASE=1` to fail closed when either is missing.
+
 ## Usage
 
 ### GUI
@@ -129,6 +133,8 @@ python3 avid.py --check-ffmpeg
 - `--flip-vertical` flip image layers vertically
 - `--audio-bitrate` AAC bitrate, e.g. `96k`, `128k`, `192k` (default: `128k`)
 - `--fps` video fps (default: `30`)
+
+For predictable memory use, source images are limited to 32,768 pixels per axis and 50 million pixels total. Output is limited to 8,192 pixels per axis and 33,177,600 pixels total (8K UHD). FFmpeg and ffprobe are restricted to local file and pipe protocols while reading selected media.
 
 ### Example
 

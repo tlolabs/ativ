@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import argparse
-import queue
+import math
+import os
 import platform
+import queue
+import re
 import shlex
 import shutil
 import subprocess
@@ -42,6 +45,12 @@ FFMPEG_DOWNLOAD_PAGES = {
         "https://johnvansickle.com/ffmpeg/",
     ],
 }
+
+MAX_SOURCE_IMAGE_DIMENSION = 32_768
+MAX_SOURCE_IMAGE_PIXELS = 50_000_000
+MAX_OUTPUT_DIMENSION = 8_192
+MAX_OUTPUT_PIXELS = 33_177_600  # 8K UHD: 7680 x 4320
+LOCAL_MEDIA_PROTOCOLS = "file,pipe"
 
 
 class RenderCancelledError(RuntimeError):
@@ -72,6 +81,10 @@ def parse_size(size_text: str) -> tuple[int, int]:
         raise argparse.ArgumentTypeError("Width and height must be positive")
     if width % 2 or height % 2:
         raise argparse.ArgumentTypeError("Width and height must be even numbers for H.264 video")
+    if width > MAX_OUTPUT_DIMENSION or height > MAX_OUTPUT_DIMENSION or width * height > MAX_OUTPUT_PIXELS:
+        raise argparse.ArgumentTypeError(
+            f"Output size exceeds the {MAX_OUTPUT_DIMENSION}px / {MAX_OUTPUT_PIXELS:,}-pixel safety limit"
+        )
     return width, height
 
 
@@ -157,14 +170,14 @@ def bundled_ffprobe_candidates() -> list[Path]:
 
 def bundled_ffmpeg_path() -> Path | None:
     for candidate in bundled_ffmpeg_candidates():
-        if candidate.exists():
+        if candidate.is_file() and os.access(candidate, os.X_OK):
             return candidate
     return None
 
 
 def bundled_ffprobe_path() -> Path | None:
     for candidate in bundled_ffprobe_candidates():
-        if candidate.exists():
+        if candidate.is_file() and os.access(candidate, os.X_OK):
             return candidate
     return None
 
@@ -228,6 +241,36 @@ def ffmpeg_setup_details() -> dict[str, str | list[str]]:
     }
 
 
+def validate_audio_bitrate(bitrate_text: str) -> str:
+    clean = bitrate_text.strip().lower()
+    if not clean:
+        raise argparse.ArgumentTypeError("Audio bitrate cannot be empty")
+    match = re.fullmatch(r"([0-9]+)[kmb]?", clean)
+    if match is None or int(match.group(1)) <= 0:
+        raise argparse.ArgumentTypeError(f"Invalid audio bitrate: '{bitrate_text}' (example: '128k' or '192k')")
+    return clean
+
+
+def _parse_time_to_seconds(time_val: str) -> float | None:
+    time_val = time_val.strip()
+    try:
+        if ":" in time_val:
+            parts = time_val.split(":")
+            if len(parts) not in (2, 3):
+                return None
+            value = 0.0
+            for part in parts:
+                value = value * 60 + float(part)
+        else:
+            try:
+                value = int(time_val) / 1_000_000
+            except ValueError:
+                value = float(time_val)
+        return value if math.isfinite(value) else None
+    except (ValueError, OverflowError):
+        return None
+
+
 def get_media_duration(audio_path: Path) -> float | None:
     ffprobe_path, _source = find_ffprobe()
     if ffprobe_path is None:
@@ -236,24 +279,34 @@ def get_media_duration(audio_path: Path) -> float | None:
         ffprobe_path,
         "-v",
         "error",
+        "-protocol_whitelist",
+        LOCAL_MEDIA_PROTOCOLS,
+        "-select_streams",
+        "a:0",
         "-show_entries",
-        "format=duration",
+        "format=duration:stream=duration",
         "-of",
         "default=noprint_wrappers=1:nokey=1",
-        str(audio_path),
+        str(audio_path.resolve()),
     ]
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-    except (OSError, subprocess.CalledProcessError):
+        result = subprocess.run(
+            cmd, check=True, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
         return None
-    duration_text = result.stdout.strip()
-    if not duration_text:
-        return None
-    try:
-        duration = float(duration_text)
-    except ValueError:
-        return None
-    return duration if duration > 0 else None
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if not line or line.upper() == "N/A":
+            continue
+        try:
+            duration = float(line)
+            if math.isfinite(duration) and duration > 0:
+                return duration
+        except ValueError:
+            continue
+    return None
 
 
 def build_composite(
@@ -261,9 +314,33 @@ def build_composite(
     output_size: tuple[int, int],
     flip_horizontal: bool,
     flip_vertical: bool,
+    blur_radius: float = 40,
 ) -> Image.Image:
     out_w, out_h = output_size
+    if (
+        out_w <= 0
+        or out_h <= 0
+        or out_w > MAX_OUTPUT_DIMENSION
+        or out_h > MAX_OUTPUT_DIMENSION
+        or out_w * out_h > MAX_OUTPUT_PIXELS
+    ):
+        raise ValueError(
+            f"Output size exceeds the {MAX_OUTPUT_DIMENSION}px / {MAX_OUTPUT_PIXELS:,}-pixel safety limit"
+        )
     with Image.open(image_path) as raw_image:
+        source_w, source_h = raw_image.size
+        if (
+            source_w <= 0
+            or source_h <= 0
+            or source_w > MAX_SOURCE_IMAGE_DIMENSION
+            or source_h > MAX_SOURCE_IMAGE_DIMENSION
+            or source_w * source_h > MAX_SOURCE_IMAGE_PIXELS
+        ):
+            raise ValueError(
+                "Source image dimensions "
+                f"{source_w}x{source_h} exceed the {MAX_SOURCE_IMAGE_DIMENSION}px / "
+                f"{MAX_SOURCE_IMAGE_PIXELS:,}-pixel safety limit"
+            )
         base = ImageOps.exif_transpose(raw_image).convert("RGBA")
 
     if flip_horizontal:
@@ -271,17 +348,19 @@ def build_composite(
     if flip_vertical:
         base = base.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
 
+    # Resize only the visible source region. Resizing the entire panorama first
+    # can allocate an intermediate image hundreds of times larger than output.
     bg_scale = max(out_w / base.width, out_h / base.height)
-    bg_size = (
-        max(1, int(round(base.width * bg_scale))),
-        max(1, int(round(base.height * bg_scale))),
+    crop_w, crop_h = out_w / bg_scale, out_h / bg_scale
+    left, top = (base.width - crop_w) / 2, (base.height - crop_h) / 2
+    background_rgba = base.resize(
+        (out_w, out_h), Image.Resampling.BILINEAR,
+        box=(left, top, left + crop_w, top + crop_h),
     )
-    background_source = Image.alpha_composite(Image.new("RGBA", base.size, "black"), base).convert("RGB")
-    background = background_source.resize(bg_size, Image.Resampling.LANCZOS)
-    bg_x = (bg_size[0] - out_w) // 2
-    bg_y = (bg_size[1] - out_h) // 2
-    background = background.crop((bg_x, bg_y, bg_x + out_w, bg_y + out_h))
-    background = background.filter(ImageFilter.GaussianBlur(radius=40))
+    background = Image.alpha_composite(
+        Image.new("RGBA", output_size, "black"), background_rgba,
+    ).convert("RGB")
+    background = background.filter(ImageFilter.GaussianBlur(radius=blur_radius))
 
     square_side = min(out_w, out_h)
     fg_scale = min(square_side / base.width, square_side / base.height)
@@ -310,17 +389,28 @@ def run_ffmpeg(
     progress_callback=None,
     command_callback=None,
 ) -> None:
+    if stop_event is not None and stop_event.is_set():
+        raise RenderCancelledError("Video creation stopped.")
     cmd = [
         ffmpeg_path,
+        "-nostdin",
         "-y",
         "-loop",
         "1",
         "-framerate",
         str(fps),
+        "-protocol_whitelist",
+        LOCAL_MEDIA_PROTOCOLS,
         "-i",
-        str(composite_path),
+        str(composite_path.resolve()),
+        "-protocol_whitelist",
+        LOCAL_MEDIA_PROTOCOLS,
         "-i",
-        str(audio_path),
+        str(audio_path.resolve()),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
         "-c:v",
         "libx264",
         "-tune",
@@ -334,10 +424,12 @@ def run_ffmpeg(
         "-shortest",
         "-movflags",
         "+faststart",
+        "-f",
+        "mp4",
         "-progress",
         "pipe:1",
         "-nostats",
-        str(output_path),
+        str(output_path.resolve()),
     ]
     if command_callback is not None:
         command_callback(" ".join(shlex.quote(part) for part in cmd))
@@ -347,23 +439,39 @@ def run_ffmpeg(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
     )
     progress_state: dict[str, str] = {}
     output_tail: deque[str] = deque(maxlen=20)
-    output_queue: queue.Queue[str | None] = queue.Queue()
+    output_queue: queue.Queue[str | Exception | None] = queue.Queue(maxsize=256)
+    reader_stop = threading.Event()
+
+    def enqueue(item: str | Exception | None) -> None:
+        while not reader_stop.is_set():
+            try:
+                output_queue.put(item, timeout=0.1)
+                return
+            except queue.Full:
+                continue
 
     def read_output() -> None:
-        if process.stdout is None:
-            output_queue.put(None)
-            return
-        for output_line in iter(process.stdout.readline, ""):
-            output_queue.put(output_line)
-        output_queue.put(None)
+        try:
+            if process.stdout is not None:
+                for output_line in iter(process.stdout.readline, ""):
+                    if reader_stop.is_set():
+                        break
+                    enqueue(output_line)
+        except Exception as exc:
+            enqueue(exc)
+        finally:
+            enqueue(None)
 
     reader = threading.Thread(target=read_output, name="avid-ffmpeg-output", daemon=True)
     reader.start()
     try:
+        reached_eof = False
         while True:
             if stop_event is not None and stop_event.is_set():
                 process.terminate()
@@ -378,12 +486,18 @@ def run_ffmpeg(
                 raise RuntimeError("FFmpeg output stream was not available.")
 
             try:
-                raw_line = output_queue.get(timeout=0.1)
+                raw_line = None if reached_eof else output_queue.get(timeout=0.1)
             except queue.Empty:
                 raw_line = ""
 
+            if isinstance(raw_line, Exception):
+                raise RuntimeError("Could not read FFmpeg output") from raw_line
             if raw_line is None:
-                return_code = process.wait()
+                reached_eof = True
+                try:
+                    return_code = process.wait(timeout=0.1)
+                except subprocess.TimeoutExpired:
+                    continue
                 if return_code != 0:
                     raise FFmpegExecutionError(return_code, cmd, "\n".join(output_tail))
                 return
@@ -396,22 +510,37 @@ def run_ffmpeg(
 
                 if "=" in line:
                     key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip()
                     progress_state[key] = value
-                    if progress_callback is not None and key in {"out_time_ms", "out_time_us", "progress"}:
+                    if progress_callback is not None and key == "progress":
                         progress_seconds = None
-                        raw_value = progress_state.get("out_time_us") or progress_state.get("out_time_ms")
-                        if raw_value:
+                        raw_us = progress_state.get("out_time_us") or progress_state.get("out_time_ms")
+                        if raw_us:
                             try:
-                                progress_seconds = int(raw_value) / 1_000_000
+                                progress_seconds = int(raw_us) / 1_000_000
                             except ValueError:
                                 progress_seconds = None
 
+                        if progress_seconds is None and "out_time" in progress_state:
+                            progress_seconds = _parse_time_to_seconds(progress_state["out_time"])
+
                         fraction = None
                         eta_seconds = None
-                        if duration_seconds and progress_seconds is not None:
+                        if (
+                            duration_seconds
+                            and math.isfinite(duration_seconds)
+                            and duration_seconds > 0
+                            and progress_seconds is not None
+                        ):
                             fraction = max(0.0, min(progress_seconds / duration_seconds, 1.0))
                             remaining = max(duration_seconds - progress_seconds, 0.0)
-                            eta_seconds = remaining
+                            try:
+                                speed = float(progress_state.get("speed", "").rstrip("x"))
+                            except ValueError:
+                                speed = 0.0
+                            if math.isfinite(speed) and speed > 0:
+                                eta_seconds = remaining / speed
 
                         progress_callback(
                             {
@@ -424,9 +553,11 @@ def run_ffmpeg(
                         )
 
     finally:
+        reader_stop.set()
         if process.poll() is None:
             process.kill()
             process.wait()
+        reader.join(timeout=1)
         if process.stdout is not None:
             process.stdout.close()
 
@@ -444,20 +575,42 @@ def create_video(
     progress_callback=None,
     command_callback=None,
 ) -> None:
-    ffmpeg_path = ensure_ffmpeg()
-
-    if not image_path.exists():
+    image_path = image_path.resolve()
+    audio_path = audio_path.resolve()
+    output_path = output_path.resolve()
+    if stop_event is not None and stop_event.is_set():
+        raise RenderCancelledError("Video creation stopped.")
+    if not image_path.is_file():
         raise FileNotFoundError(f"Image not found: {image_path}")
-    if not audio_path.exists():
+    if not audio_path.is_file():
         raise FileNotFoundError(f"Audio not found: {audio_path}")
-    if fps <= 0:
+    for input_path in (image_path, audio_path):
+        if output_path == input_path or (output_path.exists() and output_path.samefile(input_path)):
+            raise ValueError("Output must be different from the image and audio inputs")
+    if output_path.exists() and not output_path.is_file():
+        raise ValueError("Output must be a file path")
+    if not isinstance(fps, int) or isinstance(fps, bool) or fps <= 0:
         raise ValueError("fps must be a positive integer")
+    if len(output_size) != 2 or any(not isinstance(n, int) or isinstance(n, bool) for n in output_size):
+        raise ValueError("Output width and height must be integers")
     if output_size[0] <= 0 or output_size[1] <= 0:
         raise ValueError("Output width and height must be positive")
     if output_size[0] % 2 or output_size[1] % 2:
         raise ValueError("Output width and height must be even numbers for H.264 video")
+    if (
+        output_size[0] > MAX_OUTPUT_DIMENSION
+        or output_size[1] > MAX_OUTPUT_DIMENSION
+        or output_size[0] * output_size[1] > MAX_OUTPUT_PIXELS
+    ):
+        raise ValueError(
+            f"Output size exceeds the {MAX_OUTPUT_DIMENSION}px / {MAX_OUTPUT_PIXELS:,}-pixel safety limit"
+        )
+    audio_bitrate = validate_audio_bitrate(audio_bitrate)
+    ffmpeg_path = ensure_ffmpeg()
     duration_seconds = get_media_duration(audio_path)
 
+    if stop_event is not None and stop_event.is_set():
+        raise RenderCancelledError("Video creation stopped.")
     composite = build_composite(
         image_path=image_path,
         output_size=output_size,
@@ -468,14 +621,16 @@ def create_video(
         raise RenderCancelledError("Video creation stopped.")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="avid_") as tmp_dir:
+    # Same-filesystem staging preserves an existing output on failure or stop.
+    with tempfile.TemporaryDirectory(prefix=".avid_", dir=output_path.parent) as tmp_dir:
         composite_path = Path(tmp_dir) / "composite.png"
         composite.save(composite_path, "PNG")
+        staged_output = Path(tmp_dir) / "encoded.mp4"
         run_ffmpeg(
             ffmpeg_path=ffmpeg_path,
             composite_path=composite_path,
             audio_path=audio_path,
-            output_path=output_path,
+            output_path=staged_output,
             audio_bitrate=audio_bitrate,
             fps=fps,
             stop_event=stop_event,
@@ -483,6 +638,9 @@ def create_video(
             progress_callback=progress_callback,
             command_callback=command_callback,
         )
+        if stop_event is not None and stop_event.is_set():
+            raise RenderCancelledError("Video creation stopped.")
+        os.replace(staged_output, output_path)
 
 
 def parse_args() -> argparse.Namespace:
@@ -502,7 +660,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--flip-horizontal", action="store_true", help="Flip image layers horizontally")
     parser.add_argument("--flip-vertical", action="store_true", help="Flip image layers vertically")
-    parser.add_argument("--audio-bitrate", default="128k", help="AAC audio bitrate (default: 128k)")
+    parser.add_argument(
+        "--audio-bitrate",
+        type=validate_audio_bitrate,
+        default="128k",
+        help="AAC audio bitrate (default: 128k)",
+    )
     parser.add_argument("--fps", type=int, default=30, help="Output frames per second (default: 30)")
     parser.add_argument(
         "--check-ffmpeg",

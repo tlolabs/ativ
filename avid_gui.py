@@ -13,13 +13,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
+import queue
 import threading
 import tkinter as tk
 import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
-from PIL import Image, ImageTk
+from PIL import ImageTk
 
 from avid import (
     RenderCancelledError,
@@ -30,6 +31,7 @@ from avid import (
     find_ffprobe,
     get_media_duration,
     parse_size,
+    validate_audio_bitrate,
 )
 
 
@@ -88,7 +90,9 @@ class AvidGUI:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("A.V.I.D. – Audio Visual Integration & Distribution")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
 
         self.image_var = tk.StringVar()
         self.audio_var = tk.StringVar()
@@ -105,6 +109,14 @@ class AvidGUI:
 
         self.preview_photo: ImageTk.PhotoImage | None = None
         self.preview_after_id: str | None = None
+        self.audio_after_id: str | None = None
+        self.auto_output_set = False
+        self._setting_output = False
+        self.render_thread: threading.Thread | None = None
+        self.ui_callbacks: queue.Queue = queue.Queue(maxsize=256)
+        self._background_jobs: dict[str, queue.Queue] = {}
+        self._preview_generation = 0
+        self._audio_generation = 0
         self.render_stop_event: threading.Event | None = None
         self.render_in_progress = False
         self.closing = False
@@ -115,9 +127,12 @@ class AvidGUI:
 
         outer = ttk.Frame(root, padding=12)
         outer.grid(row=0, column=0, sticky="nsew")
+        outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(2, weight=1)
 
         controls = ttk.Frame(outer)
-        controls.grid(row=0, column=0, sticky="nw")
+        controls.grid(row=0, column=0, sticky="new")
+        controls.columnconfigure(1, weight=1)
 
         preview_panel = ttk.LabelFrame(outer, text="Preview", padding=12)
         preview_panel.grid(row=0, column=1, sticky="n", padx=(16, 0))
@@ -204,13 +219,16 @@ class AvidGUI:
 
         self.command_tray = ttk.Frame(outer)
         self.command_output = scrolledtext.ScrolledText(self.command_tray, width=95, height=10, state="disabled")
-        self.command_output.grid(row=0, column=0, sticky="ew")
+        self.command_output.grid(row=0, column=0, sticky="nsew")
+        self.command_tray.columnconfigure(0, weight=1)
+        self.command_tray.rowconfigure(0, weight=1)
 
         self.platform_var.set("Instagram")
         self._update_aspect_ratio_options()
         self._bind_preview_updates()
         self.root.protocol("WM_DELETE_WINDOW", self._on_window_close)
-        self.root.after(150, self._check_ffmpeg_on_launch)
+        self.launch_after_id = self.root.after(150, self._check_ffmpeg_on_launch)
+        self.ui_after_id = self.root.after(50, self._drain_ui_callbacks)
 
     def _build_row(
         self,
@@ -221,8 +239,12 @@ class AvidGUI:
         button_command,
     ) -> None:
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=4)
-        ttk.Entry(parent, textvariable=var, width=50).grid(row=row, column=1, sticky="w", pady=4)
-        ttk.Button(parent, text="Browse", command=button_command).grid(row=row, column=2, padx=(6, 0), pady=4)
+        ttk.Entry(parent, textvariable=var, width=50).grid(row=row, column=1, sticky="ew", pady=4)
+        ttk.Button(
+            parent,
+            text=f"Browse {label.split()[0].lower()}",
+            command=button_command,
+        ).grid(row=row, column=2, padx=(6, 0), pady=4)
 
     def _bind_preview_updates(self) -> None:
         for variable in (
@@ -235,21 +257,138 @@ class AvidGUI:
         ):
             variable.trace_add("write", self._schedule_preview_update)
 
+        self.output_var.trace_add("write", self._on_output_changed)
+        self.audio_var.trace_add("write", self._schedule_audio_update)
+        self.image_var.trace_add("write", self._schedule_image_update)
+
+    def _schedule_image_update(self, *_args: object) -> None:
+        self._suggest_output_path()
+
+    def _schedule_audio_update(self, *_args: object) -> None:
+        self._audio_generation += 1
+        self.audio_duration_seconds = None
+        self.audio_duration_var.set("Reading duration..." if self.audio_var.get().strip() else "No audio selected")
+        self._suggest_output_path()
+        if self.audio_after_id is not None:
+            self.root.after_cancel(self.audio_after_id)
+        self.audio_after_id = self.root.after(200, self._on_audio_input_changed)
+
+    def _on_audio_input_changed(self) -> None:
+        self.audio_after_id = None
+        audio_text = self.audio_var.get().strip()
+        if not audio_text:
+            self.audio_duration_seconds = None
+            self.audio_duration_var.set("No audio selected")
+            return
+        audio_path = Path(audio_text)
+        if not audio_path.is_file():
+            self.audio_duration_seconds = None
+            self.audio_duration_var.set("File not found")
+            return
+
+        self.audio_duration_seconds = None
+        self.audio_duration_var.set("Reading duration...")
+        self._suggest_output_path()
+        generation = self._audio_generation
+        self._submit_background_job("audio", lambda: self._load_audio_duration(audio_path, generation))
+
+    def _suggest_output_path(self) -> None:
+        current_out = self.output_var.get().strip()
+        if current_out and not self.auto_output_set:
+            return
+
+        audio_text = self.audio_var.get().strip()
+        image_text = self.image_var.get().strip()
+        source_path: Path | None = None
+        if audio_text:
+            source_path = Path(audio_text)
+        elif image_text:
+            source_path = Path(image_text)
+
+        if source_path is not None and source_path.name:
+            parent = source_path.parent
+            suggested = parent / f"{source_path.stem}.mp4"
+            if suggested == source_path:
+                suggested = parent / f"{source_path.stem}_video.mp4"
+            self.auto_output_set = True
+            self._setting_output = True
+            try:
+                self.output_var.set(str(suggested))
+            finally:
+                self._setting_output = False
+
+    def _on_output_changed(self, *_args: object) -> None:
+        if not self._setting_output:
+            self.auto_output_set = False
+
+    def _submit_background_job(self, kind: str, callback) -> None:
+        # One active and one pending job per kind; changes replace stale work.
+        if kind not in self._background_jobs:
+            jobs: queue.Queue = queue.Queue(maxsize=1)
+            self._background_jobs[kind] = jobs
+
+            def work() -> None:
+                while not self.closing:
+                    try:
+                        job = jobs.get(timeout=0.1)
+                    except queue.Empty:
+                        continue
+                    job()
+
+            threading.Thread(target=work, name=f"avid-{kind}", daemon=True).start()
+        jobs = self._background_jobs[kind]
+        try:
+            jobs.get_nowait()
+        except queue.Empty:
+            pass
+        jobs.put_nowait(callback)
+
     def _run_on_ui_thread(self, callback) -> None:
+        # Worker threads must never enter Tcl, including through root.after().
+        while not self.closing:
+            try:
+                self.ui_callbacks.put(callback, timeout=0.1)
+                return
+            except queue.Full:
+                continue
+
+    def _drain_ui_callbacks(self) -> None:
         if self.closing:
             return
-        try:
-            self.root.after(0, callback)
-        except tk.TclError:
-            pass
+        for _ in range(100):
+            try:
+                callback = self.ui_callbacks.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                callback()
+            except Exception:
+                import sys
+                self.root.report_callback_exception(*sys.exc_info())
+            if self.closing:
+                return
+        self.ui_after_id = self.root.after(50, self._drain_ui_callbacks)
 
     def _on_window_close(self) -> None:
+        if self.closing:
+            return
         self.closing = True
         if self.render_stop_event is not None:
             self.render_stop_event.set()
-        self.root.destroy()
+        for timer in (self.preview_after_id, self.audio_after_id, self.launch_after_id, self.ui_after_id):
+            if timer is not None:
+                self.root.after_cancel(timer)
+        self.root.withdraw()
+        self._wait_for_render_shutdown()
+
+    def _wait_for_render_shutdown(self) -> None:
+        if self.render_thread is not None and self.render_thread.is_alive():
+            self.root.after(50, self._wait_for_render_shutdown)
+        else:
+            self.root.destroy()
 
     def _schedule_preview_update(self, *_args: object) -> None:
+        self._preview_generation += 1
         if self.preview_after_id is not None:
             self.root.after_cancel(self.preview_after_id)
         self.preview_after_id = self.root.after(150, self._refresh_preview)
@@ -315,8 +454,8 @@ class AvidGUI:
             return f"{hours:d}:{minutes:02d}:{seconds:02d}"
         return f"{minutes:02d}:{seconds:02d}"
 
-    def _set_audio_duration(self, audio_path: Path, duration: float | None) -> None:
-        if Path(self.audio_var.get().strip()) != audio_path:
+    def _set_audio_duration(self, audio_path: Path, duration: float | None, generation: int) -> None:
+        if generation != self._audio_generation or Path(self.audio_var.get().strip()) != audio_path:
             return
 
         self.audio_duration_seconds = duration
@@ -326,14 +465,14 @@ class AvidGUI:
 
         self.audio_duration_var.set(self._format_seconds(duration))
 
-    def _load_audio_duration(self, audio_path: Path) -> None:
+    def _load_audio_duration(self, audio_path: Path, generation: int) -> None:
         duration = get_media_duration(audio_path)
-        self._run_on_ui_thread(lambda: self._set_audio_duration(audio_path, duration))
+        self._run_on_ui_thread(lambda: self._set_audio_duration(audio_path, duration, generation))
 
     def toggle_command_tray(self) -> None:
         self.command_tray_open = not self.command_tray_open
         if self.command_tray_open:
-            self.command_tray.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+            self.command_tray.grid(row=2, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
             self.command_toggle_button.configure(text="Hide FFmpeg Console")
         else:
             self.command_tray.grid_remove()
@@ -347,6 +486,9 @@ class AvidGUI:
     def _append_command_output(self, line: str) -> None:
         self.command_output.configure(state="normal")
         self.command_output.insert(tk.END, line + "\n")
+        line_count = int(self.command_output.index("end-1c").split(".")[0])
+        if line_count > 1000:
+            self.command_output.delete("1.0", f"{line_count - 1000 + 1}.0")
         self.command_output.see(tk.END)
         self.command_output.configure(state="disabled")
 
@@ -392,53 +534,90 @@ class AvidGUI:
             return
 
         preview_size = self._preview_output_size(*output_size)
-        try:
-            preview_image = build_composite(
-                image_path=image_path,
-                output_size=preview_size,
-                flip_horizontal=self.flip_horizontal_var.get(),
-                flip_vertical=self.flip_vertical_var.get(),
-            )
+        generation = self._preview_generation
+        flip_horizontal = self.flip_horizontal_var.get()
+        flip_vertical = self.flip_vertical_var.get()
+        caption = f"{self.aspect_ratio_var.get()}\n{self.resolution_var.get()} for {self.platform_var.get()}"
+        self.preview_meta_var.set("Updating preview...")
+
+        def build_preview() -> None:
+            try:
+                preview_image = build_composite(
+                    image_path=image_path,
+                    output_size=preview_size,
+                    flip_horizontal=flip_horizontal,
+                    flip_vertical=flip_vertical,
+                    blur_radius=40 * min(preview_size) / min(output_size),
+                )
+            except Exception as exc:
+                message = str(exc)
+                self._run_on_ui_thread(lambda: self._apply_preview(generation, None, message))
+            else:
+                self._run_on_ui_thread(lambda: self._apply_preview(generation, preview_image, caption))
+
+        self._submit_background_job("preview", build_preview)
+
+    def _apply_preview(self, generation: int, preview_image, caption: str) -> None:
+        if generation != self._preview_generation:
+            return
+        if preview_image is None:
+            self.preview_label.configure(image="", text="Preview unavailable.")
+            self.preview_photo = None
+        else:
             self.preview_photo = ImageTk.PhotoImage(preview_image)
             self.preview_label.configure(image=self.preview_photo, text="")
-            self.preview_meta_var.set(
-                f"{self.aspect_ratio_var.get()}\n{self.resolution_var.get()} for {self.platform_var.get()}"
-            )
-        except Exception as exc:  # noqa: BLE001
-            self.preview_label.configure(image="", text="Preview unavailable.")
-            self.preview_meta_var.set(str(exc))
-            self.preview_photo = None
+        self.preview_meta_var.set(caption)
 
     def pick_image(self) -> None:
+        initialdir = str(Path(self.image_var.get().strip()).parent) if self.image_var.get().strip() else None
         path = filedialog.askopenfilename(
             title="Select image",
+            initialdir=initialdir,
             filetypes=[("Image files", "*.png *.jpg *.jpeg *.webp *.bmp *.tiff"), ("All files", "*.*")],
         )
         if path:
             self.image_var.set(path)
 
     def pick_audio(self) -> None:
+        initialdir = str(Path(self.audio_var.get().strip()).parent) if self.audio_var.get().strip() else None
         path = filedialog.askopenfilename(
             title="Select audio",
-            filetypes=[("Audio files", "*.wav *.mp3 *.m4a *.aac *.flac"), ("All files", "*.*")],
+            initialdir=initialdir,
+            filetypes=[("Audio files", "*.wav *.mp3 *.m4a *.aac *.flac *.ogg *.opus"), ("All files", "*.*")],
         )
         if path:
             self.audio_var.set(path)
-            self.audio_duration_seconds = None
-            self.audio_duration_var.set("Reading duration...")
-            thread = threading.Thread(target=self._load_audio_duration, args=(Path(path),), daemon=True)
-            thread.start()
 
     def pick_output(self) -> None:
+        current_out = self.output_var.get().strip()
+        initialdir = None
+        initialfile = "video.mp4"
+        if current_out:
+            out_p = Path(current_out)
+            initialdir = str(out_p.parent)
+            initialfile = out_p.name
+        elif self.audio_var.get().strip():
+            audio_p = Path(self.audio_var.get().strip())
+            initialdir = str(audio_p.parent)
+            initialfile = f"{audio_p.stem}.mp4"
+        elif self.image_var.get().strip():
+            img_p = Path(self.image_var.get().strip())
+            initialdir = str(img_p.parent)
+            initialfile = f"{img_p.stem}.mp4"
+
         path = filedialog.asksaveasfilename(
             title="Save output video",
             defaultextension=".mp4",
+            initialdir=initialdir,
+            initialfile=initialfile,
             filetypes=[("MP4 video", "*.mp4"), ("All files", "*.*")],
         )
         if path:
+            self.auto_output_set = False
             self.output_var.set(path)
 
     def _check_ffmpeg_on_launch(self) -> None:
+        self.launch_after_id = None
         ffmpeg_path, source = find_ffmpeg()
         if ffmpeg_path is not None:
             self.status_var.set(f"FFmpeg ready ({source}): {ffmpeg_path}")
@@ -465,18 +644,22 @@ class AvidGUI:
                     webbrowser.open(extra_url)
 
     def on_render(self) -> None:
+        if self.closing or self.render_in_progress:
+            return
+        if not all(var.get().strip() for var in (self.image_var, self.audio_var, self.output_var)):
+            messagebox.showerror("Missing files", "Please select image, audio, and output paths.")
+            return
         try:
             image_path = Path(self.image_var.get().strip())
             audio_path = Path(self.audio_var.get().strip())
             output_path = Path(self.output_var.get().strip())
             output_size = parse_size(self.resolution_var.get().strip())
             fps = int(self.fps_var.get().strip())
+            if fps <= 0:
+                raise ValueError("FPS must be a positive integer")
+            audio_bitrate = validate_audio_bitrate(self.audio_bitrate_var.get())
         except Exception as exc:  # noqa: BLE001
             messagebox.showerror("Invalid settings", str(exc))
-            return
-
-        if not str(image_path) or not str(audio_path) or not str(output_path):
-            messagebox.showerror("Missing files", "Please select image, audio, and output paths.")
             return
 
         if not self.platform_var.get() or not self.aspect_ratio_var.get() or not self.resolution_var.get():
@@ -494,22 +677,23 @@ class AvidGUI:
         if not self.command_tray_open:
             self.toggle_command_tray()
 
-        thread = threading.Thread(
+        self.render_thread = threading.Thread(
             target=self._render_worker,
             args=(
                 image_path,
                 audio_path,
                 output_path,
                 output_size,
-                self.audio_bitrate_var.get().strip(),
+                audio_bitrate,
                 fps,
                 self.flip_horizontal_var.get(),
                 self.flip_vertical_var.get(),
                 self.render_stop_event,
             ),
-            daemon=True,
+            name="avid-render",
+            daemon=False,
         )
-        thread.start()
+        self.render_thread.start()
 
     def stop_render(self) -> None:
         if self.render_stop_event is None:
