@@ -1,4 +1,4 @@
-project('avid-linux', 'c', version: '0.2.0', default_options: ['c_std=c17', 'warning_level=3'])
+project('avid-linux', 'c', version: '0.2.1', default_options: ['c_std=c17', 'warning_level=3'])
 
 gtk = dependency('gtk4', version: '>=4.10')
 adw = dependency('libadwaita-1', version: '>=1.5')

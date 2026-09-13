@@ -8,5 +8,6 @@
   <description><p>A.V.I.D. combines a still image with an audio recording using a native desktop interface and the FFmpeg media engine.</p></description>
   <launchable type="desktop-id">com.tlolabs.avid.desktop</launchable>
   <provides><binary>avid</binary></provides>
+  <releases><release version="0.2.1" date="2026-09-12" /></releases>
   <content_rating type="oars-1.1" />
 </component>
