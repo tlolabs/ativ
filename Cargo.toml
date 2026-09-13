@@ -1,0 +1,18 @@
+[workspace]
+members = [
+    "crates/avid-core",
+    "crates/avid-engine",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/tlolabs/avid"
+rust-version = "1.85"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

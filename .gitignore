@@ -3,8 +3,14 @@ __pycache__/
 *.pyc
 .venv/
 .venv-x86_64/
-build/
-dist/
-*.spec
 .pyinstaller/
-packages/*
+*.spec
+
+# Native build output
+/target/
+/build/
+/dist/
+/packages/
+/platform/macos/.build/
+/platform/windows/**/bin/
+/platform/windows/**/obj/
