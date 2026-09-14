@@ -15,7 +15,7 @@ build/release-tools/bin/pip install -r script/requirements-build.txt
 build/release-tools/bin/python script/test_release_infrastructure.py
 ```
 
-Python is build/test tooling only; no Python runtime ships in ATIV.
+Python is build/test tooling only; no Python runtime ships in ATIV. The maintained scripts live in `script/` and use the disposable `build/release-tools` environment. Root-level `.venv` / `.venv-x86_64` environments, PyInstaller outputs, and old AVID app bundles are obsolete and should not be kept in this checkout. The former Python application is preserved only as a [remote archive branch](https://github.com/tlolabs/ativ/tree/archive/avid-python); do not restore it into the native source tree.
 
 ## Media tools
 

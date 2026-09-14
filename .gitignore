@@ -9,6 +9,6 @@
 /platform/windows/**/bin/
 /platform/windows/**/obj/
 
+# Python build-tool bytecode (the application has no Python runtime)
 __pycache__/
-/platform/windows/Tests/bin/
-/platform/windows/Tests/obj/
+*.py[cod]
