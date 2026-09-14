@@ -20,7 +20,8 @@
         </MenuBar>
         <InfoBar x:Name="ErrorBar" Grid.Row="0" Severity="Error" IsOpen="False" IsClosable="True" Title="ATIV couldn’t complete the operation"/>
         </StackPanel>
-        <Grid x:Name="EditorGrid" Grid.Row="1" ColumnSpacing="24" Padding="28">
+        <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <Grid x:Name="EditorGrid" MinWidth="660" Width="{Binding ActualWidth, ElementName=RootGrid}" ColumnSpacing="24" Padding="28">
             <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="360"/><ColumnDefinition Width="2*" MinWidth="200"/></Grid.ColumnDefinitions>
             <ScrollViewer Grid.Column="0">
                 <StackPanel Spacing="18">
@@ -67,6 +68,7 @@
                 <TextBlock x:Name="PreviewCaption" Text="Choose an image to see a styled preview." TextWrapping="Wrap" HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
             </StackPanel>
         </Grid>
+        </ScrollViewer>
         <StackPanel Grid.Row="2" Padding="18,10" Spacing="6"><ProgressBar x:Name="RenderProgress" AutomationProperties.Name="Video creation progress" Minimum="0" Maximum="1" Value="0"/><TextBlock x:Name="StatusText" Text="Loading media engine…" AutomationProperties.LiveSetting="Polite"/></StackPanel>
     </Grid>
 </Window>

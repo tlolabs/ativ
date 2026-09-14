@@ -14,13 +14,20 @@ if not all(p.name.startswith('ATIV-'+version+'-') for p in assets): raise System
 results=json.loads(os.environ['BUILD_RESULTS'])
 failed=[name for name,result in results.items() if result['result']!='success']
 notes=Path('build-release-notes.md')
-notes.write_text(('Development build '+version if not stable else 'ATIV '+version)+'\n\n'+('Incomplete build: '+', '.join(failed)+'. Only validated passing artifacts are attached.\n' if failed else 'All target jobs passed.\n'))
+status='<!-- ativ-build-status -->\n'+('Development build '+version if not stable else 'ATIV '+version)+'\n\n'+('Incomplete build: '+', '.join(failed)+'. Only validated passing artifacts are attached.\n' if failed else 'All target jobs passed.\n')+'\nSource: '+os.environ['GITHUB_SHA']+'\n<!-- /ativ-build-status -->\n'
+notes.write_text(status)
 (root/'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(assets)))
 def gh(*args,check=True):return subprocess.run(['gh',*map(str,args)],check=check)
 exists=gh('release','view',tag,check=False).returncode==0
 if not exists:
     gh('release','create',tag,'--target',os.environ['GITHUB_SHA'],'--title',('ATIV '+version),'--notes-file',notes,'--generate-notes',*(['--latest'] if stable else ['--prerelease','--latest=false']))
 else:
+    if stable:
+        previous=json.loads(subprocess.check_output(['gh','release','view',tag,'--json','body']))['body']
+        pattern=r'<!-- ativ-build-status -->.*?<!-- /ativ-build-status -->'
+        notes.write_text(re.sub(pattern,lambda _:status.rstrip(),previous,flags=re.S) if re.search(pattern,previous,re.S) else status+'\n'+previous)
+    else:
+        gh('api','--method','PATCH','repos/'+os.environ['GITHUB_REPOSITORY']+'/git/refs/tags/development','-f','sha='+os.environ['GITHUB_SHA'],'-F','force=true')
     gh('release','edit',tag,'--title','ATIV '+version,'--notes-file',notes)
 # Development artifact filenames include run number. Remove stale packages and feeds
 # from the rolling prerelease so failed targets never advertise yesterday's build.

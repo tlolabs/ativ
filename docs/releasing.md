@@ -41,11 +41,11 @@ GitHub-generated notes are the stable changelog convention, matching ENcap. The 
 
 Main branch pushes create `<base>-dev.<GitHub run number>` and update the `development` prerelease. macOS bundle IDs, Windows install IDs/directories, and Linux package IDs differ from stable. Feeds are `/releases/download/development/…`; stable uses `/releases/latest/download/…`. There is no runtime channel selector. Development artifact filenames include the run version, preventing cached bytes from being mistaken for newer downloads. Stale assets/feeds are removed from the rolling prerelease before the new validated set is uploaded.
 
-`workflow_dispatch` is build-only, suitable for testing feature branches without creating releases. Matrix jobs use `fail-fast: false`.
+`workflow_dispatch` is build-only, suitable for testing feature branches without creating releases. Its optional `sign_macos` input tests Developer ID signing/notarization once credentials are configured, without creating a release tag. Matrix jobs use `fail-fast: false`.
 
 ## Package formats and limits
 
-macOS: DMG and ZIP. Windows: per-user Inno Setup installer and portable ZIP. Linux: AppImage, `.deb` and an archive. ENcap has no proven RPM implementation to adapt, so RPM is not introduced in this pass. Linux ARM64 is retained from ATIV in addition to ENcap's x64 baseline.
+macOS: DMG and ZIP. Windows: per-user Inno Setup installer and portable ZIP. Linux: AppImage and `.deb`. ENcap has no proven RPM implementation to adapt, so RPM is not introduced in this pass. Linux ARM64 is retained from ATIV in addition to ENcap's x64 baseline.
 
 Linux `.deb` installation remains owned by the distribution package manager. AppImage self-updates require a writable installation directory and apply after user confirmation; an existing running mapping remains valid until restart. A signed update is not a substitute for testing a real upgrade on every platform.
 

@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using System.Runtime.InteropServices;
 
 namespace ATIV;
 
@@ -6,7 +7,14 @@ public partial class App : Application
 {
     private Window? window;
 
-    public App() => InitializeComponent();
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
+
+    public App() {
+        var development = File.Exists(Path.Combine(AppContext.BaseDirectory,"development-build"));
+        Marshal.ThrowExceptionForHR(SetCurrentProcessExplicitAppUserModelID(development ? "com.tlolabs.ativ.development" : "com.tlolabs.ativ"));
+        InitializeComponent();
+    }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {

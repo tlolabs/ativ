@@ -13,7 +13,7 @@ ATIV processes media locally. No accounts, analytics, hosted crash reports, uplo
 | --- | --- | --- | --- |
 | macOS | Apple Silicon, Intel | macOS 13 | DMG, ZIP; Sparkle updates |
 | Windows | x64, ARM64 | Windows 10 1809 | Per-user installer, portable ZIP |
-| Linux | x64, ARM64 | GTK 4.10, libadwaita 1.4; Ubuntu 24.04 package baseline | AppImage, `.deb`, archive |
+| Linux | x64, ARM64 | GTK 4.10, libadwaita 1.4; Ubuntu 24.04 package baseline | AppImage, `.deb` |
 
 All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed the release pipeline. The release notes identify incomplete builds.
 

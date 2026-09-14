@@ -618,6 +618,8 @@ static void setup_actions(AtivWindow *self, GtkApplication *application, GtkWidg
   g_object_unref(menu);g_object_unref(appearance);g_object_unref(group);
 }
 static void activate(GtkApplication *application, gpointer user_data) {
+  GtkWindow *existing = gtk_application_get_active_window(application);
+  if (existing) { gtk_window_present(existing); return; }
   AtivWindow *self = g_new0(AtivWindow, 1);
   self->preferences = g_key_file_new();
   g_autofree gchar *prefs_path = preferences_path();

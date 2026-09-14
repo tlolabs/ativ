@@ -55,7 +55,7 @@ The smoke suite exercises the actual C# engine client, WinUI startup, installer 
 ./script/test_linux_native.sh x86_64
 ```
 
-Use `aarch64` on ARM64. AppImage tooling is checksum-pinned and the GTK plugin is pinned to an immutable commit. The smoke tests use Xvfb and a D-Bus session, launch both the staged GTK app and the actual AppImage, and require the native client to decode all presets. `.deb` structure, desktop entries, icons, machine types and bundled discovery are validated before artifacts are uploaded.
+Use `aarch64` on ARM64. AppImage tooling is checksum-pinned and the GTK plugin is pinned to an immutable commit. The smoke tests use Xvfb and a D-Bus session, launch the staged GTK app and actual AppImage, and require the native client to decode all presets. CI also installs the actual `.deb`, launches it using its compiled engine path, reinstalls it, and removes it. `.deb` structure, desktop entries, icons, machine types and bundled discovery are validated before artifacts are uploaded.
 
 ## Icons and contributor workflow
 

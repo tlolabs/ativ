@@ -57,8 +57,7 @@ Description: Artwork + Tracks Into Video
 EOF
 
 DEB="${PACKAGES}/ATIV-${VERSION}-linux-${LABEL}.deb"
-TAR="${PACKAGES}/ATIV-${VERSION}-linux-${LABEL}.tar.gz"
-rm -f "${DEB}" "${TAR}"
+rm -f "${DEB}"
 if [[ "$PACKAGE_NAME" != ativ ]]; then
   sed -i 's/^Name=ATIV$/Name=ATIV Development/; s/^Icon=com.tlolabs.ativ$/Icon=com.tlolabs.ativ.development/; s/^Exec=ativ$/Exec=ativ-development/' "$PACKAGE_ROOT/usr/share/applications/com.tlolabs.ativ.desktop"
   mv "$PACKAGE_ROOT/usr/share/applications/com.tlolabs.ativ.desktop" "$PACKAGE_ROOT/usr/share/applications/$APP_ID.desktop"
@@ -74,6 +73,5 @@ if [[ "$PACKAGE_NAME" != ativ ]]; then
 fi
 dpkg-deb --root-owner-group --build "$PACKAGE_ROOT" "$DEB"
 dpkg-deb --info "$DEB"
-tar -C "$PACKAGE_ROOT" -czf "$TAR" usr
 python3 "$ROOT_DIR/script/validate_package.py" "$PACKAGE_ROOT" "linux-$LABEL-deb"
-printf '%s\n%s\n' "$DEB" "$TAR"
+printf '%s\n' "$DEB"

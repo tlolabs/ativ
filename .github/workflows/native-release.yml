@@ -2,6 +2,11 @@ name: Native build, test, and package
 
 on:
   workflow_dispatch:
+    inputs:
+      sign_macos:
+        description: Sign and notarize macOS validation artifacts (does not publish a release)
+        type: boolean
+        default: false
   pull_request:
   push:
     branches: [main]
@@ -112,7 +117,7 @@ jobs:
       - name: Fetch verified static FFmpeg 9.0.1
         run: ./script/fetch_ffmpeg.sh macos "${{ matrix.fetch_arch }}" "build/ffmpeg-macos-${{ matrix.arch }}"
       - name: Configure release signing and notarization
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.sign_macos
         env:
           CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -151,8 +156,8 @@ jobs:
           PATH="$PWD/build/ffmpeg-macos-${{ matrix.arch }}:$PATH" ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/target/debug/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
       - name: Build and package native application
         env:
-          APPLE_SIGN_IDENTITY: ${{ startsWith(github.ref, 'refs/tags/') && secrets.MACOS_SIGNING_IDENTITY || '-' }}
-          APPLE_NOTARY_PROFILE: ${{ startsWith(github.ref, 'refs/tags/') && 'ativ-notary' || '' }}
+          APPLE_SIGN_IDENTITY: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
+          APPLE_NOTARY_PROFILE: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && 'ativ-notary' || '' }}
           FFMPEG_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
           FFPROBE_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
         run: ./script/package_macos.sh "${{ matrix.arch }}"

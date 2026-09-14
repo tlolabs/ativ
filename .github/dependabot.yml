@@ -12,3 +12,7 @@ updates:
     directory: /platform/windows/ATIV
     schedule:
       interval: monthly
+  - package-ecosystem: pip
+    directory: /script
+    schedule:
+      interval: monthly

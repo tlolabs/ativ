@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ATIV.Models;
 using ATIV.Services;
 using Microsoft.UI.Xaml;
@@ -12,6 +13,9 @@ namespace ATIV;
 
 public sealed partial class MainWindow : Window
 {
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(nint hwnd);
+
     private readonly EngineClient engine = new();
     private IReadOnlyList<Preset> presets = [];
     private bool rendering;
@@ -40,7 +44,10 @@ public sealed partial class MainWindow : Window
             else { SavePreferences(); updateTimer.Stop(); }
         };
 
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1100, 760));
+        var dpi = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        var scale = dpi > 0 ? dpi / 96.0 : 1.0;
+        var display = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(AppWindow.Id, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
+        AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Min(1100*scale,display.WorkArea.Width-40*scale), (int)Math.Min(760*scale,display.WorkArea.Height-40*scale)));
         Activated += async (_, _) => { if (presets.Count == 0 && !loadingPresets) await LoadPresetsAsync(); };
     }
 
