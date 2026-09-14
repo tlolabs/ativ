@@ -2,7 +2,7 @@
 
 ## Checkouts and toolchains
 
-Clone `tlolabs/ativ` and `tlolabs/avid-core` into sibling directories named `ATIV` and `AVID Core`. The tested shared revision is `0cce6ba838827d0bed540efc98731e74a1014456`. ENcap is a read-only architectural reference and is not a build dependency. See [the migration plan](native-distribution-plan.md) for the exact reference revision.
+Clone `tlolabs/ativ` and `tlolabs/avid-core` into sibling directories named `ATIV` and `AVID Core`. The tested shared revision is `4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b`. ENcap is a read-only architectural reference and is not a build dependency. See [the migration plan](native-distribution-plan.md) for the exact reference revision.
 
 Use a current stable Rust toolchain and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements. macOS builds need full Xcode, Windows needs .NET 8+ and Windows App SDK build tools, and Linux needs GTK 4.10+, libadwaita 1.4+, json-glib, Meson and Ninja. CI installs each platform's requirements.
 

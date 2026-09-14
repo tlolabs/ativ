@@ -5,7 +5,7 @@ mod model;
 
 pub use avid_core::{
     CancellationToken, Composition, EventSink, MediaTools, PRESETS, Preset, PreviewRequest,
-    Progress as RenderProgress, RenderSettings, Renderer, Stage, ToolDiscovery,
+    Progress as RenderProgress, RenderMode, RenderSettings, Renderer, Stage, ToolDiscovery,
 };
 pub use error::{AtivError, Result};
 pub use model::RenderRequest;

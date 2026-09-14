@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -210,7 +210,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -280,7 +280,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity

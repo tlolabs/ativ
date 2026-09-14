@@ -40,3 +40,14 @@ fn invalid_command_retains_error_shape_and_exit_status() {
         "{\"event\":\"error\",\"code\":\"invalid_input\",\"message\":\"Unknown command. Run ativ-engine help.\"}\n"
     );
 }
+
+#[test]
+fn invalid_render_mode_is_rejected_before_media_discovery() {
+    let result = engine(&["render", "--render-mode", "typo"]);
+    assert_eq!(result.status.code(), Some(1));
+    assert!(
+        String::from_utf8(result.stdout)
+            .unwrap()
+            .contains("--render-mode must be simple or current.")
+    );
+}

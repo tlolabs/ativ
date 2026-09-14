@@ -1,6 +1,6 @@
 use ativ_core::{
     AtivError, CancellationToken, Composition, EventSink, MediaTools, PRESETS, PreviewRequest,
-    RenderProgress, RenderRequest, RenderSettings, Renderer, Stage, ToolDiscovery,
+    RenderMode, RenderProgress, RenderRequest, RenderSettings, Renderer, Stage, ToolDiscovery,
 };
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -11,6 +11,7 @@ use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Instant;
 
 fn main() -> ExitCode {
     match run() {
@@ -96,6 +97,21 @@ fn run() -> ativ_core::Result<()> {
             Ok(())
         }
         "render" => {
+            let started = Instant::now();
+            let mode = match parsed
+                .values
+                .get("render-mode")
+                .map(String::as_str)
+                .unwrap_or("simple")
+            {
+                "simple" => RenderMode::Simple,
+                "current" => RenderMode::PerFrame,
+                _ => {
+                    return Err(AtivError::InvalidInput(
+                        "--render-mode must be simple or current.".into(),
+                    ));
+                }
+            };
             let tools = tools(&parsed, &token)?;
             let request = RenderRequest {
                 image: parsed.required_path("image")?,
@@ -117,7 +133,23 @@ fn run() -> ativ_core::Result<()> {
                 flip_vertical: parsed.flags.contains("flip-vertical"),
             };
             let events = JsonEvents::new();
-            Renderer::new(tools).render(&request.shared(), &token, &events)?;
+            let result =
+                Renderer::new(tools).render_with_mode(&request.shared(), mode, &token, &events);
+            let seconds = started.elapsed().as_secs_f64();
+            events.log(&format!(
+                "export wall time: {seconds:.6}s; mode: {mode:?}; success: {}",
+                result.is_ok()
+            ));
+            println!(
+                "{{\"event\":\"timing\",\"wall_seconds\":{seconds},\"render_mode\":\"{}\",\"success\":{}}}",
+                if mode == RenderMode::Simple {
+                    "simple"
+                } else {
+                    "current"
+                },
+                result.is_ok()
+            );
+            result?;
             Ok(())
         }
         _ => Err(AtivError::InvalidInput(
@@ -352,7 +384,7 @@ fn escape(value: &str) -> String {
 
 fn print_help() {
     println!(
-        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--flip-horizontal] [--flip-vertical]\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
+        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode simple|current] [--flip-horizontal] [--flip-vertical]\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
     );
 }
 

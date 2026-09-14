@@ -116,6 +116,9 @@ def main():
             events = invoke('render', *args, '--output', output)
             stages = [e['stage'] for e in events if e['event'] == 'stage']
             assert stages == ['validating', 'probing', 'compositing', 'encoding', 'publishing', 'complete'], stages
+            timing = [e for e in events if e['event'] == 'timing']
+            assert len(timing) == 1 and timing[0]['success'] and timing[0]['wall_seconds'] > 0
+            assert timing[0]['render_mode'] == 'simple'
             progress = [e for e in events if e['event'] == 'progress']
             assert progress and all(e.keys() == {'event', 'elapsed_seconds', 'duration_seconds', 'fraction', 'eta_seconds'} for e in progress)
             assert any(e['fraction'] is not None for e in progress)

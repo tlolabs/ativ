@@ -1,0 +1,558 @@
+{
+  "date_local": "2026-09-13",
+  "hardware": {
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18,
+    "memory_gib": 128,
+    "os": "macOS 26.6.2 (25G83)"
+  },
+  "baseline_revisions": {
+    "ativ": "2d3a3a46f1f651599dc5a1d37eb9b595c2316b6f",
+    "avid_core": "0cce6ba838827d0bed540efc98731e74a1014456"
+  },
+  "ffmpeg": "ffmpeg version 9.0.1-https://www.martin-riedl.de Copyright (c) 2000-2026 the FFmpeg developers",
+  "measurements": {
+    "1080p-60s": {
+      "median_seconds": {
+        "current": 10.26803183300035,
+        "png": 3.5303094580003744,
+        "cached": 1.8480320419998861
+      },
+      "runs": [
+        {
+          "mode": "current",
+          "warmup": true,
+          "preparation_seconds": 0,
+          "encoding_seconds": 9.507377334000012,
+          "wall_seconds": 9.507377334000012
+        },
+        {
+          "mode": "png",
+          "warmup": true,
+          "preparation_seconds": 0.10329858299974148,
+          "encoding_seconds": 3.1155718750001142,
+          "wall_seconds": 3.2188704579998557
+        },
+        {
+          "mode": "cached",
+          "warmup": true,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.782047541999873,
+          "wall_seconds": 1.782047541999873
+        },
+        {
+          "mode": "png",
+          "warmup": false,
+          "preparation_seconds": 0.10122758399984377,
+          "encoding_seconds": 3.18800416699969,
+          "wall_seconds": 3.2892317509995337
+        },
+        {
+          "mode": "cached",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.8107027500000186,
+          "wall_seconds": 1.8107027500000186
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 10.065316540999902,
+          "wall_seconds": 10.065316540999902
+        },
+        {
+          "mode": "cached",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.8480320419998861,
+          "wall_seconds": 1.8480320419998861
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 10.33955666599968,
+          "wall_seconds": 10.33955666599968
+        },
+        {
+          "mode": "png",
+          "warmup": false,
+          "preparation_seconds": 0.1032775000003312,
+          "encoding_seconds": 3.4270319580000432,
+          "wall_seconds": 3.5303094580003744
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 10.26803183300035,
+          "wall_seconds": 10.26803183300035
+        },
+        {
+          "mode": "png",
+          "warmup": false,
+          "preparation_seconds": 0.10118595899984939,
+          "encoding_seconds": 3.4538762080001106,
+          "wall_seconds": 3.55506216699996
+        },
+        {
+          "mode": "cached",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 2.0404359999997723,
+          "wall_seconds": 2.0404359999997723
+        }
+      ],
+      "image_sha256": "cecc7c47b426b1918d38904f4491bd1da09e99a1cf3d8be8b0b3b275681b85bd",
+      "outputs": {
+        "current": {
+          "duration_seconds": "60.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 1920,
+              "height": 1080,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "1800",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "60.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "2585",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "60.000000"
+            }
+          ]
+        },
+        "png": {
+          "duration_seconds": "60.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 1920,
+              "height": 1080,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "1800",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "60.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "2585",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "60.000000"
+            }
+          ]
+        },
+        "cached": {
+          "duration_seconds": "60.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 1920,
+              "height": 1080,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "1800",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "60.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "2585",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "60.000000"
+            }
+          ]
+        }
+      },
+      "cached_matches_current_all_decoded_frames_and_timestamps": true,
+      "decoded_framehash_sha256": {
+        "current": "58a1221c0c0cf60d0446dbbfa4ee1e327054dd4be057716bed5b26dca863d482",
+        "png": "177f32767b00afc9d84a6b66a12a2c775ba49465751b191005974c193214cd1d",
+        "cached": "58a1221c0c0cf60d0446dbbfa4ee1e327054dd4be057716bed5b26dca863d482"
+      }
+    },
+    "4k": {
+      "median_seconds": {
+        "current": 4.667911959000321,
+        "png": 2.378074249999827,
+        "cached": 1.3254262919999746
+      },
+      "runs": [
+        {
+          "mode": "current",
+          "warmup": true,
+          "preparation_seconds": 0,
+          "encoding_seconds": 4.4952309579998655,
+          "wall_seconds": 4.4952309579998655
+        },
+        {
+          "mode": "png",
+          "warmup": true,
+          "preparation_seconds": 0.19443770899988522,
+          "encoding_seconds": 2.085487166999883,
+          "wall_seconds": 2.279924875999768
+        },
+        {
+          "mode": "cached",
+          "warmup": true,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.2602667910000491,
+          "wall_seconds": 1.2602667910000491
+        },
+        {
+          "mode": "png",
+          "warmup": false,
+          "preparation_seconds": 0.19170200000007753,
+          "encoding_seconds": 2.1004309579998335,
+          "wall_seconds": 2.292132957999911
+        },
+        {
+          "mode": "cached",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.264550749999671,
+          "wall_seconds": 1.264550749999671
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 4.86159333400019,
+          "wall_seconds": 4.86159333400019
+        },
+        {
+          "mode": "cached",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.3363335409999308,
+          "wall_seconds": 1.3363335409999308
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 4.667817125000056,
+          "wall_seconds": 4.667817125000056
+        },
+        {
+          "mode": "png",
+          "warmup": false,
+          "preparation_seconds": 0.19673045800027467,
+          "encoding_seconds": 2.1930581249998795,
+          "wall_seconds": 2.389788583000154
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 4.667911959000321,
+          "wall_seconds": 4.667911959000321
+        },
+        {
+          "mode": "png",
+          "warmup": false,
+          "preparation_seconds": 0.1968317500000012,
+          "encoding_seconds": 2.1812424999998257,
+          "wall_seconds": 2.378074249999827
+        },
+        {
+          "mode": "cached",
+          "warmup": false,
+          "preparation_seconds": 0,
+          "encoding_seconds": 1.3254262919999746,
+          "wall_seconds": 1.3254262919999746
+        }
+      ],
+      "image_sha256": "cecc7c47b426b1918d38904f4491bd1da09e99a1cf3d8be8b0b3b275681b85bd",
+      "outputs": {
+        "current": {
+          "duration_seconds": "10.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 3840,
+              "height": 2160,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "300",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "10.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "432",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "10.000000"
+            }
+          ]
+        },
+        "png": {
+          "duration_seconds": "10.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 3840,
+              "height": 2160,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "300",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "10.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "432",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "10.000000"
+            }
+          ]
+        },
+        "cached": {
+          "duration_seconds": "10.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 3840,
+              "height": 2160,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "300",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "10.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "432",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "10.000000"
+            }
+          ]
+        }
+      },
+      "cached_matches_current_all_decoded_frames_and_timestamps": true,
+      "decoded_framehash_sha256": {
+        "current": "d4442ea672eaa7e057cd8a9f4aa9779a1b864e41f86ae99174e6f6f82072520a",
+        "png": "bc9a2fc1e3f2d468b8b397b6258f04669b20fd00ac949c883b4261f43f5d60e8",
+        "cached": "d4442ea672eaa7e057cd8a9f4aa9779a1b864e41f86ae99174e6f6f82072520a"
+      }
+    },
+    "engine-60s": {
+      "median_seconds": {
+        "baseline": 11.95288116699976,
+        "current": 12.13598204200025,
+        "simple": 2.024833375000071
+      },
+      "runs": [
+        {
+          "mode": "baseline",
+          "warmup": true,
+          "wall_seconds": 11.768657624999832
+        },
+        {
+          "mode": "current",
+          "warmup": true,
+          "wall_seconds": 12.223879083000156
+        },
+        {
+          "mode": "simple",
+          "warmup": true,
+          "wall_seconds": 1.9857294169996749
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "wall_seconds": 12.13598204200025
+        },
+        {
+          "mode": "simple",
+          "warmup": false,
+          "wall_seconds": 2.024833375000071
+        },
+        {
+          "mode": "baseline",
+          "warmup": false,
+          "wall_seconds": 11.938659041999927
+        },
+        {
+          "mode": "simple",
+          "warmup": false,
+          "wall_seconds": 2.0081134160000147
+        },
+        {
+          "mode": "baseline",
+          "warmup": false,
+          "wall_seconds": 11.95288116699976
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "wall_seconds": 12.060659000000214
+        },
+        {
+          "mode": "baseline",
+          "warmup": false,
+          "wall_seconds": 12.179378292000365
+        },
+        {
+          "mode": "current",
+          "warmup": false,
+          "wall_seconds": 12.57890095799985
+        },
+        {
+          "mode": "simple",
+          "warmup": false,
+          "wall_seconds": 2.161574875000042
+        }
+      ],
+      "binary_sha256": {
+        "baseline": "7f2093dc1b9bcc718f127b6001f148d9a1bfc7900c90139d0c8d419e222b0c26",
+        "candidate": "3c907a954a11cc58683801ba1062ae17d97e43ad174218753fdafc76737aad34"
+      },
+      "outputs": {
+        "baseline": {
+          "duration_seconds": "62.133333",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 1920,
+              "height": 1080,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "1864",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "62.133333"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "2585",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "60.000000"
+            }
+          ]
+        },
+        "current": {
+          "duration_seconds": "62.133333",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 1920,
+              "height": 1080,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "1864",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "62.133333"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "2585",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "60.000000"
+            }
+          ]
+        },
+        "simple": {
+          "duration_seconds": "60.000000",
+          "streams": [
+            {
+              "codec_type": "video",
+              "codec_name": "h264",
+              "width": 1920,
+              "height": 1080,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "30/1",
+              "nb_frames": "1800",
+              "sample_rate": null,
+              "channels": null,
+              "duration": "60.000000"
+            },
+            {
+              "codec_type": "audio",
+              "codec_name": "aac",
+              "width": null,
+              "height": null,
+              "pix_fmt": null,
+              "avg_frame_rate": "0/0",
+              "nb_frames": "2585",
+              "sample_rate": "44100",
+              "channels": 1,
+              "duration": "60.000000"
+            }
+          ]
+        }
+      },
+      "matches_equal_duration_per_frame_control": true,
+      "baseline_different_endpoint_mismatches": 37
+    }
+  }
+}

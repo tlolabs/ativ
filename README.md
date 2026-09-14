@@ -23,6 +23,7 @@ The interfaces use SwiftUI/AppKit, WinUI 3 and GTK/libadwaita, respectively. The
 
 - [Installation and updates](docs/installation.md)
 - [Building and testing](docs/building.md)
+- [Simple export benchmark and timing](docs/export-benchmark.md)
 - [Native architecture and AVID Core boundary](docs/architecture.md)
 - [Packaging, signing and release operations](docs/releasing.md)
 - [Accessibility and troubleshooting](docs/accessibility.md)

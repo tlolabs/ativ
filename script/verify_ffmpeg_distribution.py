@@ -28,7 +28,7 @@ def main():
     encoders = {fields[1] for line in capture([ffmpeg, '-hide_banner', '-encoders']).splitlines()
                 if len(fields := line.split()) >= 2 and fields[0][0] in 'VAS' and len(fields[0]) == 6}
     assert required_encoders <= encoders, f'Missing distribution encoders: {required_encoders - encoders}'
-    required_filters = {'scale', 'crop', 'split', 'gblur', 'overlay', 'format', 'hflip', 'vflip',
+    required_filters = {'scale', 'crop', 'split', 'gblur', 'overlay', 'loop', 'format', 'hflip', 'vflip',
                         'pad', 'trim', 'setpts', 'atrim', 'aformat', 'asetpts', 'concat'}
     filters = {fields[1] for line in capture([ffmpeg, '-hide_banner', '-filters']).splitlines()
                if len(fields := line.split()) >= 3 and '->' in fields[2]}

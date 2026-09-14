@@ -91,17 +91,20 @@ final class RenderStore: ObservableObject {
         diagnostics = []
         isRendering = true
         status = "Preparing video…"
+        let exportStarted = ProcessInfo.processInfo.systemUptime
         engine.render(image: imageURL, audio: audioURL, output: outputURL, preset: preset, bitrate: bitrate, fps: fps, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] event in
             DispatchQueue.main.async { self?.apply(event) }
         } completion: { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isRendering = false
+                let exportSeconds = ProcessInfo.processInfo.systemUptime - exportStarted
+                self.diagnostics.append(String(format: "Export wall time: %.3f seconds", exportSeconds))
                 if self.terminating { NSApp.reply(toApplicationShouldTerminate: true); return }
                 switch result {
                 case .success:
                     self.progress = 1
-                    self.status = "Video saved as \(outputURL.lastPathComponent)."
+                    self.status = "Video saved as \(outputURL.lastPathComponent) in \(String(format: "%.1f", exportSeconds)) seconds."
                     NSDocumentController.shared.noteNewRecentDocumentURL(outputURL)
                 case .failure(let error): self.fail(error)
                 }
