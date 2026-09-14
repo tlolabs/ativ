@@ -67,6 +67,7 @@ python3 "$ROOT_DIR/script/configure_distribution.py" "$MACOS" "macos-$LABEL"
 FRAMEWORK="$("$ROOT_DIR/script/prepare_sparkle.sh")"
 mkdir -p "$CONTENTS/Frameworks"
 ditto "$FRAMEWORK" "$CONTENTS/Frameworks/Sparkle.framework"
+cp "$(dirname "$FRAMEWORK")/LICENSE" "$RESOURCES/SPARKLE_LICENSE.txt"
 SIGN_ARGS=(--force --options runtime --sign "${SIGN_IDENTITY}")
 if [[ "${SIGN_IDENTITY}" != "-" ]]; then SIGN_ARGS+=(--timestamp); fi
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ativ-engine"

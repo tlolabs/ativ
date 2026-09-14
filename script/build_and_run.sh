@@ -45,6 +45,7 @@ python3 "$ROOT_DIR/script/configure_distribution.py" "$APP_MACOS" "macos-$LABEL"
 FRAMEWORK="$("$ROOT_DIR/script/prepare_sparkle.sh")"
 mkdir -p "$APP_CONTENTS/Frameworks"
 ditto "$FRAMEWORK" "$APP_CONTENTS/Frameworks/Sparkle.framework"
+cp "$(dirname "$FRAMEWORK")/LICENSE" "$APP_RESOURCES/SPARKLE_LICENSE.txt"
 codesign --force --deep --sign - "${APP_BUNDLE}" >/dev/null
 
 open_app() { /usr/bin/open -n "${APP_BUNDLE}"; }

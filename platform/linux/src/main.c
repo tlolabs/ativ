@@ -194,7 +194,7 @@ static gboolean load_presets(AtivWindow *self) {
 }
 
 static void show_error(AtivWindow *self, const gchar *message) {
-  AdwMessageDialog *dialog = ADW_MESSAGE_DIALOG(adw_message_dialog_new(GTK_WINDOW(self->window),("ATIV couldn’t complete the operation", message));
+  AdwMessageDialog *dialog = ADW_MESSAGE_DIALOG(adw_message_dialog_new(GTK_WINDOW(self->window),"ATIV couldn’t complete the operation", message));
   adw_message_dialog_add_response(dialog, "ok", "OK");
   adw_message_dialog_set_default_response(dialog, "ok");
   gtk_window_present(GTK_WINDOW(dialog));

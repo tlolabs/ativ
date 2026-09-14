@@ -18,8 +18,10 @@ def configure(stage,target):
     if key and len(base64.b64decode(key,validate=True))!=32: raise ValueError('Invalid update public key')
     if os.environ.get('ATIV_RELEASE')=='1' and not key: raise ValueError('Release requires ATIV_UPDATE_PUBLIC_KEY')
     stage.mkdir(parents=True,exist_ok=True)
-    (stage/'update-config.json').write_text(json.dumps(dict(version=version,channel=channel,target=target,public_key=key),indent=2)+'\n')
-    if channel=='development': (stage/'development-build').touch()
+    config_dir = stage.parent / "Resources" if target.startswith("macos-") else stage
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir/'update-config.json').write_text(json.dumps(dict(version=version,channel=channel,target=target,public_key=key),indent=2)+'\n')
+    if channel=='development' and not target.startswith('macos-'): (stage/'development-build').touch()
     if target.startswith('macos-'):
         path=stage.parent/'Info.plist';info=plistlib.loads(path.read_bytes())
         info.update(CFBundleShortVersionString=version,CFBundleVersion=version.replace('-dev.','.'),LSMinimumSystemVersion='13.0',SUEnableAutomaticChecks=True,SUAutomaticallyUpdate=False,SUVerifyUpdateBeforeExtraction=True,SUEnableSystemProfiling=False,SUSendProfileInfo=False,SUPublicEDKey=key)

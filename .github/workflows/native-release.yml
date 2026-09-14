@@ -213,7 +213,7 @@ jobs:
         run: ./script/fetch_ffmpeg.sh windows "${{ matrix.fetch_arch }}" "build/ffmpeg-windows-${{ matrix.arch }}"
       - name: Install Inno Setup
         shell: pwsh
-        run: choco install innosetup --version=6.5.4 --yes --no-progress
+        run: choco install innosetup --version=6.7.1 --yes --no-progress
       - name: Verify canonical media and host contract with release tools
         shell: bash
         run: |

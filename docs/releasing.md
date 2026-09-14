@@ -1,0 +1,50 @@
+# Packaging, updates and release operations
+
+## Reference and adaptations
+
+ENcap supplied the native subprocess boundary, pinned FFmpeg acquisition, Sparkle 2.9.6 bridge and Ed25519 release-signing pattern. Its reviewed implementation has no Windows/Linux update client, nightly convention, native installers or AppImage pipeline. ATIV adds these host-owned pieces and independent publication. No AVID Core or ENcap changes are required. See [the review](native-distribution-plan.md).
+
+## Repository configuration
+
+Set these in the ATIV repository's GitHub Actions settings, never in source control:
+
+| Name | Kind | Meaning |
+| --- | --- | --- |
+| `ATIV_UPDATE_PUBLIC_KEY` | Variable | Base64 32-byte Ed25519 public key embedded in apps |
+| `ATIV_UPDATE_PRIVATE_KEY` | Secret | Matching base64 32-byte Ed25519 private seed; signs appcasts and JSON envelopes |
+| `MACOS_CERTIFICATE_BASE64` | Secret | Exported Developer ID Application PKCS#12 |
+| `MACOS_CERTIFICATE_PASSWORD` | Secret | PKCS#12 password |
+| `MACOS_SIGNING_IDENTITY` | Secret | Developer ID Application identity |
+| `MACOS_NOTARY_APPLE_ID` | Secret | Apple notarization account |
+| `MACOS_NOTARY_PASSWORD` | Secret | App-specific notarization password |
+| `MACOS_NOTARY_TEAM_ID` | Secret | Apple Developer team |
+| `WINDOWS_CERTIFICATE_BASE64` | Secret, optional | Authenticode PFX |
+| `WINDOWS_CERTIFICATE_PASSWORD` | Secret, optional | PFX password |
+
+Keep a protected offline backup of the Ed25519 seed. A missing update key fails authenticated feed generation. Never replace a deployed verification key without an explicit rotation/migration plan. The same key may sign separate channel payloads; clients enforce the signed channel. Public keys are not secrets.
+
+Windows unsigned development builds work without a certificate; supplying the certificate enables executable and installer signing with timestamp verification. macOS stable tags require Developer ID/notary credentials. The macOS app is notarized and stapled before final archives are created, and the DMG is separately notarized/stapled. Sparkle nested code is signed inside-out. The ZIP contains the stapled app; the DMG contains the app and Applications shortcut.
+
+## Stable release
+
+Update the workspace version, validate the branch, merge it, and push the matching `v<version>` tag. No manual approval job is required. The workflow tests Rust/shared media contracts, native integration and startup, acquires FFmpeg, packages every supported target, validates architectures/resources/metadata, signs where configured and uploads only passing job artifacts.
+
+Publication uses `always()` after all target jobs. Passing artifacts publish even when another target failed. Release notes explicitly identify incomplete jobs; the final reporting step fails so normal GitHub notifications remain effective. Empty or mixed-version artifact collections fail publication. Update feeds contain only artifacts actually present. An absent target cannot be offered for installation.
+
+`release_metadata.py` signs the exact payload bytes in a base64 envelope, avoiding cross-language canonical-JSON ambiguity. The payload binds version, channel, target, filename, length, SHA-256 and repository download URL. macOS appcasts sign the complete DMG with Ed25519. Download clients require HTTPS, a valid signature, matching channel, newer semantic version, correct target and verified size/hash before handing off installation. A failed download is discarded. AppImage replacement is staged on the same filesystem and atomically renamed.
+
+GitHub-generated notes are the stable changelog convention, matching ENcap. The attached `SHA256SUMS` covers downloadable artifacts and metadata.
+
+## Development builds
+
+Main branch pushes create `<base>-dev.<GitHub run number>` and update the `development` prerelease. macOS bundle IDs, Windows install IDs/directories, and Linux package IDs differ from stable. Feeds are `/releases/download/development/…`; stable uses `/releases/latest/download/…`. There is no runtime channel selector. Development artifact filenames include the run version, preventing cached bytes from being mistaken for newer downloads. Stale assets/feeds are removed from the rolling prerelease before the new validated set is uploaded.
+
+`workflow_dispatch` is build-only, suitable for testing feature branches without creating releases. Matrix jobs use `fail-fast: false`.
+
+## Package formats and limits
+
+macOS: DMG and ZIP. Windows: per-user Inno Setup installer and portable ZIP. Linux: AppImage, `.deb` and an archive. ENcap has no proven RPM implementation to adapt, so RPM is not introduced in this pass. Linux ARM64 is retained from ATIV in addition to ENcap's x64 baseline.
+
+Linux `.deb` installation remains owned by the distribution package manager. AppImage self-updates require a writable installation directory and apply after user confirmation; an existing running mapping remains valid until restart. A signed update is not a substitute for testing a real upgrade on every platform.
+
+Use [the release checklist](release-checklist.md) and [acceptance matrix](acceptance-matrix.md) before declaring a release production-ready.

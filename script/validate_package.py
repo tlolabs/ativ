@@ -36,7 +36,8 @@ def validate(root,target):
         assert list((root/'usr/share/applications').glob('*.desktop'))
     assert icons and all(p.is_file() and p.stat().st_size>100 for p in icons),'Missing native icons'
     for name in names: machine(binary/name,target)
-    config=json.loads((binary/'update-config.json').read_text()); assert config['target']==target
+    config_path=(contents/'Resources/update-config.json') if target.startswith('macos') else (binary/'update-config.json')
+    config=json.loads(config_path.read_text()); assert config['target']==target
     assert config['channel'] in ('stable','development')
     if target.startswith('macos'):
         assert config['version']==info['CFBundleShortVersionString']

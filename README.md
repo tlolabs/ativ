@@ -1,54 +1,41 @@
-# ATIV
+# ATIV — Artwork + Tracks Into Video
 
-**Artwork + Tracks Into Video**
+[![Native builds](https://github.com/tlolabs/ativ/actions/workflows/native-release.yml/badge.svg)](https://github.com/tlolabs/ativ/actions/workflows/native-release.yml)
+[![Latest release](https://img.shields.io/github/v/release/tlolabs/ativ)](https://github.com/tlolabs/ativ/releases/latest)
 
-ATIV turns one still image and one audio track into a polished H.264/AAC MP4. It is a focused, local-first desktop app for musicians, podcasters, creators, and anyone who needs a shareable video built from artwork and sound.
+ATIV combines one still image and one audio track into an H.264/AAC MP4. Choose artwork and audio, select one of 27 format presets, preview the composition, and export. Horizontal/vertical flips, frame rate, audio bitrate, progress and safe cancellation are available on every platform.
 
-## How it works
+**[Download the latest stable release](https://github.com/tlolabs/ativ/releases/latest)** · [Development builds](https://github.com/tlolabs/ativ/releases/tag/development)
 
-1. Choose your artwork and audio track.
-2. Pick a platform-ready size or a general video format.
-3. Preview the composition, then export an MP4.
+ATIV processes media locally. No accounts, analytics, hosted crash reports, uploads, cloud processing, or project format. Network access is used for application updates; automatic checks can be disabled in native preferences.
 
-ATIV keeps the workflow deliberately simple: no timeline, account, upload, or project format is required.
+| Platform | Architectures | Minimum | Distribution |
+| --- | --- | --- | --- |
+| macOS | Apple Silicon, Intel | macOS 13 | DMG, ZIP; Sparkle updates |
+| Windows | x64, ARM64 | Windows 10 1809 | Per-user installer, portable ZIP |
+| Linux | x64, ARM64 | GTK 4.10, libadwaita 1.4; Ubuntu 24.04 package baseline | AppImage, `.deb`, archive |
 
-## What you get
+All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed the release pipeline. The release notes identify incomplete builds.
 
-- Native desktop interfaces for macOS, Windows, and Linux.
-- Platform-ready portrait, landscape, square, and 4:5 presets.
-- A styled image preview with horizontal and vertical flip controls.
-- H.264 video and AAC audio output in a single MP4.
-- Progress reporting, safe cancellation, and atomic output replacement.
-- Fully local processing with no telemetry, analytics, hosted crash reporting, or automatic uploads.
+The interfaces use SwiftUI/AppKit, WinUI 3 and GTK/libadwaita, respectively. They follow native appearance and control conventions, default to the system theme, and offer Light/Dark/System preferences. The same Rust media implementation powers every platform.
 
-## Platforms
+## Documentation
 
-ATIV supports macOS 12 or later on Apple Silicon and Intel, Windows 10 version 1809 or later on x64 and ARM64, and current Linux distributions with GTK 4 and libadwaita 1.5 or later.
+- [Installation and updates](docs/installation.md)
+- [Building and testing](docs/building.md)
+- [Native architecture and AVID Core boundary](docs/architecture.md)
+- [Packaging, signing and release operations](docs/releasing.md)
+- [Accessibility and troubleshooting](docs/accessibility.md)
+- [Cross-platform acceptance matrix](docs/acceptance-matrix.md)
+- [Migration decisions and reference review](docs/native-distribution-plan.md)
+- [Release readiness checklist](docs/release-checklist.md)
 
-Release packages bundle the ATIV engine with FFmpeg and ffprobe. See [building and packaging](docs/building.md) for development and release instructions.
+## Development
 
-## Build from source
+Clone `tlolabs/avid-core` beside ATIV as `AVID Core`, at the revision pinned in the workflow. Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms.
 
-Check out `tlolabs/avid-core` beside this repository as `AVID Core`; the workspace uses that sibling path. The tested revision and platform prerequisites are in [building and packaging](docs/building.md).
-
-```bash
-cargo build --workspace
-cargo test --workspace
-cargo run -p ativ-engine -- check
-```
-
-On macOS, build and launch the complete local app bundle with:
-
-```bash
-./script/build_and_run.sh
-```
-
-For architecture, validation, and release details, see the [architecture](docs/architecture.md), [acceptance matrix](docs/acceptance-matrix.md), and [release checklist](docs/release-checklist.md).
-
-## Privacy and file safety
-
-ATIV never modifies your source artwork or audio. Completed output is staged beside the destination and published only after a successful render. If rendering fails or is cancelled, partial output is cleaned up and an existing destination file is preserved.
+Completed exports are staged beside the destination and published only after successful rendering. Failed or cancelled exports preserve existing output and never change the selected source files.
 
 ## License
 
-ATIV host source is licensed under GPL-3.0-or-later. The linked `avid-core` component is GPL-3.0-only; combined engine distributions include its GPLv3 license. FFmpeg and other redistributed components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+ATIV host code is GPL-3.0-or-later. The combined engine includes GPL-3.0-only AVID Core. Redistributed components retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).

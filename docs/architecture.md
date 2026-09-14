@@ -45,6 +45,14 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 
 ## Platform support
 
-- **macOS:** macOS 12 or later, Apple Silicon and Intel.
+- **macOS:** macOS 13 or later, Apple Silicon and Intel.
 - **Windows:** Windows 10 version 1809 or later, x64 and ARM64.
-- **Linux:** GTK 4 and libadwaita 1.5 or later on current Ubuntu- and Fedora-family distributions.
+- **Linux:** GTK 4 and libadwaita 1.4 or later on current Ubuntu- and Fedora-family distributions.
+
+## Application distribution boundary
+
+`ativ-update` is an ATIV-only Rust executable; it has no avid-core dependency and never receives media paths. Windows/GTK call it asynchronously to check signed metadata and download verified installers. macOS loads Sparkle through a small Objective-C bridge. Native UI confirmation and platform installers own the installation step. See [release architecture](releasing.md).
+
+Appearance/preferences remain platform-owned. Source selection, probing, preview generations and render state belong to native stores/clients. An audio probe for an older selection cannot replace the current duration. Native process clients keep pipes drained and pass arguments without a shell. Closing or quitting an active render requests safe engine cancellation.
+
+`assets/icons` owns artwork; `generate_icons.py` converts it into tracked native resources. Distribution identity and versions are generated from the workspace version plus the CI development build number. Stable/development feeds and application identities are separate.
