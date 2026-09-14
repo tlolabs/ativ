@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    @StateObject private var store = RenderStore()
+    @ObservedObject var store: RenderStore
 
     var body: some View {
         VStack(spacing: 0) {

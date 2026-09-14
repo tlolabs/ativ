@@ -222,6 +222,7 @@ static void preview_done(GObject *source, GAsyncResult *result, gpointer user_da
     gtk_picture_set_filename(self->preview, self->preview_path);
   } else {
     g_unlink(request->path);
+    if (error && request->generation == self->preview_generation) show_error(self,error->message);
   }
   g_free(request->path);
   g_object_unref(request->owner);
@@ -261,6 +262,7 @@ static void refresh_preview(AtivWindow *self) {
 
 static void image_chosen(GObject *source, GAsyncResult *result, gpointer user_data) {
   AtivWindow *self = user_data;
+  g_autoptr(AdwApplicationWindow) owner = self->window;
   g_autoptr(GError) error = NULL;
   g_autoptr(GFile) file = gtk_file_dialog_open_finish(GTK_FILE_DIALOG(source), result, &error);
   if (!file) return;
@@ -270,19 +272,56 @@ static void image_chosen(GObject *source, GAsyncResult *result, gpointer user_da
   refresh_preview(self);
 }
 
+
+typedef struct { AtivWindow *self; guint generation; } AudioProbe;
+static void audio_probe_done(GObject *source,GAsyncResult *result,gpointer data) {
+  AudioProbe *probe=data;AtivWindow *self=probe->self;
+  g_autofree gchar *output=NULL;g_autofree gchar *errors=NULL;g_autoptr(GError) error=NULL;
+  gboolean ok=g_subprocess_communicate_utf8_finish(G_SUBPROCESS(source),result,&output,&errors,&error);
+  if(probe->generation==self->audio_generation) {
+    g_autoptr(JsonObject) object=NULL;
+    if(ok && g_subprocess_get_successful(G_SUBPROCESS(source)) && parse_event(output,&object)) {
+      JsonNode *duration=json_object_get_member(object,"duration_seconds");
+      if(duration && !JSON_NODE_HOLDS_NULL(duration)) {
+        double seconds=json_node_get_double(duration);g_autofree gchar *text=g_strdup_printf("Duration: %d:%02d",(int)seconds/60,(int)seconds%60);gtk_label_set_text(self->duration_label,text);
+      } else gtk_label_set_text(self->duration_label,"Duration unavailable");
+    } else {gtk_label_set_text(self->duration_label,"Could not read audio");if(error)show_error(self,error->message);}
+  }
+  g_object_unref(self->window);g_free(probe);
+}
+static void set_audio(AtivWindow *self,const gchar *path) {
+  if(self->render_process || !path)return;
+  gtk_editable_set_text(GTK_EDITABLE(self->audio_entry),path);suggest_output(self,path);
+  gtk_label_set_text(self->duration_label,"Reading audio duration…");
+  g_autoptr(GError) error=NULL;
+  g_autoptr(GSubprocess) process=g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_PIPE,&error,self->engine,"probe","--audio",path,NULL);
+  if(!process){show_error(self,error->message);return;}
+  AudioProbe *probe=g_new0(AudioProbe,1);probe->self=self;probe->generation=++self->audio_generation;g_object_ref(self->window);
+  g_subprocess_communicate_utf8_async(process,NULL,NULL,audio_probe_done,probe);
+}
+static gboolean media_drop(GtkDropTarget *target,const GValue *value,double x,double y,gpointer data) {
+  AtivWindow *self=data;if(self->render_process)return FALSE;
+  GFile *file=g_value_get_object(value);if(!file)return FALSE;
+  g_autofree gchar *path=g_file_get_path(file);if(!path)return FALSE;
+  gboolean uncertain=FALSE;g_autofree gchar *type=g_content_type_guess(path,NULL,0,&uncertain);
+  g_autofree gchar *mime=type ? g_content_type_get_mime_type(type) : NULL;
+  if(mime && g_str_has_prefix(mime,"audio/"))set_audio(self,path);
+  else {gtk_editable_set_text(GTK_EDITABLE(self->image_entry),path);suggest_output(self,path);refresh_preview(self);}
+  return TRUE;
+}
 static void audio_chosen(GObject *source, GAsyncResult *result, gpointer user_data) {
   AtivWindow *self = user_data;
+  g_autoptr(AdwApplicationWindow) owner = self->window;
   g_autoptr(GError) error = NULL;
   g_autoptr(GFile) file = gtk_file_dialog_open_finish(GTK_FILE_DIALOG(source), result, &error);
   if (!file) return;
   g_autofree gchar *path = g_file_get_path(file);
-  gtk_editable_set_text(GTK_EDITABLE(self->audio_entry), path);
-  suggest_output(self, path);
-  gtk_label_set_text(self->duration_label, "Duration will be verified before rendering");
+  set_audio(self,path);
 }
 
 static void output_chosen(GObject *source, GAsyncResult *result, gpointer user_data) {
   AtivWindow *self = user_data;
+  g_autoptr(AdwApplicationWindow) owner = self->window;
   g_autoptr(GError) error = NULL;
   g_autoptr(GFile) file = gtk_file_dialog_save_finish(GTK_FILE_DIALOG(source), result, &error);
   if (!file) return;
@@ -299,6 +338,7 @@ static void choose_image(GtkButton *button, gpointer user_data) {
   g_autoptr(GListStore) filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filters, filter);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
+  g_object_ref(((AtivWindow *)user_data)->window);
   gtk_file_dialog_open(dialog, GTK_WINDOW(((AtivWindow *)user_data)->window), NULL, image_chosen, user_data);
   g_object_unref(dialog);
 }
@@ -312,6 +352,7 @@ static void choose_audio(GtkButton *button, gpointer user_data) {
   g_autoptr(GListStore) filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filters, filter);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
+  g_object_ref(((AtivWindow *)user_data)->window);
   gtk_file_dialog_open(dialog, GTK_WINDOW(((AtivWindow *)user_data)->window), NULL, audio_chosen, user_data);
   g_object_unref(dialog);
 }
@@ -326,6 +367,7 @@ static void choose_output(GtkButton *button, gpointer user_data) {
   g_autoptr(GListStore) filters = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filters, filter);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filters));
+  g_object_ref(((AtivWindow *)user_data)->window);
   gtk_file_dialog_save(dialog, GTK_WINDOW(((AtivWindow *)user_data)->window), NULL, output_chosen, user_data);
   g_object_unref(dialog);
 }
@@ -645,6 +687,8 @@ static void activate(GtkApplication *application, gpointer user_data) {
   g_signal_connect(self->bitrate_entry,"changed",G_CALLBACK(preference_changed),self);
   g_signal_connect(self->fps_spin,"value-changed",G_CALLBACK(preference_changed),self);
   setup_actions(self,application,header);
+  GtkDropTarget *drop=gtk_drop_target_new(G_TYPE_FILE,GDK_ACTION_COPY);
+  g_signal_connect(drop,"drop",G_CALLBACK(media_drop),self);gtk_widget_add_controller(GTK_WIDGET(self->window),GTK_EVENT_CONTROLLER(drop));
   GtkWidget *accessible[]={GTK_WIDGET(self->platform_drop),GTK_WIDGET(self->aspect_drop),GTK_WIDGET(self->resolution_drop),GTK_WIDGET(self->bitrate_entry),GTK_WIDGET(self->fps_spin),GTK_WIDGET(self->preview),GTK_WIDGET(self->progress)};
   const gchar *labels[]={"Social media outlet","Aspect ratio","Resolution","Audio bitrate","Frames per second","Video frame preview","Video creation progress"};
   for(guint i=0;i<G_N_ELEMENTS(accessible);i++) gtk_accessible_update_property(GTK_ACCESSIBLE(accessible[i]),GTK_ACCESSIBLE_PROPERTY_LABEL,labels[i],-1);

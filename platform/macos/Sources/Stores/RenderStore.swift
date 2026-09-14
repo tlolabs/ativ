@@ -26,6 +26,7 @@ final class RenderStore: ObservableObject {
     private let engine = EngineClient()
     private var previewGeneration = 0
     private var audioGeneration = 0
+    private var terminating = false
 
     var platforms: [String] { unique(presets.map(\.platform)) }
     var aspects: [String] { unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect)) }
@@ -96,6 +97,7 @@ final class RenderStore: ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isRendering = false
+                if self.terminating { NSApp.reply(toApplicationShouldTerminate: true); return }
                 switch result {
                 case .success:
                     self.progress = 1
@@ -105,6 +107,13 @@ final class RenderStore: ObservableObject {
                 }
             }
         }
+    }
+
+    func requestTermination() -> NSApplication.TerminateReply {
+        guard isRendering else { return .terminateNow }
+        terminating = true
+        cancel()
+        return .terminateLater
     }
 
     func cancel() { status = "Stopping safely…"; engine.cancelRender() }

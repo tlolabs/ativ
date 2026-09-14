@@ -76,6 +76,7 @@ def main():
             audio_paths.append(audio)
         sources = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in [image, *audio_paths]}
         version = re.search(r'^version = "([^"]+)"', (ROOT / 'Cargo.toml').read_text(), re.M)[1]
+        version = os.environ.get("ATIV_VERSION", version)
         assert run([engine, 'version']).decode() == f'ativ-engine {version}\n'
         expected = (ROOT / 'crates/ativ-engine/tests/fixtures/presets.ndjson').read_bytes().replace(b'\r\n', b'\n')
         assert run([engine, 'presets']) == expected

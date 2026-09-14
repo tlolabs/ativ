@@ -2,7 +2,10 @@ import AppKit
 import SwiftUI
 import SparkleBridge
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    static var requestTermination: (() -> NSApplication.TerminateReply)?
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply { Self.requestTermination?() ?? .terminateNow }
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
@@ -21,11 +24,13 @@ extension Notification.Name {
 struct ATIVApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    @StateObject private var store = RenderStore()
     @AppStorage("appearance") private var appearance = "system"
 
     var body: some Scene {
         WindowGroup("ATIV", id: "main") {
-            ContentView()
+            ContentView(store: store)
+                .onAppear { AppDelegate.requestTermination = { store.requestTermination() } }
                 .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
                 .frame(minWidth: 720, idealWidth: 1040, minHeight: 520, idealHeight: 720)
         }
