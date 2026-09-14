@@ -8,6 +8,6 @@
   <description><p>ATIV combines a still image with an audio recording using a native desktop interface and the FFmpeg media engine.</p></description>
   <launchable type="desktop-id">com.tlolabs.ativ.desktop</launchable>
   <provides><binary>ativ</binary></provides>
-  <releases><release version="0.2.1" date="2026-09-12" /></releases>
+  <releases><release version="0.2.2" date="2026-09-13" /></releases>
   <content_rating type="oars-1.1" />
 </component>
