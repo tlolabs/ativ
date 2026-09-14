@@ -29,6 +29,8 @@ Release packages bundle the ATIV engine with FFmpeg and ffprobe. See [building a
 
 ## Build from source
 
+Check out `tlolabs/avid-core` beside this repository as `AVID Core`; the workspace uses that sibling path. The tested revision and platform prerequisites are in [building and packaging](docs/building.md).
+
 ```bash
 cargo build --workspace
 cargo test --workspace
@@ -49,4 +51,4 @@ ATIV never modifies your source artwork or audio. Completed output is staged bes
 
 ## License
 
-ATIV is licensed under GPL-3.0-or-later. FFmpeg and other redistributed components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+ATIV host source is licensed under GPL-3.0-or-later. The linked `avid-core` component is GPL-3.0-only; combined engine distributions include its GPLv3 license. FFmpeg and other redistributed components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

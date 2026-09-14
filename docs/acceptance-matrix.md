@@ -15,3 +15,7 @@ This matrix defines the behavior every native ATIV release must preserve.
 | Diagnostics | Rotating local log | Platform log directory | Platform log directory | XDG state directory | `ATIV_LOG_PATH` override |
 
 Release jobs cover Apple Silicon, Intel macOS, Windows x64, Windows ARM64, Linux x86_64, and Linux ARM64. Hardware/GPU acceleration is intentionally disabled: the still-image workflow prioritizes reproducible software encoding and broad H.264 playback.
+
+## Shared-core migration evidence
+
+The canonical media implementation now lives in `avid-core`; `ativ-core` only adapts ATIV policy and errors. The automated contract suite exercises all 27 presets and recognizes `.avid-*` staging. Exact baseline protocol fixtures omit the shared preset's extra FPS field. See [the migration report](migration-avid-core.md) for the exact shared revision, tests actually executed, and platform/manual gaps. Matrix entries above are release requirements, not claims that every platform has been tested locally.

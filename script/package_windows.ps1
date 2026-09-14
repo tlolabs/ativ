@@ -29,6 +29,9 @@ Copy-Item $ffmpeg $publish
 Copy-Item $ffprobe $publish
 Copy-Item (Join-Path $root "LICENSE") $publish
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
+Copy-Item (Join-Path $root "../AVID Core/LICENSE") (Join-Path $publish "AVID_CORE_LICENSE.txt")
+python (Join-Path $root "script/verify_ffmpeg_distribution.py") --engine (Join-Path $publish "ativ-engine.exe") --ffmpeg (Join-Path $publish "ffmpeg.exe") --ffprobe (Join-Path $publish "ffprobe.exe")
+if ($LASTEXITCODE -ne 0) { throw "FFmpeg distribution validation failed." }
 if (Test-Path (Join-Path $FfmpegDirectory "FFMPEG_LICENSE.txt")) { Copy-Item (Join-Path $FfmpegDirectory "FFMPEG_LICENSE.txt") $publish }
 (& $ffmpeg -buildconf 2>&1) | Set-Content (Join-Path $publish "FFMPEG_BUILD_CONFIGURATION.txt")
 

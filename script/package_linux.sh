@@ -30,6 +30,8 @@ cp "${FFMPEG_DIR}/ffmpeg" "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg"
 cp "${FFMPEG_DIR}/ffprobe" "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
 cp "${ROOT_DIR}/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${PACKAGE_ROOT}/usr/share/doc/ativ/THIRD_PARTY_NOTICES.md"
+cp "${ROOT_DIR}/../AVID Core/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/AVID_CORE_LICENSE.txt"
+python3 "${ROOT_DIR}/script/verify_ffmpeg_distribution.py" --engine "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" --ffmpeg "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" --ffprobe "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
 if [[ -f "${FFMPEG_DIR}/FFMPEG_LICENSE.txt" ]]; then cp "${FFMPEG_DIR}/FFMPEG_LICENSE.txt" "${PACKAGE_ROOT}/usr/share/doc/ativ/"; fi
 "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" -buildconf > "${PACKAGE_ROOT}/usr/share/doc/ativ/FFMPEG_BUILD_CONFIGURATION.txt" 2>&1
 chmod 0755 "${PACKAGE_ROOT}/usr/bin/ativ" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"

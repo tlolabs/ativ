@@ -52,9 +52,12 @@ cp "${ROOT_DIR}/platform/macos/Info.plist" "${CONTENTS}/Info.plist"
 cp "${ROOT_DIR}/platform/macos/Resources/icon-windowed.icns" "${RESOURCES}/icon-windowed.icns"
 cp "${ROOT_DIR}/LICENSE" "${RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${RESOURCES}/THIRD_PARTY_NOTICES.md"
+cp "${ROOT_DIR}/../AVID Core/LICENSE" "${RESOURCES}/AVID_CORE_LICENSE.txt"
 "${MACOS}/ffmpeg" -buildconf > "${RESOURCES}/FFMPEG_BUILD_CONFIGURATION.txt" 2>&1
 cp "${FFMPEG_LICENSE_FILE:-${ROOT_DIR}/LICENSE}" "${RESOURCES}/FFMPEG_LICENSE.txt"
 chmod +x "${MACOS}/ATIV" "${MACOS}/ativ-engine" "${MACOS}/ffmpeg" "${MACOS}/ffprobe"
+
+python3 "${ROOT_DIR}/script/verify_ffmpeg_distribution.py" --engine "${MACOS}/ativ-engine" --ffmpeg "${MACOS}/ffmpeg" --ffprobe "${MACOS}/ffprobe"
 
 SIGN_ARGS=(--force --options runtime --sign "${SIGN_IDENTITY}")
 if [[ "${SIGN_IDENTITY}" != "-" ]]; then SIGN_ARGS+=(--timestamp); fi
