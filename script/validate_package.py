@@ -40,7 +40,7 @@ def validate(root,target):
     config=json.loads(config_path.read_text()); assert config['target']==target
     assert config['channel'] in ('stable','development')
     if target.startswith('macos'):
-        assert config['version']==info['CFBundleShortVersionString']
+        assert config['version']==info['ATIVDistributionVersion']
         assert info['SUEnableAutomaticChecks'] and info['SUVerifyUpdateBeforeExtraction']
         assert info['SUFeedURL'].endswith(f'appcast-{target}.xml')
     # Run in isolation so PATH cannot hide missing bundle dependencies.

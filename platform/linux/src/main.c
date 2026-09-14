@@ -632,7 +632,7 @@ static void activate(GtkApplication *application, gpointer user_data) {
 
   GtkWidget *toolbar = adw_toolbar_view_new();
   GtkWidget *header = adw_header_bar_new();
-  adw_header_bar_set_title_widget(ADW_HEADER_BAR(header), adw_window_title_new("ATIV", "Artwork + Tracks Into Video"));
+  adw_header_bar_set_title_widget(ADW_HEADER_BAR(header), adw_window_title_new(g_str_has_suffix(ATIV_APP_ID,".development") ? "ATIV Development" : "ATIV", "Artwork + Tracks Into Video"));
   adw_toolbar_view_add_top_bar(ADW_TOOLBAR_VIEW(toolbar), header);
   GtkWidget *split = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
   adw_toolbar_view_set_content(ADW_TOOLBAR_VIEW(toolbar), split);

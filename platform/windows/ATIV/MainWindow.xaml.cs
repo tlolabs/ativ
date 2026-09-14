@@ -29,6 +29,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         SystemBackdrop = new MicaBackdrop();
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "ATIV.ico"));
+        if (File.Exists(Path.Combine(AppContext.BaseDirectory,"development-build"))) Title = "ATIV Development";
         ApplyAppearance();
         BitrateBox.Text = preferences.Bitrate;
         FpsBox.Value = preferences.Fps;
@@ -62,7 +63,7 @@ public sealed partial class MainWindow : Window
     private async void ChooseImage(object sender, RoutedEventArgs args)
     {
         if (rendering) return;
-        var file = await PickFileAsync([".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"]);
+        var file = await PickFileAsync(["*"]);
         if (file is null) return;
         SetImage(file.Path);
     }
@@ -70,7 +71,7 @@ public sealed partial class MainWindow : Window
     private async void ChooseAudio(object sender, RoutedEventArgs args)
     {
         if (rendering) return;
-        var file = await PickFileAsync([".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus"]);
+        var file = await PickFileAsync(["*"]);
         if (file is null) return;
         await SetAudioAsync(file.Path);
     }
@@ -284,7 +285,7 @@ public sealed partial class MainWindow : Window
         var file = (await args.DataView.GetStorageItemsAsync()).OfType<StorageFile>().FirstOrDefault();
         if (file is null) return;
         var extension = Path.GetExtension(file.Path).ToLowerInvariant();
-        if (new[] { ".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus" }.Contains(extension)) await SetAudioAsync(file.Path);
+        if (file.ContentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) || new[] { ".wav", ".mp3", ".m4a", ".m4b", ".aac", ".flac", ".ogg", ".oga", ".opus", ".aif", ".aiff", ".wma", ".alac" }.Contains(extension)) await SetAudioAsync(file.Path);
         else SetImage(file.Path);
     }
 }

@@ -41,6 +41,7 @@ cp "${ROOT_DIR}/../AVID Core/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/AVID_C
 python3 "${ROOT_DIR}/script/verify_ffmpeg_distribution.py" --engine "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" --ffmpeg "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" --ffprobe "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
 if [[ -f "${FFMPEG_DIR}/FFMPEG_LICENSE.txt" ]]; then cp "${FFMPEG_DIR}/FFMPEG_LICENSE.txt" "${PACKAGE_ROOT}/usr/share/doc/ativ/"; fi
 "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" -buildconf > "${PACKAGE_ROOT}/usr/share/doc/ativ/FFMPEG_BUILD_CONFIGURATION.txt" 2>&1
+python3 "$ROOT_DIR/script/collect_licenses.py" "$PACKAGE_ROOT/usr/share/doc/ativ/licenses"
 chmod 0755 "${PACKAGE_ROOT}/usr/bin/ativ" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
 
 cat > "${PACKAGE_ROOT}/DEBIAN/control" <<EOF
@@ -49,7 +50,7 @@ Version: ${VERSION}
 Section: video
 Priority: optional
 Architecture: ${DEB_ARCH}
-Maintainer: A.T.I.V. maintainers <opensource@tlolabs.com>
+Maintainer: ATIV maintainers <opensource@tlolabs.com>
 Depends: libgtk-4-1 (>= 4.10), libadwaita-1-0 (>= 1.4), libjson-glib-1.0-0
 Description: Artwork + Tracks Into Video
  Create an H.264/AAC social video from a still image and audio recording.

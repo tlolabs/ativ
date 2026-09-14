@@ -26,7 +26,7 @@ class ReleaseTests(unittest.TestCase):
         (self.root/'ATIV-0.3.0-dev.42-macos-intel.dmg').write_bytes(b'development fixture')
         build(self.root,'0.3.0-dev.42','development','development',self.seed,self.public)
         tree=ET.parse(self.root/'appcast-macos-intel.xml')
-        self.assertEqual(tree.find(f'.//{{{SPARKLE}}}version').text,'0.3.0.42')
+        self.assertEqual(tree.find(f'.//{{{SPARKLE}}}version').text,'42')
         self.assertIn('/download/development/',tree.find('.//enclosure').attrib['url'])
     def test_empty_release_fails(self):
         with self.assertRaises(ValueError):build(self.root,'0.3.0','stable','v0.3.0',self.seed,self.public)

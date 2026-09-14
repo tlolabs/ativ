@@ -68,6 +68,7 @@ FRAMEWORK="$("$ROOT_DIR/script/prepare_sparkle.sh")"
 mkdir -p "$CONTENTS/Frameworks"
 ditto "$FRAMEWORK" "$CONTENTS/Frameworks/Sparkle.framework"
 cp "$(dirname "$FRAMEWORK")/LICENSE" "$RESOURCES/SPARKLE_LICENSE.txt"
+python3 "$ROOT_DIR/script/collect_licenses.py" "$RESOURCES/licenses" --target "$RUST_TARGET"
 SIGN_ARGS=(--force --options runtime --sign "${SIGN_IDENTITY}")
 if [[ "${SIGN_IDENTITY}" != "-" ]]; then SIGN_ARGS+=(--timestamp); fi
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ativ-engine"

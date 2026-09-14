@@ -15,7 +15,7 @@ struct ContentView: View {
             Divider()
             statusBar
         }
-        .navigationTitle("ATIV")
+        .navigationTitle(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "ATIV")
         .task { store.start() }
         .onDisappear { if store.isRendering { store.cancel() } }
         .onOpenURL { url in

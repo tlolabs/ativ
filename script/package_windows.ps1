@@ -43,6 +43,9 @@ if ($LASTEXITCODE -ne 0) { throw "FFmpeg distribution validation failed." }
 if (Test-Path (Join-Path $FfmpegDirectory "FFMPEG_LICENSE.txt")) { Copy-Item (Join-Path $FfmpegDirectory "FFMPEG_LICENSE.txt") $publish }
 (& $ffmpeg -buildconf 2>&1) | Set-Content (Join-Path $publish "FFMPEG_BUILD_CONFIGURATION.txt")
 
+python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
+if ($LASTEXITCODE -ne 0) { throw "License collection failed" }
+
 if ($env:WINDOWS_CERTIFICATE_BASE64) {
     $certificate = Join-Path $build "signing.pfx"
     [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))

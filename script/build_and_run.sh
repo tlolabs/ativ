@@ -16,7 +16,7 @@ FFMPEG_BIN="${FFMPEG_BIN:-$(command -v ffmpeg || true)}"
 FFPROBE_BIN="${FFPROBE_BIN:-$(command -v ffprobe || true)}"
 
 if [[ ! -x "${FFMPEG_BIN}" || ! -x "${FFPROBE_BIN}" ]]; then
-  echo "FFmpeg and ffprobe are required for a local A.T.I.V. build." >&2
+  echo "FFmpeg and ffprobe are required for a local ATIV build." >&2
   exit 1
 fi
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Write host-owned version/update metadata into a staged package."""
 import argparse, base64, json, os, plistlib, re
+from datetime import date
+from xml.etree import ElementTree as ET
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -24,11 +26,17 @@ def configure(stage,target):
     if channel=='development' and not target.startswith('macos-'): (stage/'development-build').touch()
     if target.startswith('macos-'):
         path=stage.parent/'Info.plist';info=plistlib.loads(path.read_bytes())
-        info.update(CFBundleShortVersionString=version,CFBundleVersion=version.replace('-dev.','.'),LSMinimumSystemVersion='13.0',SUEnableAutomaticChecks=True,SUAutomaticallyUpdate=False,SUVerifyUpdateBeforeExtraction=True,SUEnableSystemProfiling=False,SUSendProfileInfo=False,SUPublicEDKey=key)
+        info.update(CFBundleShortVersionString=version.split('-dev.')[0],ATIVDistributionVersion=version,CFBundleVersion=version.split('-dev.')[1] if '-dev.' in version else version,LSMinimumSystemVersion='13.0',SUEnableAutomaticChecks=True,SUAutomaticallyUpdate=False,SUVerifyUpdateBeforeExtraction=True,SUEnableSystemProfiling=False,SUSendProfileInfo=False,SUPublicEDKey=key)
         suffix='latest/download' if channel=='stable' else 'download/development'
         info['SUFeedURL']=f'https://github.com/tlolabs/ativ/releases/{suffix}/appcast-{target}.xml'
         if channel=='development': info.update(CFBundleIdentifier='com.tlolabs.ativ.development',CFBundleDisplayName='ATIV Development',CFBundleName='ATIV Development')
         path.write_bytes(plistlib.dumps(info))
+    if target.startswith('linux-'):
+        metadata = stage.parents[1] / 'share/metainfo/com.tlolabs.ativ.metainfo.xml'
+        if metadata.exists():
+            tree=ET.parse(metadata);release=tree.find('.//release')
+            if release is not None: release.set('version',version);release.set('date',date.today().isoformat())
+            tree.write(metadata,encoding='utf-8',xml_declaration=True)
     return version
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('stage',type=Path);parser.add_argument('target');args=parser.parse_args();print(configure(args.stage,args.target))

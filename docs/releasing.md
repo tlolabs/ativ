@@ -21,6 +21,8 @@ Set these in the ATIV repository's GitHub Actions settings, never in source cont
 | `WINDOWS_CERTIFICATE_BASE64` | Secret, optional | Authenticode PFX |
 | `WINDOWS_CERTIFICATE_PASSWORD` | Secret, optional | PFX password |
 
+The initial ATIV update-signing secret and public variable were configured during this migration. `script/configure_update_keys.py` supports first-time setup and refuses to replace existing keys.
+
 Keep a protected offline backup of the Ed25519 seed. A missing update key fails authenticated feed generation. Never replace a deployed verification key without an explicit rotation/migration plan. The same key may sign separate channel payloads; clients enforce the signed channel. Public keys are not secrets.
 
 Windows unsigned development builds work without a certificate; supplying the certificate enables executable and installer signing with timestamp verification. macOS stable tags require Developer ID/notary credentials. The macOS app is notarized and stapled before final archives are created, and the DMG is separately notarized/stapled. Sparkle nested code is signed inside-out. The ZIP contains the stapled app; the DMG contains the app and Applications shortcut.

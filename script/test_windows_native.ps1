@@ -3,7 +3,10 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $root "build/windows-$Architecture/publish"
 $env:ATIV_ENGINE_PATH = Join-Path $stage 'ativ-engine.exe'
-dotnet run --project (Join-Path $root 'platform/windows/Tests/NativeIntegration.csproj')
+$fixtures = Join-Path $root "build/native-fixtures"
+python (Join-Path $root "script/create_smoke_media.py") $fixtures
+if ($LASTEXITCODE -ne 0) { throw "Fixture creation failed" }
+dotnet run --project (Join-Path $root 'platform/windows/Tests/NativeIntegration.csproj') -- $fixtures
 if ($LASTEXITCODE -ne 0) { throw 'C# native engine integration failed' }
 Remove-Item Env:ATIV_ENGINE_PATH
 $env:ATIV_SMOKE_REPORT = Join-Path $env:RUNNER_TEMP 'ativ-native-smoke.json'

@@ -31,7 +31,7 @@ def build(assets, version, channel, tag, seed, public_key):
             root=ET.Element('rss',version='2.0'); feed=ET.SubElement(root,'channel'); ET.SubElement(feed,'title').text=f'ATIV {channel}'
             item=ET.SubElement(feed,'item'); ET.SubElement(item,'title').text='ATIV '+version
             # Development builds use a monotonically increasing numeric bundle version.
-            build_version=version.replace('-dev.','.')
+            build_version=version.split('-dev.')[1] if '-dev.' in version else version
             ET.SubElement(item,f'{{{SPARKLE}}}version').text=build_version
             ET.SubElement(item,f'{{{SPARKLE}}}shortVersionString').text=version
             ET.SubElement(item,f'{{{SPARKLE}}}minimumSystemVersion').text='13.0'
