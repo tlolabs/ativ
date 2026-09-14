@@ -28,6 +28,7 @@ The interfaces use SwiftUI/AppKit, WinUI 3 and GTK/libadwaita, respectively. The
 - [Accessibility and troubleshooting](docs/accessibility.md)
 - [Cross-platform acceptance matrix](docs/acceptance-matrix.md)
 - [Migration decisions and reference review](docs/native-distribution-plan.md)
+- [Migration validation report and remaining gates](docs/native-distribution-report.md)
 - [Release readiness checklist](docs/release-checklist.md)
 
 ## Development

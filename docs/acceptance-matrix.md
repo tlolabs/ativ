@@ -21,12 +21,12 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 | Native icon resources / visible app identity | A + M | A + M | A + M | A + M | A + M | A + M |
 | Version/channel metadata | A | A | A | A | A | A |
 | Installer/package structure and machine type | A | A | A | A | A | A |
-| Clean-machine installation | M | M | A + M | A + M | M | M |
-| Upgrade over existing installation | M | M | A + M | A + M | M | M |
+| Clean-machine installation | M | M | A + M | A + M | A + M | A + M |
+| Reinstallation / real version upgrade | M | M | A reinstall + M upgrade | A reinstall + M upgrade | A reinstall + M upgrade | A reinstall + M upgrade |
 | Automatic update / manual update check | M | M | M | M | M | M |
 | Signed feed / corrupt download rejection | A | A | A | A | A | A |
 | Actual signed update installation and restart | M | M | M | M | M | M |
-| Uninstall without deleting user media | M | M | A + M | A + M | M | M |
+| Uninstall without deleting user media | M | M | A + M | A + M | A + M | A + M |
 | Signing and timestamp verification | A + M | A + M | A when configured | A when configured | Signed update metadata | Signed update metadata |
 | Notarization and stapling | A when configured + M | A when configured + M | N/A | N/A | N/A | N/A |
 | Package checksums/integrity | A | A | A | A | A | A |
@@ -34,9 +34,9 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 
 ## Automated evidence
 
-Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Final CI revision/results will be recorded after the platform jobs finish. Full engine/media contracts run in CI against each release tool pair.
+Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Native implementation `c7275e2` passed macOS Apple Silicon/Intel and Windows x64/ARM64 in [run 34802411354](https://github.com/tlolabs/ativ/actions/runs/34802411354). Both Linux targets passed in [run 34803708905](https://github.com/tlolabs/ativ/actions/runs/34803708905) at `937a9a8`, which changes CI fixture execution and documentation without changing native application code. See the [validation report](native-distribution-report.md) for the original Linux fixture failure and resolution. Full engine/media contracts run in CI against each release tool pair.
 
-The native startup marker is emitted only after the UI creates its controls and its real native process client decodes 27 engine presets. Windows also runs the actual C# client in an integration harness and installs/upgrades/uninstalls the generated installer. Linux launches the packaged AppImage under Xvfb/D-Bus. Native smoke is not a pixel comparison or a substitute for manual interactions.
+The native startup marker is emitted only after the UI creates its controls and its real native process client decodes 27 engine presets. Windows also runs the actual C# client in an integration harness and installs/reinstalls/uninstalls the generated installer. Linux launches the packaged AppImage under Xvfb/D-Bus, installs the actual Debian package, launches its installed executable without engine-path overrides, then reinstalls and removes the package. These checks exercise package replacement; an actual older-to-newer version upgrade still requires manual acceptance. Native smoke is not a pixel comparison or a substitute for manual interactions.
 
 ## Manual procedure
 
