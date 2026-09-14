@@ -1,0 +1,22 @@
+# ATIV icon
+
+Approved direction: concept 3, an interlocking ATIV monogram in teal, blue, and mint.
+
+- `ATIV.icon`: editable Apple Icon Composer document with Default and Dark appearances.
+- `ATIV-light.png`: 1024 × 1024 Default appearance rendered by Apple's `ictool`.
+- `ATIV-dark.png`: 1024 × 1024 Dark appearance rendered by Apple's `ictool`.
+- `concepts.png`: original three-direction concept sheet created with the built-in image generation tool.
+- `concept-prompt.txt`: original image generation prompt.
+
+The monogram was recreated as five SVG ribbons plus an SVG background. Six layers are organized into four groups, within Icon Composer's limit. Liquid Glass materials are applied by Icon Composer, with appearance-specific fills saved in the document. The dark appearance uses a deep navy background and retains bright blue and mint ribbons.
+
+Open `ATIV.icon` in Icon Composer to edit. All SVG source assets are inside `ATIV.icon/Assets`. Both appearances were inspected in Icon Composer and rendered with its command-line renderer. The original application icon and build configuration have not been replaced.
+
+To regenerate the PNGs from the repository root:
+
+```sh
+"/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" "$PWD/assets/icons/ATIV.icon" --export-image --output-file "$PWD/assets/icons/ATIV-light.png" --platform macOS --rendition Default --width 1024 --height 1024 --scale 1
+"/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" "$PWD/assets/icons/ATIV.icon" --export-image --output-file "$PWD/assets/icons/ATIV-dark.png" --platform macOS --rendition Dark --width 1024 --height 1024 --scale 1
+```
+
+Apple workflow reference: https://developer.apple.com/documentation/xcode/creating-your-app-icon-using-icon-composer
