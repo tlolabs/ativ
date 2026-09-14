@@ -34,7 +34,7 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 
 ## Automated evidence
 
-Local Apple Silicon: Rust workspace (12 tests), strict clippy, four signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Final CI revision/results will be recorded after the platform jobs finish. Full engine/media contracts run in CI against each release tool pair.
+Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Final CI revision/results will be recorded after the platform jobs finish. Full engine/media contracts run in CI against each release tool pair.
 
 The native startup marker is emitted only after the UI creates its controls and its real native process client decodes 27 engine presets. Windows also runs the actual C# client in an integration harness and installs/upgrades/uninstalls the generated installer. Linux launches the packaged AppImage under Xvfb/D-Bus. Native smoke is not a pixel comparison or a substitute for manual interactions.
 
@@ -48,4 +48,4 @@ For upgrades, install a signed older build using the same verification key and c
 
 ## External gates
 
-The computer-use service currently fails with `Sky Computer Use native pipe closed before response`; interactive macOS inspection could not be performed through this environment. Apple signing/notarization and Windows Authenticode credentials were absent when inspected. The initial Ed25519 update-signing secret and public variable have since been configured. Credential-dependent release trust and live update delivery cannot be certified until configured and exercised. These gaps must stay visible and must not be relabelled as passes.
+The first computer-use inspection failed with `Sky Computer Use native pipe closed before response`. A later retry reached the host but reported the Mac locked; interactive inspection requires the user to unlock it. Apple signing/notarization and Windows Authenticode credentials were absent when inspected. The initial Ed25519 update-signing secret and public variable have since been configured. Credential-dependent release trust and live update delivery cannot be certified until configured and exercised. These gaps must stay visible and must not be relabelled as passes.

@@ -41,7 +41,7 @@ GitHub-generated notes are the stable changelog convention, matching ENcap. The 
 
 Main branch pushes create `<base>-dev.<GitHub run number>` and update the `development` prerelease. macOS bundle IDs, Windows install IDs/directories, and Linux package IDs differ from stable. Feeds are `/releases/download/development/…`; stable uses `/releases/latest/download/…`. There is no runtime channel selector. Development artifact filenames include the run version, preventing cached bytes from being mistaken for newer downloads. Stale assets/feeds are removed from the rolling prerelease before the new validated set is uploaded.
 
-`workflow_dispatch` is build-only, suitable for testing feature branches without creating releases. Its optional `sign_macos` input tests Developer ID signing/notarization once credentials are configured, without creating a release tag. Matrix jobs use `fail-fast: false`.
+`workflow_dispatch` is build-only, suitable for testing feature branches without creating releases. Its `platform` input can select macOS, Windows or Linux for focused verification; pushes, pull requests and tags always build all targets. Its optional `sign_macos` input tests Developer ID signing/notarization once credentials are configured, without creating a release tag. Matrix jobs use `fail-fast: false`.
 
 ## Package formats and limits
 

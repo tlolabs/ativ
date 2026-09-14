@@ -3,6 +3,11 @@ name: Native build, test, and package
 on:
   workflow_dispatch:
     inputs:
+      platform:
+        description: Native platform to validate (normal pushes and tags always build all)
+        type: choice
+        options: [all, macos, windows, linux]
+        default: all
       sign_macos:
         description: Sign and notarize macOS validation artifacts (does not publish a release)
         type: boolean
@@ -75,6 +80,7 @@ jobs:
         run: ./script/test_engine_integration.sh
 
   macos:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos'
     defaults:
       run:
         working-directory: ATIV
@@ -147,7 +153,9 @@ jobs:
         run: |
           export PATH="$PWD/build/ffmpeg-macos-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets
+          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
+          # Explicit concurrent-render tests still launch and verify their own threads.
+          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
           ./script/test_engine_integration.sh
       - name: Native process integration tests
@@ -176,6 +184,7 @@ jobs:
           if-no-files-found: error
 
   windows:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows'
     defaults:
       run:
         working-directory: ATIV
@@ -226,7 +235,9 @@ jobs:
         run: |
           export PATH="$PWD/build/ffmpeg-windows-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets
+          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
+          # Explicit concurrent-render tests still launch and verify their own threads.
+          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
           ./script/test_engine_integration.sh
       - name: Build and package native application
@@ -245,6 +256,7 @@ jobs:
           if-no-files-found: error
 
   linux:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux'
     defaults:
       run:
         working-directory: ATIV
@@ -293,7 +305,9 @@ jobs:
         run: |
           export PATH="$PWD/build/ffmpeg-linux-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets
+          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
+          # Explicit concurrent-render tests still launch and verify their own threads.
+          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
           ./script/test_engine_integration.sh
       - name: Build and package native application
@@ -336,7 +350,10 @@ jobs:
           build/release-tools/bin/pip install -r script/requirements-build.txt
           build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel "$ATIV_CHANNEL" --tag "$ATIV_RELEASE_TAG"
           gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS --clobber
-          find release-assets -name 'appcast-*.xml' -exec gh release upload "$ATIV_RELEASE_TAG" '{}' --clobber \;
+          for feed in release-assets/appcast-*.xml; do
+            [[ -f "$feed" ]] || continue
+            gh release upload "$ATIV_RELEASE_TAG" "$feed" --clobber
+          done
       - name: Report partial failures
         if: always()
         env:
