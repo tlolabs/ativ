@@ -12,6 +12,9 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/tlolabs/ativ"
 rust-version = "1.85"
 
+[workspace.dependencies]
+avid-core = { path = "../AVID Core" }
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

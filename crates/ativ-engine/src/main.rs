@@ -1,6 +1,6 @@
 use ativ_core::{
-    AtivError, EventSink, MediaTools, PRESETS, RenderProgress, RenderRequest, Stage, ToolOverrides,
-    probe_audio_duration, render_preview, render_video,
+    AtivError, CancellationToken, Composition, EventSink, MediaTools, PRESETS, PreviewRequest,
+    RenderProgress, RenderRequest, RenderSettings, Renderer, Stage, ToolDiscovery,
 };
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -16,18 +16,14 @@ fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            append_log(&format!(
-                "error [{}]: {}",
-                error.code(),
-                error.user_message()
-            ));
+            append_log(&format!("error [{}]: {error:?}", error.code()));
             println!(
                 "{{\"event\":\"error\",\"code\":\"{}\",\"message\":\"{}\"}}",
                 error.code(),
                 escape(&error.user_message())
             );
             eprintln!("{}", error.user_message());
-            if matches!(error, AtivError::Cancelled) {
+            if error.code() == "cancelled" {
                 ExitCode::from(130)
             } else {
                 ExitCode::from(1)
@@ -40,6 +36,11 @@ fn run() -> ativ_core::Result<()> {
     let mut arguments = env::args().skip(1);
     let command = arguments.next().unwrap_or_else(|| "help".into());
     let parsed = Arguments::parse(arguments.collect())?;
+    let token = if matches!(command.as_str(), "check" | "probe" | "preview" | "render") {
+        stdin_cancellation()
+    } else {
+        CancellationToken::default()
+    };
     match command.as_str() {
         "help" | "--help" | "-h" => {
             print_help();
@@ -54,17 +55,18 @@ fn run() -> ativ_core::Result<()> {
             Ok(())
         }
         "check" => {
-            let tools = tools(&parsed)?;
+            let tools = tools(&parsed, &token)?;
             println!(
                 "{{\"event\":\"tools\",\"ffmpeg\":\"{}\",\"ffprobe\":\"{}\"}}",
-                escape(&tools.ffmpeg_version),
-                escape(&tools.ffprobe_version)
+                escape(tools.ffmpeg_version()),
+                escape(tools.ffprobe_version())
             );
             Ok(())
         }
         "probe" => {
-            let tools = tools(&parsed)?;
-            let duration = probe_audio_duration(&tools, &parsed.required_path("audio")?)?;
+            let tools = tools(&parsed, &token)?;
+            let duration = Renderer::new(tools)
+                .probe_audio_duration(&parsed.required_path("audio")?, &token)?;
             println!(
                 "{{\"event\":\"probe\",\"duration_seconds\":{}}}",
                 number(duration)
@@ -72,21 +74,29 @@ fn run() -> ativ_core::Result<()> {
             Ok(())
         }
         "preview" => {
-            let tools = tools(&parsed)?;
-            render_preview(
-                &tools,
-                &parsed.required_path("image")?,
-                &parsed.required_path("output")?,
-                parsed.required_u32("width")?,
-                parsed.required_u32("height")?,
-                parsed.flags.contains("flip-horizontal"),
-                parsed.flags.contains("flip-vertical"),
+            let tools = tools(&parsed, &token)?;
+            Renderer::new(tools).preview(
+                &PreviewRequest {
+                    image: parsed.required_path("image")?,
+                    output: parsed.required_path("output")?,
+                    settings: RenderSettings {
+                        width: parsed.required_u32("width")?,
+                        height: parsed.required_u32("height")?,
+                        composition: Composition::Fitted,
+                        flip_horizontal: parsed.flags.contains("flip-horizontal"),
+                        flip_vertical: parsed.flags.contains("flip-vertical"),
+                        ..Default::default()
+                    },
+                    protected_paths: vec![],
+                },
+                &token,
+                &(),
             )?;
             println!("{{\"event\":\"complete\",\"kind\":\"preview\"}}");
             Ok(())
         }
         "render" => {
-            let tools = tools(&parsed)?;
+            let tools = tools(&parsed, &token)?;
             let request = RenderRequest {
                 image: parsed.required_path("image")?,
                 audio: parsed.required_path("audio")?,
@@ -106,30 +116,39 @@ fn run() -> ativ_core::Result<()> {
                 flip_horizontal: parsed.flags.contains("flip-horizontal"),
                 flip_vertical: parsed.flags.contains("flip-vertical"),
             };
-            let cancelled = Arc::new(AtomicBool::new(false));
-            let input_cancelled = Arc::clone(&cancelled);
-            thread::spawn(move || {
-                for line in io::stdin().lock().lines().map_while(Result::ok) {
-                    if line.trim().eq_ignore_ascii_case("cancel") {
-                        input_cancelled.store(true, Ordering::SeqCst);
-                        break;
-                    }
-                }
-            });
             let events = JsonEvents::new();
-            render_video(&tools, &request, cancelled, &events)
+            Renderer::new(tools).render(&request.shared(), &token, &events)?;
+            Ok(())
         }
-        _ => Err(AtivError::InvalidInput(format!(
-            "Unknown command '{command}'. Run ativ-engine help."
-        ))),
+        _ => Err(AtivError::InvalidInput(
+            "Unknown command. Run ativ-engine help.".into(),
+        )),
     }
 }
 
-fn tools(arguments: &Arguments) -> ativ_core::Result<MediaTools> {
-    MediaTools::discover(ToolOverrides {
-        ffmpeg: arguments.values.get("ffmpeg").map(PathBuf::from),
-        ffprobe: arguments.values.get("ffprobe").map(PathBuf::from),
-    })
+fn stdin_cancellation() -> CancellationToken {
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let input_cancelled = Arc::clone(&cancelled);
+    thread::spawn(move || {
+        for line in io::stdin().lock().lines().map_while(Result::ok) {
+            if line.trim().eq_ignore_ascii_case("cancel") {
+                input_cancelled.store(true, Ordering::SeqCst);
+                break;
+            }
+        }
+    });
+    CancellationToken::from(cancelled)
+}
+
+fn tools(arguments: &Arguments, token: &CancellationToken) -> ativ_core::Result<MediaTools> {
+    Ok(MediaTools::discover(
+        ToolDiscovery {
+            ffmpeg: arguments.values.get("ffmpeg").map(PathBuf::from),
+            ffprobe: arguments.values.get("ffprobe").map(PathBuf::from),
+            ..Default::default()
+        },
+        token,
+    )?)
 }
 
 #[derive(Default)]
@@ -146,7 +165,7 @@ impl Arguments {
             let key = raw[index]
                 .strip_prefix("--")
                 .ok_or_else(|| {
-                    AtivError::InvalidInput(format!("Unexpected argument '{}'.", raw[index]))
+                    AtivError::InvalidInput("Unexpected argument. Run ativ-engine help.".into())
                 })?
                 .to_owned();
             if matches!(key.as_str(), "flip-horizontal" | "flip-vertical") {
@@ -192,9 +211,10 @@ impl JsonEvents {
 
     fn log(&self, line: &str) {
         use std::io::Write;
-        if let Ok(mut guard) = self.log.lock()
-            && let Some(file) = guard.as_mut()
-        {
+        let Ok(mut guard) = self.log.lock() else {
+            return;
+        };
+        if let Some(file) = guard.as_mut() {
             let _ = writeln!(file, "{line}");
         }
     }
@@ -206,6 +226,7 @@ impl EventSink for JsonEvents {
         println!("{{\"event\":\"stage\",\"stage\":\"{}\"}}", stage.as_str());
     }
     fn progress(&self, progress: RenderProgress) {
+        self.log(&format!("progress: {progress:?}"));
         println!(
             "{{\"event\":\"progress\",\"elapsed_seconds\":{},\"duration_seconds\":{},\"fraction\":{},\"eta_seconds\":{}}}",
             number(progress.elapsed_seconds),
@@ -233,11 +254,11 @@ fn open_log() -> Option<File> {
     open_log_at(&default_diagnostic_log_path()?, true)
 }
 
-fn open_log_at(path: &Path, protect_parent: bool) -> Option<File> {
+fn open_log_at(path: &Path, _protect_parent: bool) -> Option<File> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).ok()?;
         #[cfg(unix)]
-        if protect_parent {
+        if _protect_parent {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).ok()?;
         }
@@ -331,7 +352,7 @@ fn escape(value: &str) -> String {
 
 fn print_help() {
     println!(
-        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--flip-horizontal] [--flip-vertical]\n\nDuring render, write 'cancel' followed by a newline to standard input to stop safely."
+        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--flip-horizontal] [--flip-vertical]\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
     );
 }
 
@@ -342,6 +363,20 @@ mod tests {
     fn json_escape_handles_control_characters() {
         assert_eq!(escape("a\"b\\c\n"), "a\\\"b\\\\c\\n");
     }
+    #[test]
+    fn protocol_numbers_preserve_null_for_unknown_or_nonfinite_values() {
+        for value in [
+            None,
+            Some(f64::NAN),
+            Some(f64::INFINITY),
+            Some(f64::NEG_INFINITY),
+        ] {
+            assert_eq!(number(value), "null");
+        }
+        assert_eq!(number(Some(0.0)), "0");
+        assert_eq!(number(Some(1.25)), "1.25");
+    }
+
     #[test]
     fn parser_preserves_paths_with_spaces() {
         let parsed = Arguments::parse(vec![

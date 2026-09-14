@@ -1,177 +1,5 @@
+use avid_core::{Codec, Composition, Encoding, Input, RenderSettings};
 use std::path::PathBuf;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Preset {
-    pub platform: &'static str,
-    pub aspect: &'static str,
-    pub width: u32,
-    pub height: u32,
-}
-
-pub const PRESETS: &[Preset] = &[
-    Preset {
-        platform: "Instagram",
-        aspect: "Horizontal video (16:9)",
-        width: 1920,
-        height: 1080,
-    },
-    Preset {
-        platform: "Instagram",
-        aspect: "Square (1:1)",
-        width: 1080,
-        height: 1080,
-    },
-    Preset {
-        platform: "Instagram",
-        aspect: "4:5",
-        width: 1080,
-        height: 1350,
-    },
-    Preset {
-        platform: "Instagram",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "TikTok",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "TikTok",
-        aspect: "Vertical video (9:16)",
-        width: 720,
-        height: 1280,
-    },
-    Preset {
-        platform: "Facebook",
-        aspect: "Horizontal video (16:9)",
-        width: 1280,
-        height: 720,
-    },
-    Preset {
-        platform: "Facebook",
-        aspect: "Square (1:1)",
-        width: 1080,
-        height: 1080,
-    },
-    Preset {
-        platform: "Facebook",
-        aspect: "Vertical video (9:16)",
-        width: 720,
-        height: 1280,
-    },
-    Preset {
-        platform: "Facebook",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "Facebook",
-        aspect: "4:5",
-        width: 1080,
-        height: 1350,
-    },
-    Preset {
-        platform: "Twitter / X",
-        aspect: "Horizontal video (16:9)",
-        width: 1280,
-        height: 720,
-    },
-    Preset {
-        platform: "Twitter / X",
-        aspect: "Square (1:1)",
-        width: 720,
-        height: 720,
-    },
-    Preset {
-        platform: "Twitter / X",
-        aspect: "Vertical video (9:16)",
-        width: 720,
-        height: 1280,
-    },
-    Preset {
-        platform: "YouTube",
-        aspect: "Horizontal video (16:9)",
-        width: 1920,
-        height: 1080,
-    },
-    Preset {
-        platform: "YouTube",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "YouTube",
-        aspect: "Square (1:1)",
-        width: 1080,
-        height: 1080,
-    },
-    Preset {
-        platform: "YouTube",
-        aspect: "4:3",
-        width: 1440,
-        height: 1080,
-    },
-    Preset {
-        platform: "LinkedIn",
-        aspect: "Horizontal video (16:9)",
-        width: 1920,
-        height: 1080,
-    },
-    Preset {
-        platform: "LinkedIn",
-        aspect: "Square (1:1)",
-        width: 1080,
-        height: 1080,
-    },
-    Preset {
-        platform: "Snapchat",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "Pinterest",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "Generic",
-        aspect: "Horizontal video (16:9)",
-        width: 1920,
-        height: 1080,
-    },
-    Preset {
-        platform: "Generic",
-        aspect: "Vertical video (9:16)",
-        width: 1080,
-        height: 1920,
-    },
-    Preset {
-        platform: "Generic",
-        aspect: "Square (1:1)",
-        width: 1080,
-        height: 1080,
-    },
-    Preset {
-        platform: "Generic",
-        aspect: "4:3",
-        width: 1440,
-        height: 1080,
-    },
-    Preset {
-        platform: "Generic",
-        aspect: "4:5",
-        width: 1080,
-        height: 1350,
-    },
-];
 
 #[derive(Clone, Debug)]
 pub struct RenderRequest {
@@ -186,33 +14,75 @@ pub struct RenderRequest {
     pub flip_vertical: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Stage {
-    Validating,
-    Probing,
-    Compositing,
-    Encoding,
-    Publishing,
-    Complete,
-}
-
-impl Stage {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Validating => "validating",
-            Self::Probing => "probing",
-            Self::Compositing => "compositing",
-            Self::Encoding => "encoding",
-            Self::Publishing => "publishing",
-            Self::Complete => "complete",
+impl RenderRequest {
+    /// Preserve standalone audio semantics and the ATIV software encoding policy.
+    pub fn shared(&self) -> avid_core::RenderRequest {
+        avid_core::RenderRequest {
+            input: Input::Single {
+                image: self.image.clone(),
+                audio: self.audio.clone(),
+            },
+            output: self.output.clone(),
+            settings: RenderSettings {
+                width: self.width,
+                height: self.height,
+                fps: self.fps,
+                audio_bitrate: self.audio_bitrate.clone(),
+                flip_horizontal: self.flip_horizontal,
+                flip_vertical: self.flip_vertical,
+                codec: Codec::H264,
+                encoding: Encoding::Software,
+                composition: Composition::Fitted,
+            },
+            protected_paths: vec![],
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct RenderProgress {
-    pub elapsed_seconds: Option<f64>,
-    pub duration_seconds: Option<f64>,
-    pub fraction: Option<f64>,
-    pub eta_seconds: Option<f64>,
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn standalone_policy_preserves_all_inputs_and_legacy_settings() {
+        for bitrate in ["224k", "128000", "00128k", "1m", "128000b"] {
+            for fps in [1, 30, 240] {
+                let request = RenderRequest {
+                    image: "cover ü.png".into(),
+                    audio: "audio track.wav".into(),
+                    output: "output.custom".into(),
+                    width: 320,
+                    height: 180,
+                    audio_bitrate: bitrate.into(),
+                    fps,
+                    flip_horizontal: true,
+                    flip_vertical: true,
+                };
+                let shared = request.shared();
+                assert_eq!(
+                    shared.input,
+                    Input::Single {
+                        image: request.image,
+                        audio: request.audio
+                    }
+                );
+                assert_eq!(shared.output, request.output);
+                assert!(shared.protected_paths.is_empty());
+                assert_eq!(
+                    shared.settings,
+                    RenderSettings {
+                        width: 320,
+                        height: 180,
+                        fps,
+                        audio_bitrate: bitrate.into(),
+                        flip_horizontal: true,
+                        flip_vertical: true,
+                        codec: Codec::H264,
+                        encoding: Encoding::Software,
+                        composition: Composition::Fitted,
+                    }
+                );
+                shared.settings.validate().unwrap();
+            }
+        }
+    }
 }

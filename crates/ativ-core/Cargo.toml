@@ -9,3 +9,6 @@ rust-version.workspace = true
 [lib]
 name = "ativ_core"
 path = "src/lib.rs"
+
+[dependencies]
+avid-core.workspace = true

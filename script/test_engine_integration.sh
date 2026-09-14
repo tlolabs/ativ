@@ -29,6 +29,8 @@ STATUS=$?
 set -e
 test "${STATUS}" -eq 130
 grep -F 'existing output must survive' "${MEDIA_DIR}/preserved.mp4"
-test -z "$(find "${MEDIA_DIR}" -maxdepth 1 -name '.ativ-*.tmp.*' -print -quit)"
+test -z "$(find "${MEDIA_DIR}" -maxdepth 1 \( -name '.ativ-*' -o -name '.avid-*' \) -print -quit)"
+
+python3 "${ROOT_DIR}/script/test_engine_contract.py" --engine "${ENGINE}"
 
 echo "Engine integration checks passed."
