@@ -5,13 +5,13 @@
   <key>CFBundleDisplayName</key><string>ATIV</string>
   <key>CFBundleExecutable</key><string>ATIV</string>
   <key>CFBundleIdentifier</key><string>com.tlolabs.ativ</string>
-  <key>CFBundleIconFile</key><string>icon-windowed</string>
+  <key>CFBundleIconFile</key><string>ATIV</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>ATIV</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.2.1</string>
   <key>CFBundleVersion</key><string>3</string>
-  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>CFBundleDocumentTypes</key>

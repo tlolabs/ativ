@@ -25,6 +25,7 @@ final class RenderStore: ObservableObject {
 
     private let engine = EngineClient()
     private var previewGeneration = 0
+    private var audioGeneration = 0
 
     var platforms: [String] { unique(presets.map(\.platform)) }
     var aspects: [String] { unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect)) }
@@ -40,18 +41,24 @@ final class RenderStore: ObservableObject {
                     self.presets = presets
                     self.normalizeSelection()
                     self.status = "Choose an image and audio recording."
+                    if let path = ProcessInfo.processInfo.environment["ATIV_SMOKE_REPORT"], presets.count == 27 {
+                        try? Data("{\"startup\":true,\"presets\":27}".utf8).write(to: URL(fileURLWithPath:path), options:.atomic)
+                    }
                 case .failure(let error): self.fail(error)
                 }
             }
         }
     }
 
-    func chooseImage() { if let url = PanelService.chooseImage() { setImage(url) } }
-    func chooseAudio() { if let url = PanelService.chooseAudio() { setAudio(url) } }
-    func chooseOutput() { if let url = PanelService.chooseOutput(suggested: suggestedOutput) { outputURL = url } }
+    func chooseImage() { guard !isRendering else { return }; if let url = PanelService.chooseImage() { setImage(url) } }
+    func chooseAudio() { guard !isRendering else { return }; if let url = PanelService.chooseAudio() { setAudio(url) } }
+    func chooseOutput() { guard !isRendering else { return }; if let url = PanelService.chooseOutput(suggested: suggestedOutput) { outputURL = url } }
 
-    func setImage(_ url: URL) { imageURL = url; suggestOutputIfNeeded(); refreshPreview() }
+    func setImage(_ url: URL) { guard !isRendering else { return }; imageURL = url; suggestOutputIfNeeded(); refreshPreview() }
     func setAudio(_ url: URL) {
+        guard !isRendering else { return }
+        audioGeneration += 1
+        let generation = audioGeneration
         audioURL = url
         duration = nil
         status = "Reading audio duration…"
@@ -59,6 +66,7 @@ final class RenderStore: ObservableObject {
         engine.probe(audio: url) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
+                guard generation == self.audioGeneration else { return }
                 switch result {
                 case .success(let value): self.duration = value; self.status = "Ready to create video."
                 case .failure(let error): self.fail(error)
@@ -71,6 +79,7 @@ final class RenderStore: ObservableObject {
     func previewOptionsChanged() { refreshPreview() }
 
     func render() {
+        guard !isRendering else { return }
         guard let imageURL, let audioURL, let outputURL, let preset = selectedPreset else {
             errorMessage = "Choose an image, audio recording, output destination, and format."
             return
@@ -112,6 +121,7 @@ final class RenderStore: ObservableObject {
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-preview-\(UUID().uuidString).png")
         engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] result in
             DispatchQueue.main.async {
+                if case .failure(let error) = result, generation == self?.previewGeneration { self?.fail(error) }
                 if case .success(let url) = result {
                     let image = NSImage(contentsOf: url)
                     try? FileManager.default.removeItem(at: url)

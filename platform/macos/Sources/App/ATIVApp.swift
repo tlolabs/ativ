@@ -1,10 +1,12 @@
 import AppKit
 import SwiftUI
+import SparkleBridge
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        _ = ATIVStartUpdater()
     }
 }
 
@@ -19,12 +21,25 @@ extension Notification.Name {
 struct ATIVApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    @AppStorage("appearance") private var appearance = "system"
+
     var body: some Scene {
-        WindowGroup("A.T.I.V.", id: "main") {
+        WindowGroup("ATIV", id: "main") {
             ContentView()
-                .frame(minWidth: 900, idealWidth: 1040, minHeight: 620, idealHeight: 720)
+                .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
+                .frame(minWidth: 720, idealWidth: 1040, minHeight: 520, idealHeight: 720)
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    if !ATIVCheckForUpdates() {
+                        let alert = NSAlert()
+                        alert.messageText = "Updates are unavailable in this build"
+                        alert.informativeText = "Install an official ATIV release to receive verified updates."
+                        alert.runModal()
+                    }
+                }
+            }
             CommandGroup(replacing: .newItem) { }
             CommandMenu("Media") {
                 Button("Choose Image…") { NotificationCenter.default.post(name: .ativChooseImage, object: nil) }

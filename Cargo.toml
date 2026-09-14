@@ -2,6 +2,7 @@
 members = [
     "crates/ativ-core",
     "crates/ativ-engine",
+    "crates/ativ-update",
 ]
 resolver = "2"
 

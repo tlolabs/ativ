@@ -8,3 +8,7 @@
 /platform/macos/.build/
 /platform/windows/**/bin/
 /platform/windows/**/obj/
+
+__pycache__/
+/platform/windows/Tests/bin/
+/platform/windows/Tests/obj/

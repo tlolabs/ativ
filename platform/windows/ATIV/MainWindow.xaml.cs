@@ -17,11 +17,28 @@ public sealed partial class MainWindow : Window
     private bool rendering;
     private bool loadingPresets;
     private int previewGeneration;
+    private int audioGeneration;
+    private readonly Preferences preferences = Preferences.Load();
+    private readonly DispatcherTimer updateTimer = new() { Interval = TimeSpan.FromHours(24) };
+    private bool updateBusy;
+    private bool closeAfterRender;
+
 
     public MainWindow()
     {
         InitializeComponent();
         SystemBackdrop = new MicaBackdrop();
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "ATIV.ico"));
+        ApplyAppearance();
+        BitrateBox.Text = preferences.Bitrate;
+        FpsBox.Value = preferences.Fps;
+        updateTimer.Tick += async (_, _) => { if (preferences.AutomaticUpdates) await CheckUpdatesAsync(false); };
+        RootGrid.Loaded += async (_, _) => { updateTimer.Start(); if (preferences.AutomaticUpdates) await CheckUpdatesAsync(false); };
+        AppWindow.Closing += async (_, e) => {
+            if (rendering) { e.Cancel = true; closeAfterRender = true; await engine.CancelAsync(); }
+            else { SavePreferences(); updateTimer.Stop(); }
+        };
+
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1100, 760));
         Activated += async (_, _) => { if (presets.Count == 0 && !loadingPresets) await LoadPresetsAsync(); };
     }
@@ -35,6 +52,8 @@ public sealed partial class MainWindow : Window
             PlatformBox.ItemsSource = presets.Select(item => item.Platform).Distinct().ToList();
             PlatformBox.SelectedIndex = 0;
             StatusText.Text = "Choose an image and audio recording.";
+            if (Environment.GetEnvironmentVariable("ATIV_SMOKE_REPORT") is { } report && presets.Count == 27)
+                File.WriteAllText(report, "{\"startup\":true,\"presets\":27}");
         }
         catch (Exception error) { ShowError(error.Message); }
         finally { loadingPresets = false; }
@@ -42,6 +61,7 @@ public sealed partial class MainWindow : Window
 
     private async void ChooseImage(object sender, RoutedEventArgs args)
     {
+        if (rendering) return;
         var file = await PickFileAsync([".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"]);
         if (file is null) return;
         SetImage(file.Path);
@@ -49,6 +69,7 @@ public sealed partial class MainWindow : Window
 
     private async void ChooseAudio(object sender, RoutedEventArgs args)
     {
+        if (rendering) return;
         var file = await PickFileAsync([".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus"]);
         if (file is null) return;
         await SetAudioAsync(file.Path);
@@ -56,6 +77,7 @@ public sealed partial class MainWindow : Window
 
     private async void ChooseOutput(object sender, RoutedEventArgs args)
     {
+        if (rendering) return;
         var picker = new FileSavePicker { SuggestedFileName = SuggestedOutputName() ?? "video" };
         picker.FileTypeChoices.Add("MP4 video", [".mp4"]);
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
@@ -75,6 +97,7 @@ public sealed partial class MainWindow : Window
 
     private void SetImage(string path)
     {
+        if (rendering) return;
         ImagePath.Text = path;
         SuggestOutput(path);
         UpdateRenderEnabled();
@@ -83,6 +106,8 @@ public sealed partial class MainWindow : Window
 
     private async Task SetAudioAsync(string path)
     {
+        if (rendering) return;
+        var generation = ++audioGeneration;
         AudioPath.Text = path;
         SuggestOutput(path);
         DurationText.Text = "Reading duration…";
@@ -90,6 +115,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var duration = await engine.ProbeAsync(path);
+            if (generation != audioGeneration) return;
             DurationText.Text = duration is null ? "Duration unavailable" : TimeSpan.FromSeconds(duration.Value).ToString(duration >= 3600 ? @"h\:mm\:ss" : @"mm\:ss");
         }
         catch (Exception error) { DurationText.Text = "Duration unavailable"; ShowError(error.Message); }
@@ -138,15 +164,15 @@ public sealed partial class MainWindow : Window
             await engine.PreviewAsync(ImagePath.Text, output, width, height, FlipHorizontal.IsChecked == true, FlipVertical.IsChecked == true);
             if (generation != previewGeneration) { File.Delete(output); return; }
             var file = await StorageFile.GetFileFromPathAsync(output);
-            using var stream = await file.OpenReadAsync();
             var bitmap = new BitmapImage();
-            await bitmap.SetSourceAsync(stream);
+            using (var stream = await file.OpenReadAsync()) { await bitmap.SetSourceAsync(stream); }
             File.Delete(output);
             if (generation != previewGeneration) return;
             PreviewImage.Source = bitmap;
             PreviewCaption.Text = $"{preset.Aspect} · {preset.Resolution}";
         }
         catch (Exception error) { if (generation == previewGeneration) ShowError(error.Message); }
+        finally { try { File.Delete(output); } catch (IOException) { } }
     }
 
     private async void RenderOrCancel(object sender, RoutedEventArgs args)
@@ -159,6 +185,7 @@ public sealed partial class MainWindow : Window
             return;
         }
         if (ResolutionBox.SelectedItem is not Preset preset) return;
+        SavePreferences();
         rendering = true;
         RenderButton.Content = "Stop Video Creation";
         RenderButton.IsEnabled = true;
@@ -178,6 +205,7 @@ public sealed partial class MainWindow : Window
             RenderButton.Content = "Create Video";
             RenderButton.IsEnabled = true;
             UpdateRenderEnabled();
+            if (closeAfterRender) Close();
         }
     }
 
@@ -202,6 +230,48 @@ public sealed partial class MainWindow : Window
 
     private void UpdateRenderEnabled() => RenderButton.IsEnabled = rendering || (!string.IsNullOrWhiteSpace(ImagePath.Text) && !string.IsNullOrWhiteSpace(AudioPath.Text) && !string.IsNullOrWhiteSpace(OutputPath.Text) && ResolutionBox.SelectedItem is Preset);
     private void ShowError(string message) { ErrorBar.Message = message; ErrorBar.IsOpen = true; }
+
+    private void ApplyAppearance() => RootGrid.RequestedTheme = preferences.Appearance switch {
+        "Dark" => ElementTheme.Dark, "Light" => ElementTheme.Light, _ => ElementTheme.Default
+    };
+    private void SavePreferences() {
+        preferences.Bitrate = BitrateBox.Text;
+        preferences.Fps = double.IsFinite(FpsBox.Value) ? (int)FpsBox.Value : 30;
+        try { preferences.Save(); } catch (IOException error) { ShowError(error.Message); }
+    }
+    private async void OpenPreferences(object sender, RoutedEventArgs args) {
+        var appearance = new ComboBox { Header = "Appearance", ItemsSource = new[] { "System", "Light", "Dark" }, SelectedItem = preferences.Appearance };
+        var updates = new CheckBox { Content = "Automatically check for updates", IsChecked = preferences.AutomaticUpdates };
+        var panel = new StackPanel { Spacing = 16 }; panel.Children.Add(appearance); panel.Children.Add(updates);
+        var dialog = new ContentDialog { Title = "Preferences", Content = panel, PrimaryButtonText = "Save", CloseButtonText = "Cancel", XamlRoot = RootGrid.XamlRoot };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary) {
+            preferences.Appearance = appearance.SelectedItem as string ?? "System";
+            preferences.AutomaticUpdates = updates.IsChecked == true; ApplyAppearance(); SavePreferences();
+        }
+    }
+    private async void ShowAbout(object sender, RoutedEventArgs args) {
+        await new ContentDialog { Title = "ATIV", Content = "Artwork + Tracks Into Video\nLocal media processing. No telemetry.\n" + typeof(App).Assembly.GetName().Version, CloseButtonText = "Close", XamlRoot = RootGrid.XamlRoot }.ShowAsync();
+    }
+    private async void CheckForUpdates(object sender, RoutedEventArgs args) => await CheckUpdatesAsync(true);
+    private async Task CheckUpdatesAsync(bool manual) {
+        if (updateBusy || rendering) return;
+        updateBusy = true;
+        try {
+            var result = await UpdateClient.RunAsync("check");
+            if (!result.GetProperty("available").GetBoolean()) {
+                if (manual) await new ContentDialog { Title = "ATIV is up to date", CloseButtonText = "OK", XamlRoot = RootGrid.XamlRoot }.ShowAsync();
+                return;
+            }
+            var dialog = new ContentDialog { Title = "ATIV " + result.GetProperty("version").GetString() + " is available", Content = "Download and install the verified update?", PrimaryButtonText = "Install", CloseButtonText = "Later", XamlRoot = RootGrid.XamlRoot };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary || rendering) return;
+            var download = await UpdateClient.RunAsync("download");
+            if (rendering) { ShowError("Update downloaded. Finish your export before installing."); return; }
+            var installer = download.GetProperty("path").GetString()!;
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installer) { UseShellExecute = true });
+            Close();
+        } catch (Exception error) { if (manual) ShowError(error.Message); }
+        finally { updateBusy = false; }
+    }
 
     private void MediaDragOver(object sender, DragEventArgs args)
     {

@@ -1,1 +1,3 @@
 option('engine_path', type: 'string', value: 'ativ-engine', description: 'Path to the shared Rust engine')
+
+option('app_id', type: 'string', value: 'com.tlolabs.ativ', description: 'Distribution identity')

@@ -8,16 +8,23 @@ struct ContentView: View {
         VStack(spacing: 0) {
             HSplitView {
                 ScrollView { controls.padding(24) }
-                    .frame(minWidth: 470, idealWidth: 560)
+                    .frame(minWidth: 400, idealWidth: 520)
                 preview
-                    .frame(minWidth: 350, maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
             }
             Divider()
             statusBar
         }
-        .navigationTitle("A.T.I.V.")
+        .navigationTitle("ATIV")
         .task { store.start() }
-        .alert("A.T.I.V. couldn’t complete the operation", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
+        .onDisappear { if store.isRendering { store.cancel() } }
+        .onOpenURL { url in
+            let type = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType
+            if type?.conforms(to: .audio) == true { store.setAudio(url) }
+            else { store.setImage(url) }
+        }
+
+        .alert("ATIV couldn’t complete the operation", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "Unknown error") }
         .onReceive(NotificationCenter.default.publisher(for: .ativChooseImage)) { _ in store.chooseImage() }
@@ -78,7 +85,7 @@ struct ContentView: View {
 
             if store.isRendering {
                 Button(role: .destructive, action: store.cancel) { Label("Stop Video Creation", systemImage: "stop.fill").frame(maxWidth: .infinity) }
-                    .controlSize(.large)
+                    .controlSize(.large).keyboardShortcut(.escape, modifiers: [])
             } else {
                 Button(action: store.render) { Label("Create Video", systemImage: "play.fill").frame(maxWidth: .infinity) }
                     .buttonStyle(.borderedProminent).controlSize(.large).disabled(!store.canRender)

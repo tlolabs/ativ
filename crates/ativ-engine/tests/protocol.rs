@@ -24,7 +24,10 @@ fn version_is_the_application_package_version() {
     assert!(result.status.success());
     assert_eq!(
         String::from_utf8(result.stdout).unwrap(),
-        format!("ativ-engine {}\n", env!("CARGO_PKG_VERSION"))
+        format!(
+            "ativ-engine {}\n",
+            option_env!("ATIV_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"))
+        )
     );
 }
 

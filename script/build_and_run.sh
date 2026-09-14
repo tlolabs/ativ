@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
+export MACOSX_DEPLOYMENT_TARGET=13.0
 
 MODE="${1:-run}"
 APP_NAME="ATIV"
@@ -31,13 +33,18 @@ cp "${ROOT_DIR}/target/debug/ativ-engine" "${APP_MACOS}/ativ-engine"
 cp "${FFMPEG_BIN}" "${APP_MACOS}/ffmpeg"
 cp "${FFPROBE_BIN}" "${APP_MACOS}/ffprobe"
 cp "${ROOT_DIR}/platform/macos/Info.plist" "${APP_CONTENTS}/Info.plist"
-cp "${ROOT_DIR}/platform/macos/Resources/icon-windowed.icns" "${APP_RESOURCES}/icon-windowed.icns"
+cp "${ROOT_DIR}/platform/macos/Resources/ATIV.icns" "${APP_RESOURCES}/ATIV.icns"
 cp "${ROOT_DIR}/LICENSE" "${APP_RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${APP_RESOURCES}/THIRD_PARTY_NOTICES.md"
 cp "${ROOT_DIR}/../AVID Core/LICENSE" "${APP_RESOURCES}/AVID_CORE_LICENSE.txt"
 chmod +x "${APP_MACOS}/${APP_NAME}" "${APP_MACOS}/ativ-engine" "${APP_MACOS}/ffmpeg" "${APP_MACOS}/ffprobe"
 "${APP_MACOS}/ativ-engine" check
 
+LABEL="$(uname -m)"; [[ "$LABEL" != x86_64 ]] || LABEL=intel
+python3 "$ROOT_DIR/script/configure_distribution.py" "$APP_MACOS" "macos-$LABEL"
+FRAMEWORK="$("$ROOT_DIR/script/prepare_sparkle.sh")"
+mkdir -p "$APP_CONTENTS/Frameworks"
+ditto "$FRAMEWORK" "$APP_CONTENTS/Frameworks/Sparkle.framework"
 codesign --force --deep --sign - "${APP_BUNDLE}" >/dev/null
 
 open_app() { /usr/bin/open -n "${APP_BUNDLE}"; }

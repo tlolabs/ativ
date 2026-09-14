@@ -5,6 +5,9 @@
 #ifndef ATIV_ENGINE_PATH
 #define ATIV_ENGINE_PATH "ativ-engine"
 #endif
+#ifndef ATIV_APP_ID
+#define ATIV_APP_ID "com.tlolabs.ativ"
+#endif
 
 typedef struct {
   gchar *platform;
@@ -38,6 +41,10 @@ typedef struct {
   guint preview_generation;
   gboolean render_owner_ref_held;
   gboolean close_after_render;
+  gboolean update_busy;
+  guint update_timer;
+  guint audio_generation;
+  GKeyFile *preferences;
 } AtivWindow;
 
 typedef struct {
@@ -69,6 +76,8 @@ static void ativ_window_free(gpointer data) {
   g_clear_pointer(&self->engine, g_free);
   if (self->preview_path) g_unlink(self->preview_path);
   g_clear_pointer(&self->preview_path, g_free);
+  if (self->update_timer) g_source_remove(self->update_timer);
+  g_clear_pointer(&self->preferences, g_key_file_unref);
   g_free(self);
 }
 
@@ -85,6 +94,8 @@ static gboolean close_requested(GtkWindow *window, gpointer user_data) {
 static gchar *resolve_engine(void) {
   const gchar *configured = g_getenv("ATIV_ENGINE_PATH");
   if (configured && *configured) return g_strdup(configured);
+  const gchar *appdir = g_getenv("APPDIR");
+  if (appdir) return g_build_filename(appdir, "usr/lib/ativ/ativ-engine", NULL);
   if (g_file_test(ATIV_ENGINE_PATH, G_FILE_TEST_IS_EXECUTABLE)) return g_strdup(ATIV_ENGINE_PATH);
   return g_find_program_in_path("ativ-engine");
 }
@@ -183,10 +194,10 @@ static gboolean load_presets(AtivWindow *self) {
 }
 
 static void show_error(AtivWindow *self, const gchar *message) {
-  AdwAlertDialog *dialog = adw_alert_dialog_new("A.T.I.V. couldn’t complete the operation", message);
-  adw_alert_dialog_add_response(dialog, "ok", "OK");
-  adw_alert_dialog_set_default_response(dialog, "ok");
-  adw_dialog_present(ADW_DIALOG(dialog), GTK_WIDGET(self->window));
+  AdwMessageDialog *dialog = ADW_MESSAGE_DIALOG(adw_message_dialog_new(GTK_WINDOW(self->window),("ATIV couldn’t complete the operation", message));
+  adw_message_dialog_add_response(dialog, "ok", "OK");
+  adw_message_dialog_set_default_response(dialog, "ok");
+  gtk_window_present(GTK_WINDOW(dialog));
 }
 
 static void suggest_output(AtivWindow *self, const gchar *source) {
@@ -224,7 +235,7 @@ static void refresh_preview(AtivWindow *self) {
   g_autofree gchar *directory = g_build_filename(g_get_user_cache_dir(), "ativ", NULL);
   g_mkdir_with_parents(directory, 0700);
   guint generation = ++self->preview_generation;
-  g_autofree gchar *name = g_strdup_printf("preview-%u.png", generation);
+  g_autofree gchar *name = g_strdup_printf("preview-%u-%" G_GINT64_FORMAT ".png", generation, g_get_monotonic_time());
   g_autofree gchar *output = g_build_filename(directory, name, NULL);
   guint width = preset->width >= preset->height ? 360 : MAX(2, (360 * preset->width / preset->height) & ~1u);
   guint height = preset->height >= preset->width ? 360 : MAX(2, (360 * preset->height / preset->width) & ~1u);
@@ -421,6 +432,9 @@ static GtkWidget *file_row(const gchar *label, GtkEntry **entry_out, GCallback c
   gtk_editable_set_editable(GTK_EDITABLE(entry), FALSE);
   gtk_widget_set_hexpand(entry, TRUE);
   GtkWidget *button = gtk_button_new_with_label("Choose…");
+  g_autofree gchar *choose_label = g_strdup_printf("Choose %s", label);
+  gtk_accessible_update_property(GTK_ACCESSIBLE(entry), GTK_ACCESSIBLE_PROPERTY_LABEL, label, -1);
+  gtk_accessible_update_property(GTK_ACCESSIBLE(button), GTK_ACCESSIBLE_PROPERTY_LABEL, choose_label, -1);
   g_signal_connect(button, "clicked", callback, self);
   gtk_box_append(GTK_BOX(box), title);
   gtk_box_append(GTK_BOX(box), entry);
@@ -437,18 +451,146 @@ static void aspect_changed(GObject *object, GParamSpec *pspec, gpointer user_dat
   update_resolutions(user_data);
 }
 
+
+static gchar *preferences_path(void) {
+  const gchar *name = g_str_has_suffix(ATIV_APP_ID, ".development") ? "ativ-development" : "ativ";
+  g_autofree gchar *directory = g_build_filename(g_get_user_config_dir(), name, NULL);
+  g_mkdir_with_parents(directory, 0700);
+  return g_build_filename(directory, "preferences.ini", NULL);
+}
+static void save_preferences(AtivWindow *self) {
+  g_key_file_set_string(self->preferences, "General", "bitrate", gtk_editable_get_text(GTK_EDITABLE(self->bitrate_entry)));
+  g_key_file_set_integer(self->preferences, "General", "fps", gtk_spin_button_get_value_as_int(self->fps_spin));
+  g_autofree gchar *path = preferences_path();
+  g_key_file_save_to_file(self->preferences, path, NULL);
+}
+static void preference_changed(GObject *object, gpointer data) { save_preferences(data); }
+static void appearance_action(GSimpleAction *action, GVariant *value, gpointer data) {
+  AtivWindow *self = data;
+  const gchar *theme = g_variant_get_string(value, NULL);
+  adw_style_manager_set_color_scheme(adw_style_manager_get_default(), g_str_equal(theme,"dark") ? ADW_COLOR_SCHEME_FORCE_DARK : g_str_equal(theme,"light") ? ADW_COLOR_SCHEME_FORCE_LIGHT : ADW_COLOR_SCHEME_DEFAULT);
+  g_simple_action_set_state(action, value);
+  g_key_file_set_string(self->preferences, "General", "appearance", theme); save_preferences(self);
+}
+static void automatic_action(GSimpleAction *action, GVariant *value, gpointer data) {
+  AtivWindow *self = data;
+  g_autoptr(GVariant) state = g_action_get_state(G_ACTION(action));
+  gboolean enabled = !g_variant_get_boolean(state);
+  g_simple_action_set_state(action,g_variant_new_boolean(enabled));
+  g_key_file_set_boolean(self->preferences,"General","automatic_updates",enabled); save_preferences(self);
+}
+typedef struct { AtivWindow *self; gboolean manual; gchar *command; } UpdateRequest;
+static void update_request_free(UpdateRequest *request) { g_object_unref(request->self->window); g_free(request->command); g_free(request); }
+static void update_worker(GTask *task, gpointer source, gpointer data, GCancellable *cancel) {
+  UpdateRequest *request = data;
+  g_autofree gchar *directory = g_path_get_dirname(request->self->engine);
+  g_autofree gchar *helper = g_build_filename(directory,"ativ-update",NULL);
+  GError *error = NULL;
+  g_autoptr(GSubprocess) process = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_PIPE, &error, helper, request->command, NULL);
+  gchar *output = NULL; g_autofree gchar *errors = NULL;
+  if (!process || !g_subprocess_communicate_utf8(process,NULL,NULL,&output,&errors,&error)) { g_task_return_error(task,error); return; }
+  if (!g_subprocess_get_successful(process)) { g_free(output); g_task_return_new_error(task,G_IO_ERROR,G_IO_ERROR_FAILED,"%s",errors ? errors : "Update failed"); return; }
+  g_task_return_pointer(task,output,g_free);
+}
+static void begin_update(AtivWindow *self, gboolean manual, const gchar *command);
+static void install_response(AdwMessageDialog *dialog, const gchar *response, gpointer data) {
+  AtivWindow *self = data;
+  if (g_str_equal(response,"install") && !self->render_process) begin_update(self,TRUE,g_getenv("APPIMAGE") ? "install-appimage" : "download");
+  g_object_unref(self->window);
+}
+static void update_done(GObject *source, GAsyncResult *result, gpointer data) {
+  UpdateRequest *request = g_task_get_task_data(G_TASK(result));
+  AtivWindow *self = request->self;
+  self->update_busy = FALSE;
+  g_autoptr(GError) error = NULL;
+  g_autofree gchar *output = g_task_propagate_pointer(G_TASK(result),&error);
+  if (error) { if(request->manual) show_error(self,error->message); return; }
+  g_autoptr(JsonObject) object = NULL;
+  if (!parse_event(output,&object)) { if(request->manual) show_error(self,"Invalid updater response"); return; }
+  if (g_str_equal(request->command,"check")) {
+    gboolean available = json_object_get_boolean_member_with_default(object,"available",FALSE);
+    if (!available && !request->manual) return;
+    if (self->render_process) return;
+    GtkWidget *dialog = adw_message_dialog_new(GTK_WINDOW(self->window), available ? "An ATIV update is available" : "ATIV is up to date", available ? "Download and install the verified update?" : "No newer build is available for this platform.");
+    adw_message_dialog_add_response(ADW_MESSAGE_DIALOG(dialog),"later","Close");
+    if (available) adw_message_dialog_add_response(ADW_MESSAGE_DIALOG(dialog),"install","Install");
+    g_object_ref(self->window); g_signal_connect(dialog,"response",G_CALLBACK(install_response),self);
+    gtk_window_present(GTK_WINDOW(dialog));
+  } else if (g_str_equal(request->command,"install-appimage")) {
+    gtk_label_set_text(self->status_label,"Update installed. Restart ATIV to use it.");
+  } else {
+    const gchar *path = json_object_get_string_member_with_default(object,"path",NULL);
+    if (!path || self->render_process) { show_error(self,"Finish your export before installing the update."); return; }
+    // The distribution's native package installer owns dependency resolution and authorization.
+    g_autofree gchar *uri = g_filename_to_uri(path,NULL,NULL);
+    if (!g_app_info_launch_default_for_uri(uri,NULL,&error)) show_error(self,error->message);
+  }
+}
+static void begin_update(AtivWindow *self, gboolean manual, const gchar *command) {
+  if (self->update_busy || self->render_process || !self->engine) return;
+  self->update_busy = TRUE;
+  UpdateRequest *request = g_new0(UpdateRequest,1); request->self=self; request->manual=manual; request->command=g_strdup(command);
+  g_object_ref(self->window);
+  GTask *task=g_task_new(NULL,NULL,update_done,NULL); g_task_set_task_data(task,request,(GDestroyNotify)update_request_free); g_task_run_in_thread(task,update_worker); g_object_unref(task);
+}
+static void update_action(GSimpleAction *action, GVariant *value, gpointer data) { begin_update(data,TRUE,"check"); }
+static gboolean periodic_update(gpointer data) {
+  AtivWindow *self=data;
+  if (g_key_file_get_boolean(self->preferences,"General","automatic_updates",NULL)) begin_update(self,FALSE,"check");
+  return G_SOURCE_CONTINUE;
+}
+static void media_action(GSimpleAction *action, GVariant *value, gpointer data) {
+  const gchar *name=g_action_get_name(G_ACTION(action));
+  AtivWindow *self=data;
+  if (g_str_equal(name,"render")) start_render(self->render_button,self);
+  else if (g_str_equal(name,"cancel")) cancel_render(self->render_button,self);
+  else if (!self->render_process) {
+    if(g_str_equal(name,"image")) choose_image(NULL,self);
+    if(g_str_equal(name,"audio")) choose_audio(NULL,self);
+    if(g_str_equal(name,"output")) choose_output(NULL,self);
+  }
+}
+static void setup_actions(AtivWindow *self, GtkApplication *application, GtkWidget *header) {
+  GSimpleActionGroup *group=g_simple_action_group_new();
+  const GActionEntry entries[]={
+    { .name="appearance", .activate=appearance_action, .parameter_type="s", .state="'system'" },
+    { .name="automatic", .activate=automatic_action, .state="true" },
+    { .name="update", .activate=update_action },
+    { .name="image", .activate=media_action }, { .name="audio", .activate=media_action },
+    { .name="output", .activate=media_action }, { .name="render", .activate=media_action }, { .name="cancel", .activate=media_action }
+  };
+  g_action_map_add_action_entries(G_ACTION_MAP(group),entries,G_N_ELEMENTS(entries),self);
+  gtk_widget_insert_action_group(GTK_WIDGET(self->window),"win",G_ACTION_GROUP(group));
+  g_autofree gchar *theme=g_key_file_get_string(self->preferences,"General","appearance",NULL);
+  appearance_action(G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(group),"appearance")),g_variant_new_string(theme ? theme : "system"),self);
+  g_simple_action_set_state(G_SIMPLE_ACTION(g_action_map_lookup_action(G_ACTION_MAP(group),"automatic")),g_variant_new_boolean(g_key_file_get_boolean(self->preferences,"General","automatic_updates",NULL)));
+  const gchar *names[]={"image","audio","output","render","cancel"};
+  const gchar *keys[]={"<Primary>i","<Primary>o","<Primary><Shift>s","<Primary>Return","Escape"};
+  for(guint i=0;i<G_N_ELEMENTS(names);i++) { g_autofree gchar *action=g_strconcat("win.",names[i],NULL); const gchar *accels[]={keys[i],NULL}; gtk_application_set_accels_for_action(application,action,accels); }
+  GMenu *menu=g_menu_new(); GMenu *appearance=g_menu_new();
+  g_menu_append(appearance,"System","win.appearance::system"); g_menu_append(appearance,"Light","win.appearance::light"); g_menu_append(appearance,"Dark","win.appearance::dark");
+  g_menu_append_submenu(menu,"Appearance",G_MENU_MODEL(appearance));
+  g_menu_append(menu,"Automatically check for updates","win.automatic"); g_menu_append(menu,"Check for Updates…","win.update");
+  GtkWidget *button=gtk_menu_button_new();gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(button),"open-menu-symbolic");gtk_menu_button_set_menu_model(GTK_MENU_BUTTON(button),G_MENU_MODEL(menu));
+  gtk_accessible_update_property(GTK_ACCESSIBLE(button),GTK_ACCESSIBLE_PROPERTY_LABEL,"ATIV menu",-1);adw_header_bar_pack_end(ADW_HEADER_BAR(header),button);
+  g_object_unref(menu);g_object_unref(appearance);g_object_unref(group);
+}
 static void activate(GtkApplication *application, gpointer user_data) {
   AtivWindow *self = g_new0(AtivWindow, 1);
+  self->preferences = g_key_file_new();
+  g_autofree gchar *prefs_path = preferences_path();
+  g_key_file_load_from_file(self->preferences,prefs_path,G_KEY_FILE_NONE,NULL);
+  if (!g_key_file_has_key(self->preferences,"General","automatic_updates",NULL)) g_key_file_set_boolean(self->preferences,"General","automatic_updates",TRUE);
   self->presets = g_ptr_array_new_with_free_func(preset_free);
   self->engine = resolve_engine();
   self->window = ADW_APPLICATION_WINDOW(adw_application_window_new(application));
   g_signal_connect(self->window, "close-request", G_CALLBACK(close_requested), self);
-  gtk_window_set_title(GTK_WINDOW(self->window), "A.T.I.V. — Audio Visual Integration & Distribution");
+  gtk_window_set_title(GTK_WINDOW(self->window), "ATIV — Artwork + Tracks Into Video");
   gtk_window_set_default_size(GTK_WINDOW(self->window), 980, 700);
 
   GtkWidget *toolbar = adw_toolbar_view_new();
   GtkWidget *header = adw_header_bar_new();
-  adw_header_bar_set_title_widget(ADW_HEADER_BAR(header), adw_window_title_new("A.T.I.V.", "Audio Visual Integration & Distribution"));
+  adw_header_bar_set_title_widget(ADW_HEADER_BAR(header), adw_window_title_new("ATIV", "Artwork + Tracks Into Video"));
   adw_toolbar_view_add_top_bar(ADW_TOOLBAR_VIEW(toolbar), header);
   GtkWidget *split = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
   adw_toolbar_view_set_content(ADW_TOOLBAR_VIEW(toolbar), split);
@@ -457,7 +599,10 @@ static void activate(GtkApplication *application, gpointer user_data) {
   GtkWidget *controls = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
   gtk_widget_set_margin_start(controls, 24); gtk_widget_set_margin_end(controls, 24);
   gtk_widget_set_margin_top(controls, 24); gtk_widget_set_margin_bottom(controls, 24);
-  gtk_paned_set_start_child(GTK_PANED(split), controls);
+  GtkWidget *scroll = gtk_scrolled_window_new();
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), controls);
+  gtk_paned_set_start_child(GTK_PANED(split), scroll);
   gtk_paned_set_resize_start_child(GTK_PANED(split), TRUE);
   gtk_paned_set_shrink_start_child(GTK_PANED(split), FALSE);
 
@@ -491,9 +636,21 @@ static void activate(GtkApplication *application, gpointer user_data) {
 
   GtkWidget *preview_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12); gtk_widget_set_margin_start(preview_box, 24); gtk_widget_set_margin_end(preview_box, 24); gtk_widget_set_margin_top(preview_box, 24); gtk_widget_set_margin_bottom(preview_box, 24);
   GtkWidget *preview_title = gtk_label_new("Preview"); gtk_widget_add_css_class(preview_title, "title-2"); gtk_box_append(GTK_BOX(preview_box), preview_title);
-  self->preview = GTK_PICTURE(gtk_picture_new()); gtk_picture_set_can_shrink(self->preview, TRUE); gtk_picture_set_content_fit(self->preview, GTK_CONTENT_FIT_CONTAIN); gtk_widget_set_size_request(GTK_WIDGET(self->preview), 360, 360); gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(self->preview));
+  self->preview = GTK_PICTURE(gtk_picture_new()); gtk_picture_set_can_shrink(self->preview, TRUE); gtk_picture_set_content_fit(self->preview, GTK_CONTENT_FIT_CONTAIN); gtk_widget_set_size_request(GTK_WIDGET(self->preview), 200, 200); gtk_widget_set_hexpand(GTK_WIDGET(self->preview), TRUE); gtk_widget_set_vexpand(GTK_WIDGET(self->preview), TRUE); gtk_box_append(GTK_BOX(preview_box), GTK_WIDGET(self->preview));
   gtk_paned_set_end_child(GTK_PANED(split), preview_box);
 
+  g_autofree gchar *bitrate=g_key_file_get_string(self->preferences,"General","bitrate",NULL);
+  if(bitrate) gtk_editable_set_text(GTK_EDITABLE(self->bitrate_entry),bitrate);
+  gint fps=g_key_file_get_integer(self->preferences,"General","fps",NULL); if(fps>=1 && fps<=240) gtk_spin_button_set_value(self->fps_spin,fps);
+  g_signal_connect(self->bitrate_entry,"changed",G_CALLBACK(preference_changed),self);
+  g_signal_connect(self->fps_spin,"value-changed",G_CALLBACK(preference_changed),self);
+  setup_actions(self,application,header);
+  GtkWidget *accessible[]={GTK_WIDGET(self->platform_drop),GTK_WIDGET(self->aspect_drop),GTK_WIDGET(self->resolution_drop),GTK_WIDGET(self->bitrate_entry),GTK_WIDGET(self->fps_spin),GTK_WIDGET(self->preview),GTK_WIDGET(self->progress)};
+  const gchar *labels[]={"Social media outlet","Aspect ratio","Resolution","Audio bitrate","Frames per second","Video frame preview","Video creation progress"};
+  for(guint i=0;i<G_N_ELEMENTS(accessible);i++) gtk_accessible_update_property(GTK_ACCESSIBLE(accessible[i]),GTK_ACCESSIBLE_PROPERTY_LABEL,labels[i],-1);
+  gtk_window_set_icon_name(GTK_WINDOW(self->window),ATIV_APP_ID);
+  self->update_timer=g_timeout_add_seconds(24*60*60,periodic_update,self);
+  periodic_update(self);
   g_signal_connect(self->platform_drop, "notify::selected", G_CALLBACK(drop_changed), self);
   g_signal_connect(self->aspect_drop, "notify::selected", G_CALLBACK(aspect_changed), self);
   g_signal_connect_swapped(self->resolution_drop, "notify::selected", G_CALLBACK(refresh_preview), self);
@@ -502,14 +659,15 @@ static void activate(GtkApplication *application, gpointer user_data) {
 
   if (!self->engine || !load_presets(self)) {
     gtk_widget_set_sensitive(GTK_WIDGET(self->render_button), FALSE);
-    gtk_label_set_text(self->status_label, "The A.T.I.V. media engine is missing or damaged. Reinstall the application.");
+    gtk_label_set_text(self->status_label, "The ATIV media engine is missing or damaged. Reinstall the application.");
   }
+  if (g_getenv("ATIV_SMOKE_REPORT") && self->presets->len == 27) g_file_set_contents(g_getenv("ATIV_SMOKE_REPORT"),"{\"startup\":true,\"presets\":27}",-1,NULL);
   g_object_set_data_full(G_OBJECT(self->window), "ativ-state", self, ativ_window_free);
   gtk_window_present(GTK_WINDOW(self->window));
 }
 
 int main(int argc, char **argv) {
-  g_autoptr(AdwApplication) application = adw_application_new("com.tlolabs.ativ", G_APPLICATION_DEFAULT_FLAGS);
+  g_autoptr(AdwApplication) application = adw_application_new(ATIV_APP_ID, G_APPLICATION_DEFAULT_FLAGS);
   g_signal_connect(application, "activate", G_CALLBACK(activate), NULL);
   return g_application_run(G_APPLICATION(application), argc, argv);
 }

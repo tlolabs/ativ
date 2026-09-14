@@ -7,11 +7,18 @@ on:
     branches: [main]
     tags: ["v*"]
 
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  ATIV_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+  ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
+  DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
 jobs:
   engine:
@@ -21,19 +28,37 @@ jobs:
     name: Shared Rust engine
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          persist-credentials: false
           path: AVID Core
+      - name: Configure build identity
+        shell: bash
+        run: |
+          base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          if [[ "$ATIV_CHANNEL" == stable ]]; then
+            test "$GITHUB_REF_NAME" = "v$base"
+            echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
+            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+          else
+            echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          fi
       - name: Fetch the same approved tools used by Linux packaging
         run: |
           ./script/fetch_ffmpeg.sh linux x86_64 build/ffmpeg-linux-x86_64
           echo "$PWD/build/ffmpeg-linux-x86_64" >> "$GITHUB_PATH"
+      - name: Validate release infrastructure
+        run: |
+          python3 -m venv build/release-tools
+          build/release-tools/bin/pip install -r script/requirements-build.txt
+          build/release-tools/bin/python script/test_release_infrastructure.py
       - name: Validate Rust workspace
         run: |
           rustup component add rustfmt clippy
@@ -62,15 +87,28 @@ jobs:
             fetch_arch: x86_64
             runner: macos-15-intel
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          persist-credentials: false
           path: AVID Core
+      - name: Configure build identity
+        shell: bash
+        run: |
+          base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          if [[ "$ATIV_CHANNEL" == stable ]]; then
+            test "$GITHUB_REF_NAME" = "v$base"
+            echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
+            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+          else
+            echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          fi
       - name: Fetch verified static FFmpeg 9.0.1
         run: ./script/fetch_ffmpeg.sh macos "${{ matrix.fetch_arch }}" "build/ffmpeg-macos-${{ matrix.arch }}"
       - name: Configure release signing and notarization
@@ -107,6 +145,8 @@ jobs:
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
           ./script/test_engine_integration.sh
+      - name: Native process integration tests
+        run: ATIV_ENGINE_PATH="$PWD/target/debug/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
       - name: Build and package native application
         env:
           APPLE_SIGN_IDENTITY: ${{ startsWith(github.ref, 'refs/tags/') && secrets.MACOS_SIGNING_IDENTITY || '-' }}
@@ -114,10 +154,19 @@ jobs:
           FFMPEG_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
           FFPROBE_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
         run: ./script/package_macos.sh "${{ matrix.arch }}"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Validate packaged application and startup
+        run: |
+          label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
+          python3 script/validate_package.py "build/package-macos-${{ matrix.arch }}/ATIV.app" "macos-$label"
+          ATIV_SMOKE_REPORT="$RUNNER_TEMP/ativ-smoke.json" open -n "build/package-macos-${{ matrix.arch }}/ATIV.app" --env ATIV_SMOKE_REPORT="$RUNNER_TEMP/ativ-smoke.json"
+          for attempt in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
+          test -s "$RUNNER_TEMP/ativ-smoke.json"
+          pkill -x ATIV || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-macos-${{ matrix.arch }}
-          path: ATIV/packages/ATIV-*-macos-${{ matrix.arch }}.*
+          path: ATIV/packages/*
+          if-no-files-found: error
 
   windows:
     defaults:
@@ -137,27 +186,34 @@ jobs:
             fetch_arch: aarch64
             runner: windows-11-arm
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          persist-credentials: false
           path: AVID Core
+      - name: Configure build identity
+        shell: bash
+        run: |
+          base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          if [[ "$ATIV_CHANNEL" == stable ]]; then
+            test "$GITHUB_REF_NAME" = "v$base"
+            echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
+            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+          else
+            echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          fi
       - name: Fetch verified FFmpeg 9.0.1
         shell: bash
         run: ./script/fetch_ffmpeg.sh windows "${{ matrix.fetch_arch }}" "build/ffmpeg-windows-${{ matrix.arch }}"
-      - name: Require signing credentials for tagged releases
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Install Inno Setup
         shell: pwsh
-        env:
-          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          if (!$env:CERTIFICATE) { throw "Missing WINDOWS_CERTIFICATE_BASE64" }
-          if (!$env:PASSWORD) { throw "Missing WINDOWS_CERTIFICATE_PASSWORD" }
+        run: choco install innosetup --version=6.5.4 --yes --no-progress
       - name: Verify canonical media and host contract with release tools
         shell: bash
         run: |
@@ -172,10 +228,14 @@ jobs:
           WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}" -FfmpegDirectory "build/ffmpeg-windows-${{ matrix.arch }}"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Native integration and installer smoke tests
+        shell: pwsh
+        run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-windows-${{ matrix.arch }}
-          path: ATIV/packages/ATIV-*-windows-${{ matrix.arch }}.zip
+          path: ATIV/packages/*
+          if-no-files-found: error
 
   linux:
     defaults:
@@ -193,19 +253,32 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
+          persist-credentials: false
           path: AVID Core
+      - name: Configure build identity
+        shell: bash
+        run: |
+          base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          if [[ "$ATIV_CHANNEL" == stable ]]; then
+            test "$GITHUB_REF_NAME" = "v$base"
+            echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
+            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+          else
+            echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          fi
       - name: Install native toolkit
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64
       - name: Fetch verified FFmpeg 9.0.1
         run: ./script/fetch_ffmpeg.sh linux "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
       - name: Verify canonical media and host contract with release tools
@@ -218,27 +291,48 @@ jobs:
           ./script/test_engine_integration.sh
       - name: Build and package native application
         run: ./script/package_linux.sh "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Native GTK and package smoke tests
+        run: ./script/test_linux_native.sh "${{ matrix.arch }}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-linux-${{ matrix.arch }}
           path: ATIV/packages/*
 
   release:
-    name: Publish signed release
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [macos, windows, linux]
+    name: Publish passing artifacts
+    if: ${{ always() && !cancelled() && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    needs: [engine, macos, windows, linux]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: ATIV-*
           path: release-assets
           merge-multiple: true
-      - name: Create GitHub release
+      - name: Publish validated passing packages
         env:
           GH_TOKEN: ${{ github.token }}
+          BUILD_RESULTS: ${{ toJSON(needs) }}
         run: |
-          cd release-assets
-          sha256sum * > SHA256SUMS
-          gh release create "${GITHUB_REF_NAME}" * --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --generate-notes --latest
+          python3 script/publish_release.py
+      - name: Generate and upload authenticated update feeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
+        run: |
+          python3 -m venv build/release-tools
+          build/release-tools/bin/pip install -r script/requirements-build.txt
+          build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel "$ATIV_CHANNEL" --tag "$ATIV_RELEASE_TAG"
+          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS --clobber
+          find release-assets -name 'appcast-*.xml' -exec gh release upload "$ATIV_RELEASE_TAG" '{}' --clobber \;
+      - name: Report partial failures
+        if: always()
+        env:
+          BUILD_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 -c 'import json,os; jobs=json.loads(os.environ["BUILD_RESULTS"]); failed=[k for k,v in jobs.items() if v["result"]!="success"]; print("Incomplete targets: " + ", ".join(failed)); raise SystemExit(bool(failed))'

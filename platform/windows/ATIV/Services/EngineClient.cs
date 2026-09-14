@@ -17,7 +17,7 @@ public sealed class EngineClient
             if (!string.IsNullOrWhiteSpace(configured)) return configured;
             var sidecar = Path.Combine(AppContext.BaseDirectory, "ativ-engine.exe");
             if (File.Exists(sidecar)) return sidecar;
-            throw new FileNotFoundException("The A.T.I.V. media engine is missing. Reinstall the application.", sidecar);
+            throw new FileNotFoundException("The ATIV media engine is missing. Reinstall the application.", sidecar);
         }
     }
 

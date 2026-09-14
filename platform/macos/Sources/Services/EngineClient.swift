@@ -7,7 +7,7 @@ enum EngineClientError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingEngine: return "The A.T.I.V. media engine is missing. Reinstall the application."
+        case .missingEngine: return "The ATIV media engine is missing. Reinstall the application."
         case .launchFailed(let detail), .operationFailed(let detail): return detail
         }
     }
@@ -54,11 +54,11 @@ final class EngineClient {
         if flipVertical { arguments.append("--flip-vertical") }
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process(), stdout = Pipe(), stderr = Pipe(), stdin = Pipe()
+            let process = Process(), stdout = Pipe(), stdin = Pipe()
             process.executableURL = engineURL
             process.arguments = arguments
             process.standardOutput = stdout
-            process.standardError = stderr
+            process.standardError = FileHandle.nullDevice
             process.standardInput = stdin
             self.lock.lock(); self.renderProcess = process; self.lock.unlock()
             do { try process.run() } catch {
@@ -66,13 +66,17 @@ final class EngineClient {
                 completion(.failure(EngineClientError.launchFailed("Could not start the media engine: \(error.localizedDescription)")))
                 return
             }
-            self.consumeLines(from: stdout.fileHandleForReading, event: event)
+            var lastError: String?
+            self.consumeLines(from: stdout.fileHandleForReading) { item in
+                if item.event == "error" { lastError = item.message }
+                event(item)
+            }
             process.waitUntilExit()
-            let stderrText = String(data: stderr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
             self.clear(process)
             if process.terminationStatus == 0 { completion(.success(())); return }
             if process.terminationStatus == 130 { completion(.failure(EngineClientError.operationFailed("Video creation was stopped. The previous output was preserved."))); return }
-            let detail = stderrText.split(separator: "\n").last.map(String.init) ?? "The media engine could not finish this operation."
+            let detail = lastError ?? "The media engine could not finish this operation."
             completion(.failure(EngineClientError.operationFailed(detail)))
         }
     }
@@ -86,17 +90,17 @@ final class EngineClient {
     private func runCapture(arguments: [String], completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
         guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
         DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process(), output = Pipe(), errorOutput = Pipe()
+            let process = Process(), output = Pipe()
             process.executableURL = engineURL
             process.arguments = arguments
             process.standardOutput = output
-            process.standardError = errorOutput
+            process.standardError = FileHandle.nullDevice
             process.standardInput = FileHandle.nullDevice
             do { try process.run() } catch {
                 completion(.failure(EngineClientError.launchFailed("Could not start the media engine: \(error.localizedDescription)"))); return
             }
-            process.waitUntilExit()
             let data = output.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
             let events = String(data: data, encoding: .utf8)?.split(separator: "\n").compactMap { try? JSONDecoder().decode(EngineEvent.self, from: Data($0.utf8)) } ?? []
             if process.terminationStatus == 0 { completion(.success(events)); return }
             let message = events.last(where: { $0.event == "error" })?.message ?? "The media engine could not complete this operation."

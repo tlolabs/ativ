@@ -5,12 +5,23 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="A.T.I.V. — Audio Visual Integration &amp; Distribution">
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Title="ATIV — Artwork + Tracks Into Video">
+    <Grid x:Name="RootGrid" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <InfoBar x:Name="ErrorBar" Grid.Row="0" Severity="Error" IsOpen="False" IsClosable="True" Title="A.T.I.V. couldn’t complete the operation"/>
-        <Grid Grid.Row="1" ColumnSpacing="24" Padding="28">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="470"/><ColumnDefinition Width="2*" MinWidth="340"/></Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="0">
+        <MenuBar>
+            <MenuBarItem Title="File">
+                <MenuFlyoutItem Text="Choose image…" Click="ChooseImage"><MenuFlyoutItem.KeyboardAccelerators><KeyboardAccelerator Key="I" Modifiers="Control"/></MenuFlyoutItem.KeyboardAccelerators></MenuFlyoutItem>
+                <MenuFlyoutItem Text="Choose audio…" Click="ChooseAudio"><MenuFlyoutItem.KeyboardAccelerators><KeyboardAccelerator Key="O" Modifiers="Control"/></MenuFlyoutItem.KeyboardAccelerators></MenuFlyoutItem>
+                <MenuFlyoutItem Text="Choose output…" Click="ChooseOutput"/>
+            </MenuBarItem>
+            <MenuBarItem Title="Settings"><MenuFlyoutItem Text="Preferences…" Click="OpenPreferences"/></MenuBarItem>
+            <MenuBarItem Title="Help"><MenuFlyoutItem Text="Check for updates…" Click="CheckForUpdates"/><MenuFlyoutItem Text="About ATIV" Click="ShowAbout"/></MenuBarItem>
+        </MenuBar>
+        <InfoBar x:Name="ErrorBar" Grid.Row="0" Severity="Error" IsOpen="False" IsClosable="True" Title="ATIV couldn’t complete the operation"/>
+        </StackPanel>
+        <Grid x:Name="EditorGrid" Grid.Row="1" ColumnSpacing="24" Padding="28">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="360"/><ColumnDefinition Width="2*" MinWidth="200"/></Grid.ColumnDefinitions>
             <ScrollViewer Grid.Column="0">
                 <StackPanel Spacing="18">
                     <StackPanel Spacing="4">
@@ -56,6 +67,6 @@
                 <TextBlock x:Name="PreviewCaption" Text="Choose an image to see a styled preview." TextWrapping="Wrap" HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
             </StackPanel>
         </Grid>
-        <StackPanel Grid.Row="2" Padding="18,10" Spacing="6"><ProgressBar x:Name="RenderProgress" Minimum="0" Maximum="1" Value="0"/><TextBlock x:Name="StatusText" Text="Loading media engine…" AutomationProperties.LiveSetting="Polite"/></StackPanel>
+        <StackPanel Grid.Row="2" Padding="18,10" Spacing="6"><ProgressBar x:Name="RenderProgress" AutomationProperties.Name="Video creation progress" Minimum="0" Maximum="1" Value="0"/><TextBlock x:Name="StatusText" Text="Loading media engine…" AutomationProperties.LiveSetting="Polite"/></StackPanel>
     </Grid>
 </Window>

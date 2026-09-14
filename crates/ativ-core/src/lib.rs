@@ -11,4 +11,7 @@ pub use error::{AtivError, Result};
 pub use model::RenderRequest;
 
 /// Application identity, independent of the shared library version.
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = match option_env!("ATIV_VERSION") {
+    Some(version) => version,
+    None => env!("CARGO_PKG_VERSION"),
+};
