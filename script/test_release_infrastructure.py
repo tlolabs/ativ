@@ -55,4 +55,21 @@ class PublishTests(unittest.TestCase):
             self.assertIn('Incomplete build: macos',(root/'build-release-notes.md').read_text())
             self.assertIn('ATIV_RELEASE_TAG=v0.3.0',(root/'env').read_text())
 
+class SigningSetupTests(unittest.TestCase):
+    def test_only_a_single_developer_id_application_identity_is_accepted(self):
+        from configure_macos_signing import developer_identity
+        identity = 'Developer ID Application: Example (ABCDE12345)'
+        self.assertEqual(developer_identity(f'1) ABC "{identity}"'), (identity, 'ABCDE12345'))
+        for output in ['0 valid identities found', '"Apple Development: Example (ABCDE12345)"', f'"{identity}"\n"{identity}"']:
+            with self.assertRaises(ValueError):
+                developer_identity(output)
+
+    def test_credential_failure_does_not_print_command_or_output(self):
+        from configure_macos_signing import run
+        failed = SimpleNamespace(returncode=1, stdout=b'', stderr=b'private-password')
+        with patch('configure_macos_signing.subprocess.run', return_value=failed):
+            with self.assertRaises(RuntimeError) as error:
+                run(['notarytool', '--password', 'private-password'], purpose='Authentication')
+        self.assertNotIn('private-password', str(error.exception))
+
 if __name__=='__main__':unittest.main()

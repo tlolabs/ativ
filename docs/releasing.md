@@ -27,6 +27,28 @@ Keep a protected offline backup of the Ed25519 seed. A missing update key fails 
 
 Windows unsigned development builds work without a certificate; supplying the certificate enables executable and installer signing with timestamp verification. macOS stable tags require Developer ID/notary credentials. The macOS app is notarized and stapled before final archives are created, and the DMG is separately notarized/stapled. Sparkle nested code is signed inside-out. The ZIP contains the stapled app; the DMG contains the app and Applications shortcut.
 
+## Configure macOS signing from a local certificate
+
+Use a **Developer ID Application** identity exported as a password-protected `.p12`, including its private key. Apple Development, Apple Distribution and Developer ID Installer certificates do not replace this identity for ATIV's DMG/ZIP distribution. ENcap's current ad-hoc signature and update-signing key are separate from Apple Developer ID signing.
+
+If needed, create the identity through [Apple's Developer ID certificate process](https://developer.apple.com/help/account/certificates/create-developer-id-certificates), then export the identity and private key from Keychain Access. Create a dedicated app-specific password for notarization in your Apple account.
+
+Run this command in your own interactive macOS terminal, replacing the example path:
+
+```sh
+python3 script/configure_macos_signing.py /absolute/path/DeveloperID.p12
+```
+
+The helper prompts privately for the export password and Apple app-specific password, checks the identity in a temporary keychain, derives its Team ID, and validates authentication with Apple's notarization service before sending the six secrets directly to `tlolabs/ativ`. It restores the original keychain search list and deletes its temporary keychain. It never writes passwords into repository files or logs. GitHub secret writes are sequential; an interrupted upload can be completed by rerunning with `--replace`. That option also permits an intentional credential replacement.
+
+After setup, validate both macOS architectures without publishing:
+
+```sh
+gh workflow run native-release.yml --ref main -f platform=macos -f sign_macos=true
+```
+
+Once validation passes, failed macOS jobs for an existing release can be rerun using the newly configured secrets. Do not move an existing release tag to another commit.
+
 ## Stable release
 
 Update the workspace version, validate the branch, merge it, and push the matching `v<version>` tag. No manual approval job is required. The workflow tests Rust/shared media contracts, native integration and startup, acquires FFmpeg, packages every supported target, validates architectures/resources/metadata, signs where configured and uploads only passing job artifacts.
