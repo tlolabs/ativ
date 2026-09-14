@@ -21,11 +21,11 @@ jobs:
     name: Shared Rust engine
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
@@ -62,11 +62,11 @@ jobs:
             fetch_arch: x86_64
             runner: macos-15-intel
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
@@ -137,11 +137,11 @@ jobs:
             fetch_arch: aarch64
             runner: windows-11-arm
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
@@ -193,11 +193,11 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           path: ATIV
       - name: Check out the tested canonical media core
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
         with:
           repository: tlolabs/avid-core
           ref: 0cce6ba838827d0bed540efc98731e74a1014456
