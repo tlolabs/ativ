@@ -114,7 +114,7 @@ jobs:
           FFMPEG_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
           FFPROBE_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
         run: ./script/package_macos.sh "${{ matrix.arch }}"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-macos-${{ matrix.arch }}
           path: ATIV/packages/ATIV-*-macos-${{ matrix.arch }}.*
@@ -172,7 +172,7 @@ jobs:
           WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}" -FfmpegDirectory "build/ffmpeg-windows-${{ matrix.arch }}"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-windows-${{ matrix.arch }}
           path: ATIV/packages/ATIV-*-windows-${{ matrix.arch }}.zip
@@ -218,7 +218,7 @@ jobs:
           ./script/test_engine_integration.sh
       - name: Build and package native application
         run: ./script/package_linux.sh "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-linux-${{ matrix.arch }}
           path: ATIV/packages/*
