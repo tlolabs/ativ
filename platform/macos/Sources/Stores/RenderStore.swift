@@ -31,9 +31,13 @@ final class RenderStore: ObservableObject {
     var platforms: [String] { unique(presets.map(\.platform)) }
     var aspects: [String] { unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect)) }
     var resolutions: [Preset] { presets.filter { $0.platform == selectedPlatform && $0.aspect == selectedAspect } }
-    var canRender: Bool { imageURL != nil && audioURL != nil && outputURL != nil && selectedPreset != nil && !isRendering }
+    var canRender: Bool {
+        imageURL != nil && audioURL != nil && outputURL != nil && selectedPreset != nil && !isRendering
+        && outputURL != imageURL && outputURL != audioURL
+    }
 
     func start() {
+        guard presets.isEmpty else { return }
         engine.fetchPresets { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
@@ -85,14 +89,19 @@ final class RenderStore: ObservableObject {
             errorMessage = "Choose an image, audio recording, output destination, and format."
             return
         }
+        guard outputURL != imageURL && outputURL != audioURL else {
+            errorMessage = "The output destination must be separate from the image and audio source files."
+            return
+        }
+        let validFps = max(1, min(240, fps))
         UserDefaults.standard.set(bitrate, forKey: "audioBitrate")
-        UserDefaults.standard.set(fps, forKey: "fps")
+        UserDefaults.standard.set(validFps, forKey: "fps")
         progress = 0
         diagnostics = []
         isRendering = true
         status = "Preparing video…"
         let exportStarted = ProcessInfo.processInfo.systemUptime
-        engine.render(image: imageURL, audio: audioURL, output: outputURL, preset: preset, bitrate: bitrate, fps: fps, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] event in
+        engine.render(image: imageURL, audio: audioURL, output: outputURL, preset: preset, bitrate: bitrate, fps: validFps, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] event in
             DispatchQueue.main.async { self?.apply(event) }
         } completion: { [weak self] result in
             DispatchQueue.main.async {
@@ -146,9 +155,17 @@ final class RenderStore: ObservableObject {
 
     private var suggestedOutput: URL? {
         guard let source = audioURL ?? imageURL else { return nil }
+        if source.pathExtension.lowercased() == "mp4" {
+            let stem = source.deletingPathExtension().lastPathComponent
+            return source.deletingLastPathComponent().appendingPathComponent("\(stem)-video.mp4")
+        }
         return source.deletingPathExtension().appendingPathExtension("mp4")
     }
-    private func suggestOutputIfNeeded() { if outputURL == nil { outputURL = suggestedOutput } }
+    private func suggestOutputIfNeeded() {
+        if outputURL == nil || outputURL == audioURL || outputURL == imageURL {
+            outputURL = suggestedOutput
+        }
+    }
 
     private func normalizeSelection() {
         if !platforms.contains(selectedPlatform) { selectedPlatform = platforms.first ?? "" }
@@ -185,6 +202,9 @@ final class RenderStore: ObservableObject {
     }
     private func format(_ seconds: Double) -> String {
         let total = max(0, Int(seconds.rounded()))
+        if total >= 3600 {
+            return String(format: "%d:%02d:%02d", total / 3600, (total % 3600) / 60, total % 60)
+        }
         return String(format: "%d:%02d", total / 60, total % 60)
     }
     private func fail(_ error: Error) { errorMessage = error.localizedDescription; status = "Unable to complete the operation." }

@@ -286,11 +286,14 @@ fn open_log() -> Option<File> {
     open_log_at(&default_diagnostic_log_path()?, true)
 }
 
-fn open_log_at(path: &Path, _protect_parent: bool) -> Option<File> {
+fn open_log_at(
+    path: &Path,
+    #[cfg_attr(not(unix), allow(unused_variables))] protect_parent: bool,
+) -> Option<File> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).ok()?;
         #[cfg(unix)]
-        if _protect_parent {
+        if protect_parent {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).ok()?;
         }
@@ -346,12 +349,15 @@ fn default_diagnostic_log_path() -> Option<PathBuf> {
 }
 
 fn print_presets() {
-    print!("{{\"event\":\"presets\",\"items\":[");
+    use std::fmt::Write as _;
+    let mut payload = String::with_capacity(2048);
+    payload.push_str("{\"event\":\"presets\",\"items\":[");
     for (index, preset) in PRESETS.iter().enumerate() {
         if index > 0 {
-            print!(",");
+            payload.push(',');
         }
-        print!(
+        let _ = write!(
+            payload,
             "{{\"platform\":\"{}\",\"aspect\":\"{}\",\"width\":{},\"height\":{}}}",
             escape(preset.platform),
             escape(preset.aspect),
@@ -359,7 +365,8 @@ fn print_presets() {
             preset.height
         );
     }
-    println!("]}}");
+    payload.push_str("]}");
+    println!("{payload}");
 }
 
 fn number(value: Option<f64>) -> String {
@@ -368,18 +375,19 @@ fn number(value: Option<f64>) -> String {
         .map_or_else(|| "null".into(), |value| value.to_string())
 }
 fn escape(value: &str) -> String {
-    value
-        .chars()
-        .flat_map(|character| match character {
-            '\\' => "\\\\".chars().collect::<Vec<_>>(),
-            '"' => "\\\"".chars().collect(),
-            '\n' => "\\n".chars().collect(),
-            '\r' => "\\r".chars().collect(),
-            '\t' => "\\t".chars().collect(),
-            value if value.is_control() => "�".chars().collect(),
-            value => vec![value],
-        })
-        .collect()
+    let mut out = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            value if value.is_control() => out.push('\u{FFFD}'),
+            value => out.push(value),
+        }
+    }
+    out
 }
 
 fn print_help() {
@@ -394,6 +402,9 @@ mod tests {
     #[test]
     fn json_escape_handles_control_characters() {
         assert_eq!(escape("a\"b\\c\n"), "a\\\"b\\\\c\\n");
+        assert_eq!(escape("tab\there\r\n"), "tab\\there\\r\\n");
+        assert_eq!(escape("null\0byte\x07bell"), "null\u{FFFD}byte\u{FFFD}bell");
+        assert_eq!(escape("normal text 123"), "normal text 123");
     }
     #[test]
     fn protocol_numbers_preserve_null_for_unknown_or_nonfinite_values() {

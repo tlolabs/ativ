@@ -41,6 +41,7 @@ typedef struct {
   guint preview_generation;
   gboolean render_owner_ref_held;
   gboolean close_after_render;
+  gboolean render_error_shown;
   gboolean update_busy;
   guint update_timer;
   guint audio_generation;
@@ -205,8 +206,9 @@ static void suggest_output(AtivWindow *self, const gchar *source) {
   g_autofree gchar *directory = g_path_get_dirname(source);
   g_autofree gchar *base = g_path_get_basename(source);
   gchar *dot = strrchr(base, '.');
+  gboolean is_mp4 = dot && g_ascii_strcasecmp(dot, ".mp4") == 0;
   if (dot) *dot = '\0';
-  g_autofree gchar *name = g_strconcat(base, ".mp4", NULL);
+  g_autofree gchar *name = g_strconcat(base, is_mp4 ? "-video.mp4" : ".mp4", NULL);
   g_autofree gchar *output = g_build_filename(directory, name, NULL);
   gtk_editable_set_text(GTK_EDITABLE(self->output_entry), output);
 }
@@ -283,7 +285,12 @@ static void audio_probe_done(GObject *source,GAsyncResult *result,gpointer data)
     if(ok && g_subprocess_get_successful(G_SUBPROCESS(source)) && parse_event(output,&object)) {
       JsonNode *duration=json_object_get_member(object,"duration_seconds");
       if(duration && !JSON_NODE_HOLDS_NULL(duration)) {
-        double seconds=json_node_get_double(duration);g_autofree gchar *text=g_strdup_printf("Duration: %d:%02d",(int)seconds/60,(int)seconds%60);gtk_label_set_text(self->duration_label,text);
+        double seconds=json_node_get_double(duration);
+        int total = (int)seconds;
+        g_autofree gchar *text = total >= 3600
+          ? g_strdup_printf("Duration: %d:%02d:%02d", total / 3600, (total % 3600) / 60, total % 60)
+          : g_strdup_printf("Duration: %d:%02d", total / 60, total % 60);
+        gtk_label_set_text(self->duration_label,text);
       } else gtk_label_set_text(self->duration_label,"Duration unavailable");
     } else {gtk_label_set_text(self->duration_label,"Could not read audio");if(error)show_error(self,error->message);}
   }
@@ -391,7 +398,9 @@ static void render_finished(GObject *source, GAsyncResult *result, gpointer user
   } else if (error && !close_after_render) {
     gtk_progress_bar_set_fraction(self->progress, 0.0);
     gtk_label_set_text(self->status_label, "The video was not changed.");
-    show_error(self, error->message);
+    if (!self->render_error_shown) {
+      show_error(self, error->message);
+    }
   }
   self->close_after_render = FALSE;
   if (close_after_render) gtk_window_destroy(GTK_WINDOW(self->window));
@@ -422,6 +431,7 @@ static void read_render_line(GObject *source, GAsyncResult *result, gpointer use
       const gchar *stage = json_object_get_string_member_with_default(object, "stage", "working");
       gtk_label_set_text(self->status_label, stage);
     } else if (g_str_equal(event, "error")) {
+      self->render_error_shown = TRUE;
       show_error(self, json_object_get_string_member_with_default(object, "message", "The media engine failed."));
     }
   }
@@ -445,6 +455,11 @@ static void start_render(GtkButton *button, gpointer user_data) {
   const gchar *audio = gtk_editable_get_text(GTK_EDITABLE(self->audio_entry));
   const gchar *output = gtk_editable_get_text(GTK_EDITABLE(self->output_entry));
   if (!preset || !*image || !*audio || !*output) { show_error(self, "Choose an image, audio recording, output destination, and format."); return; }
+  if (g_str_equal(output, image) || g_str_equal(output, audio)) {
+    show_error(self, "The output destination must be separate from the image and audio source files.");
+    return;
+  }
+  self->render_error_shown = FALSE;
   g_autofree gchar *width = g_strdup_printf("%u", preset->width);
   g_autofree gchar *height = g_strdup_printf("%u", preset->height);
   g_autofree gchar *fps = g_strdup_printf("%d", gtk_spin_button_get_value_as_int(self->fps_spin));
@@ -562,7 +577,8 @@ static void update_done(GObject *source, GAsyncResult *result, gpointer data) {
     gtk_label_set_text(self->status_label,"Update installed. Restart ATIV to use it.");
   } else {
     const gchar *path = json_object_get_string_member_with_default(object,"path",NULL);
-    if (!path || self->render_process) { show_error(self,"Finish your export before installing the update."); return; }
+    if (self->render_process) { show_error(self,"Finish your export before installing the update."); return; }
+    if (!path) { show_error(self,"Could not locate the downloaded update package."); return; }
     // The distribution's native package installer owns dependency resolution and authorization.
     g_autofree gchar *uri = g_filename_to_uri(path,NULL,NULL);
     if (!g_app_info_launch_default_for_uri(uri,NULL,&error)) show_error(self,error->message);

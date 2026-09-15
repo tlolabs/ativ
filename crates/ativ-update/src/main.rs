@@ -133,21 +133,17 @@ fn run() -> Result<()> {
     let available =
         semver::Version::parse(&payload.version)? > semver::Version::parse(&config.version)?;
     let asset = payload.assets.get(&config.target);
-    if !available || asset.is_none() {
-        println!(
-            "{}",
-            serde_json::json!({"available":false,"version":payload.version})
-        );
-        return Ok(());
-    }
-    let asset = asset.unwrap();
     if command == "check" {
         println!(
             "{}",
-            serde_json::json!({"available":true,"version":payload.version})
+            serde_json::json!({"available": available && asset.is_some(), "version": payload.version})
         );
         return Ok(());
     }
+    if !available {
+        return Err("No newer update available".into());
+    }
+    let asset = asset.ok_or("No update package available for this target")?;
     let response = client.get(&asset.url).send()?.error_for_status()?;
     if command == "install-appimage" {
         if !config.target.ends_with("appimage") {
@@ -249,5 +245,24 @@ mod tests {
         assert!(download(&data[..], Vec::new(), &asset).is_ok());
         assert!(download(&data[..3], Vec::new(), &asset).is_err());
         assert!(download(&b"corrupted artifact"[..], Vec::new(), &asset).is_err());
+    }
+    #[test]
+    fn update_available_requires_newer_version_and_matching_target() {
+        let (config, bytes) = fixture("stable");
+        let payload = verify(&bytes, &config).expect("valid payload");
+        let newer = semver::Version::parse(&payload.version).unwrap()
+            > semver::Version::parse(&config.version).unwrap();
+        assert!(newer);
+        assert!(!payload.assets.contains_key(&config.target));
+
+        let same_version_config = Config {
+            version: "0.3.0".into(),
+            channel: "stable".into(),
+            target: "linux-x64-deb".into(),
+            public_key: config.public_key.clone(),
+        };
+        let not_newer = semver::Version::parse(&payload.version).unwrap()
+            > semver::Version::parse(&same_version_config.version).unwrap();
+        assert!(!not_newer);
     }
 }

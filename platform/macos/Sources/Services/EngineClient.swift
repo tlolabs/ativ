@@ -120,6 +120,9 @@ final class EngineClient {
                 if let decoded = try? JSONDecoder().decode(EngineEvent.self, from: line) { event(decoded) }
             }
         }
+        if !buffer.isEmpty {
+            if let decoded = try? JSONDecoder().decode(EngineEvent.self, from: buffer) { event(decoded) }
+        }
     }
 
     private func clear(_ process: Process) {

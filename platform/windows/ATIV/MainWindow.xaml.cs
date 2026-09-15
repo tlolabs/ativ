@@ -132,6 +132,13 @@ public sealed partial class MainWindow : Window
     private void SuggestOutput(string source)
     {
         if (!string.IsNullOrWhiteSpace(OutputPath.Text)) return;
+        if (string.Equals(Path.GetExtension(source), ".mp4", StringComparison.OrdinalIgnoreCase))
+        {
+            var dir = Path.GetDirectoryName(source);
+            var stem = Path.GetFileNameWithoutExtension(source);
+            OutputPath.Text = Path.Combine(dir ?? "", $"{stem}-video.mp4");
+            return;
+        }
         OutputPath.Text = Path.ChangeExtension(source, ".mp4");
     }
 
@@ -193,6 +200,12 @@ public sealed partial class MainWindow : Window
             return;
         }
         if (ResolutionBox.SelectedItem is not Preset preset) return;
+        if (string.Equals(OutputPath.Text, ImagePath.Text, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(OutputPath.Text, AudioPath.Text, StringComparison.OrdinalIgnoreCase))
+        {
+            ShowError("The output destination must be separate from the image and audio source files.");
+            return;
+        }
         SavePreferences();
         rendering = true;
         RenderButton.Content = "Stop Video Creation";
@@ -236,8 +249,20 @@ public sealed partial class MainWindow : Window
         "encoding" => "Creating video…", "publishing" => "Saving completed video…", "complete" => "Complete", _ => "Working…"
     };
 
-    private void UpdateRenderEnabled() => RenderButton.IsEnabled = rendering || (!string.IsNullOrWhiteSpace(ImagePath.Text) && !string.IsNullOrWhiteSpace(AudioPath.Text) && !string.IsNullOrWhiteSpace(OutputPath.Text) && ResolutionBox.SelectedItem is Preset);
-    private void ShowError(string message) { ErrorBar.Message = message; ErrorBar.IsOpen = true; }
+    private void UpdateRenderEnabled() => RenderButton.IsEnabled = rendering || (
+        !string.IsNullOrWhiteSpace(ImagePath.Text) &&
+        !string.IsNullOrWhiteSpace(AudioPath.Text) &&
+        !string.IsNullOrWhiteSpace(OutputPath.Text) &&
+        !string.Equals(OutputPath.Text, ImagePath.Text, StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(OutputPath.Text, AudioPath.Text, StringComparison.OrdinalIgnoreCase) &&
+        ResolutionBox.SelectedItem is Preset);
+
+    private void ShowError(string message)
+    {
+        if (ErrorBar.IsOpen && ErrorBar.Message == message) return;
+        ErrorBar.Message = message;
+        ErrorBar.IsOpen = true;
+    }
 
     private void ApplyAppearance() => RootGrid.RequestedTheme = preferences.Appearance switch {
         "Dark" => ElementTheme.Dark, "Light" => ElementTheme.Light, _ => ElementTheme.Default
