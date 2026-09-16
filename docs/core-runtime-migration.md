@@ -23,7 +23,7 @@ Ignored `build/ffmpeg-*` directories and existing bundles contain working legacy
 
 Core source tag `v0.2.1` resolves to `eab97dd043187aa8b7a1cae4eb2c1228fa25a9db`. It is not a runtime release. The runtime mapping remains FFmpeg 9.0.1, recipe 6, status candidate.
 
-[Core run 35065840420](https://github.com/tlolabs/avid-core/actions/runs/35065840420) passed native macOS ARM64/x86_64, Linux ARM64/x86_64 and Windows ARM64. Windows x86_64 failed `simple_matches_legacy_pixels_audio_and_requested_cadence`: FFmpeg exited with 0xC0000005 (access violation) during legacy portrait composition at 60 fps. Completion/publication were skipped. Minimum-OS, environment qualification and production host acceptance also remain incomplete in Core's ledger. The separate shared-core run has a Linux cancellation-test failure. No checks are waived by this migration.
+[Core run 35065840420](https://github.com/tlolabs/avid-core/actions/runs/35065840420) passed native macOS ARM64/x86_64, Linux ARM64/x86_64 and Windows ARM64. Windows x86_64 failed `simple_matches_legacy_pixels_audio_and_requested_cadence`: FFmpeg exited with 0xC0000005 (access violation) during legacy portrait composition at 60 fps. Completion/publication were skipped. These were build-only runs with publication disabled; Core also requires an explicit publish dispatch on its default branch and a fully qualified ledger. There is no evidence of a failed upload or an available runtime release. Minimum-OS, environment qualification and production host acceptance also remain incomplete in Core's ledger. The separate shared-core run has a Linux cancellation-test failure. No checks are waived by this migration.
 
 Normal production acquisition requires Core to publish an immutable `ffmpeg-9.0.1-r6` release at the selected Core commit (or a newer qualified recipe and corresponding pin), with six matching `avid-ffmpeg-<version>-r<recipe>-<target>.tar.gz` runtime archives, six `-sources.tar.gz` corresponding-source archives, SHA-256 sidecars and GitHub build attestations. Embedded spec/build/validation/repeat/source/signature/license evidence must pass Core's verifier. GitHub asset digests, tag identity and attestations are checked before extraction. A crate tag or passing local candidate alone cannot satisfy this contract.
 
@@ -58,3 +58,18 @@ The tested candidate used FFmpeg 9.0.1 recipe 6 built at Core `9eb8651bc09b6fb00
 Local logs: `build/core-migration-rust-tests.log`, `core-migration-managed-tests.log`, `core-migration-package.log`, `core-migration-acquisition.json`, `core-migration-provenance-tests.json` and `core-migration-launch.json` (all under `build/`). The new candidate is separate from the working app. No ATIV release has been published.
 
 **Acceptance remains incomplete:** production artifacts, production package/media/startup acceptance across six targets, and Core's required qualification gates are still blocked. Once Core resolves the Windows crash, completes its ledger, rebuilds and publishes the immutable attested set, select that exact release commit consistently in the ATIV pin/lock/workflow and rerun the full native matrix. Do not merge this branch as a claim of completed production migration or publish an ATIV release on candidate evidence.
+
+## Native CI result for the migration
+
+[ATIV run 35118805357](https://github.com/tlolabs/ativ/actions/runs/35118805357), implementation commit `bfa026c9bd0334a471991e604e40c6188713f11a`, completed with the shared Rust engine/ownership job passing. **All six native jobs failed at `Acquire pinned Core runtime` with `Runtime qualification is incomplete`.** None reached application packaging or publication; those acceptance tests remain not run for production artifacts. This is evidence that each platform enforces the same Core gate, not evidence of passing native packages.
+
+| Native CI target | Acquisition | Package/media/launch |
+| --- | --- | --- |
+| macOS ARM64 | Blocked by Core candidate | Not run |
+| macOS x86_64 | Blocked by Core candidate | Not run |
+| Windows ARM64 | Blocked by Core candidate | Not run |
+| Windows x86_64 | Blocked by Core candidate | Not run |
+| Linux ARM64 | Blocked by Core candidate | Not run |
+| Linux x86_64 | Blocked by Core candidate | Not run |
+
+The normal local `build_and_run.sh` and `package_macos.sh` entrypoints were also exercised: both stopped at acquisition before replacing the working bundle. The qualification app is the only newly built application from this migration. The preserved local caches are not used by any production entrypoint.
