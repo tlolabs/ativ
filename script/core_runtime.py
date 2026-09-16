@@ -31,7 +31,15 @@ def target_id(value):
     return target
 
 
+def qualification_mode():
+    from qualify_recipe7 import enabled
+    return enabled()
+
+
 def provision(target):
+    if qualification_mode():
+        from qualify_recipe7 import provision as provision_candidate
+        return provision_candidate(target_id(target))
     core, host = core_api()
     target = target_id(target)
     revision = (ROOT / 'runtime/core-revision').read_text().strip()
@@ -60,6 +68,10 @@ def source_archive(runtime):
 def stage(target, runtime, binary, candidate=False):
     core, host = core_api()
     target = target_id(target)
+    candidate = candidate or qualification_mode()
+    if qualification_mode():
+        from qualify_recipe7 import verify_directory
+        verify_directory(runtime, target)
     host.verify(runtime, target, candidate)
     source = source_archive(runtime)
     host.stage(runtime, target, binary, candidate)
@@ -107,6 +119,10 @@ def validate(target, binary, metadata, runtime=None, candidate=False):
     core, host = core_api()
     target = target_id(target)
     runtime = runtime or provision(target)
+    candidate = candidate or qualification_mode()
+    if qualification_mode():
+        from qualify_recipe7 import verify_directory
+        verify_directory(runtime, target)
     original = host.verify(runtime, target, candidate)
     suffix = '.exe' if target.startswith('windows-') else ''
     pair = {'ffmpeg' + suffix, 'ffprobe' + suffix}

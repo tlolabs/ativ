@@ -1,0 +1,238 @@
+{
+  "schema": 1,
+  "status": "all-six-native-targets-passed; publication-blocked",
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "core_version": "0.2.2",
+  "recipe": 7,
+  "run_id": 35157560636,
+  "run_url": "https://github.com/tlolabs/avid-core/actions/runs/35157560636",
+  "targets": {
+    "macos-arm64": {
+      "runtime_sha256": "b029c0f44f888e2d686bca0e22e0687164f80da28e5822fe5be3b7e3b3f529df",
+      "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+      "native_host": {
+        "system": "Darwin",
+        "machine": "arm64",
+        "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+        "macos": "15.7.9",
+        "windows": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "linux": {}
+      },
+      "binary_sha256": {
+        "ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+        "ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7"
+      },
+      "artifact_id": 10471918442,
+      "artifact_sha256": "sha256:872871bb159c7f820cba56b25543c4db0adccbe4c5238bf0f420f997f31769ec",
+      "job_id": 105000547082,
+      "media_tests_passed": [
+        "standalone_preview_render_and_original_audio_format",
+        "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+        "hevc_has_hvc1_tag",
+        "simple_matches_legacy_pixels_audio_and_requested_cadence",
+        "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+      ],
+      "status": "passed"
+    },
+    "macos-x86_64": {
+      "runtime_sha256": "45aefa885d02c65dd6b5cc0a800d28734f3736385356e8e4d69e4c38081df5b4",
+      "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+      "native_host": {
+        "system": "Darwin",
+        "machine": "x86_64",
+        "platform": "macOS-15.7.9-x86_64-i386-64bit-Mach-O",
+        "macos": "15.7.9",
+        "windows": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "linux": {}
+      },
+      "binary_sha256": {
+        "ffmpeg": "c0f50e0beecaf4a7c818a6aabfa5d31764233c7fa417775e2ce2edb781dae031",
+        "ffprobe": "861870ff81aedbee37a0479eb2c7f9943e6998c841892a9eb771c98f81d56403"
+      },
+      "artifact_id": 10472720332,
+      "artifact_sha256": "sha256:88e571da1bfc3ac9bf22c661af933b0eed29d4908cd9297728169d0c4e17c3e2",
+      "job_id": 105000546725,
+      "media_tests_passed": [
+        "standalone_preview_render_and_original_audio_format",
+        "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+        "hevc_has_hvc1_tag",
+        "simple_matches_legacy_pixels_audio_and_requested_cadence",
+        "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+      ],
+      "status": "passed"
+    },
+    "windows-x86_64": {
+      "runtime_sha256": "1924663e2c3649614a275bf48c4a69d4aaaddd1346a038cda7977a311f49d63c",
+      "source_sha256": "a676c3b40288048c32014839495b3f05ec005a162dd7bbe164d71e1888a171a5",
+      "native_host": {
+        "system": "Windows",
+        "machine": "AMD64",
+        "platform": "Windows-2025Server-10.0.26100-SP0",
+        "macos": "",
+        "windows": [
+          "2025Server",
+          "10.0.26100",
+          "SP0",
+          "Multiprocessor Free"
+        ],
+        "linux": {}
+      },
+      "binary_sha256": {
+        "ffmpeg.exe": "35d37f442a44ceacd44a513b280835337eb01d45c593f565f283c3fd3781001d",
+        "ffprobe.exe": "635148687f774de7e047e6b6ffcc41f627d644da3eff51f2ca52f4e661d1ac36"
+      },
+      "artifact_id": 10472705469,
+      "artifact_sha256": "sha256:c43e3b94bfd733185a421881dd400db9e3fa0e9a85d1374b8549d0f8a1765d40",
+      "job_id": 105000546830,
+      "media_tests_passed": [
+        "standalone_preview_render_and_original_audio_format",
+        "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+        "hevc_has_hvc1_tag",
+        "simple_matches_legacy_pixels_audio_and_requested_cadence",
+        "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+      ],
+      "status": "passed"
+    },
+    "windows-arm64": {
+      "runtime_sha256": "2af04f658cba2dd6742651fc62207a15fd0170f6109740cc96096cc80c5acae3",
+      "source_sha256": "a676c3b40288048c32014839495b3f05ec005a162dd7bbe164d71e1888a171a5",
+      "native_host": {
+        "system": "Windows",
+        "machine": "ARM64",
+        "platform": "Windows-11-10.0.26200-SP0",
+        "macos": "",
+        "windows": [
+          "11",
+          "10.0.26200",
+          "SP0",
+          "Multiprocessor Free"
+        ],
+        "linux": {}
+      },
+      "binary_sha256": {
+        "ffmpeg.exe": "3c517bf55da49f21733e0639a2afcaf809a6d95ddea1114a1801d44281b78989",
+        "ffprobe.exe": "83259b8ded9cb1399e431541f3d31ab54949fee69d203f41148f50189d6aab8d"
+      },
+      "artifact_id": 10472307413,
+      "artifact_sha256": "sha256:3be7dab475381acf6afdd5bcd669ad2689494bfce68d7a1dc4039238c9e0631b",
+      "job_id": 105000546708,
+      "media_tests_passed": [
+        "standalone_preview_render_and_original_audio_format",
+        "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+        "hevc_has_hvc1_tag",
+        "simple_matches_legacy_pixels_audio_and_requested_cadence",
+        "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+      ],
+      "status": "passed"
+    },
+    "linux-x86_64": {
+      "runtime_sha256": "7e7f55a445a6c5815d9753cfa74ebb61e68c96fae1aa8b271bbc3749c48ed4fd",
+      "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+      "native_host": {
+        "system": "Linux",
+        "machine": "x86_64",
+        "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+        "macos": "",
+        "windows": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "linux": {
+          "NAME": "Ubuntu",
+          "ID": "ubuntu",
+          "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+          "VERSION_ID": "24.04",
+          "VERSION": "24.04.5 LTS (Noble Numbat)",
+          "VERSION_CODENAME": "noble",
+          "ID_LIKE": "debian",
+          "HOME_URL": "https://www.ubuntu.com/",
+          "SUPPORT_URL": "https://help.ubuntu.com/",
+          "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+          "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+          "UBUNTU_CODENAME": "noble",
+          "LOGO": "ubuntu-logo"
+        }
+      },
+      "binary_sha256": {
+        "ffmpeg": "31c6b0506442b3b8fd719c84a76023949a688548fcacabd9f13fe3fe6793d10a",
+        "ffprobe": "c729cd015f6cd208b4c7eaf6cc3215e7e3076f7433d94ba2f43794e1582a6697"
+      },
+      "artifact_id": 10472137672,
+      "artifact_sha256": "sha256:0b2a83c1d959c3b394a378c35527a858f409e92619c404cf95a6861edec74d69",
+      "job_id": 105000546888,
+      "media_tests_passed": [
+        "standalone_preview_render_and_original_audio_format",
+        "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+        "hevc_has_hvc1_tag",
+        "simple_matches_legacy_pixels_audio_and_requested_cadence",
+        "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+      ],
+      "status": "passed"
+    },
+    "linux-arm64": {
+      "runtime_sha256": "da2bc9b680827038be53f6b9d7ad8348fbfdf0f6c162a377b4091d2c508b25f2",
+      "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+      "native_host": {
+        "system": "Linux",
+        "machine": "aarch64",
+        "platform": "Linux-6.17.0-1022-azure-aarch64-with-glibc2.39",
+        "macos": "",
+        "windows": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "linux": {
+          "NAME": "Ubuntu",
+          "ID": "ubuntu",
+          "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+          "VERSION_ID": "24.04",
+          "VERSION": "24.04.5 LTS (Noble Numbat)",
+          "VERSION_CODENAME": "noble",
+          "ID_LIKE": "debian",
+          "HOME_URL": "https://www.ubuntu.com/",
+          "SUPPORT_URL": "https://help.ubuntu.com/",
+          "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+          "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+          "UBUNTU_CODENAME": "noble",
+          "LOGO": "ubuntu-logo"
+        }
+      },
+      "binary_sha256": {
+        "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+        "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+      },
+      "artifact_id": 10471813710,
+      "artifact_sha256": "sha256:00eb46ec45e2382e9e157abb50bf3662c8adde8de891dd0b4669e1db551ca12b",
+      "job_id": 105000546703,
+      "media_tests_passed": [
+        "standalone_preview_render_and_original_audio_format",
+        "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+        "hevc_has_hvc1_tag",
+        "simple_matches_legacy_pixels_audio_and_requested_cadence",
+        "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+      ],
+      "status": "passed"
+    }
+  },
+  "publication_blockers": [
+    "Required exact-pair host_packaging evidence is incomplete for macos-arm64 and absent for the other five targets; completing actual host migration/signing/package/launch/update qualification is outside the authorized Core-only scope."
+  ],
+  "residual_observations": [
+    "The isolated historical late-cleanup failure lacks its original panic location and numeric OS error. 3000 full historical cycles plus 1000 reduced cycles did not reproduce it; owner directed retaining it as a residual observation, not an active release blocker."
+  ],
+  "release_prerequisite_audit": "docs/ffmpeg/application-packaging-prerequisite-r7.md"
+}

@@ -1,4 +1,4 @@
-name: Native build, test, and package
+name: Recipe 7 host qualification (no publication)
 
 on:
   workflow_dispatch:
@@ -12,13 +12,11 @@ on:
         description: Sign and notarize macOS validation artifacts (does not publish a release)
         type: boolean
         default: false
-  pull_request:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [codex/recipe7-host-qualification]
 
 concurrency:
-  group: native-${{ github.ref }}
+  group: recipe7-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
@@ -28,7 +26,8 @@ permissions:
 env:
   GH_TOKEN: ${{ github.token }}
   CARGO_TERM_COLOR: always
-  ATIV_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+  ATIV_CHANNEL: development
+  ATIV_QUALIFICATION_R7: '1'
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
@@ -75,7 +74,9 @@ jobs:
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --workspace --locked --all-targets
       - name: Enforce Core runtime ownership
-        run: python3 script/test_runtime_ownership.py
+        run: |
+          python3 script/test_runtime_ownership.py
+          python3 script/test_recipe7_qualification.py
 
   macos:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos'
@@ -118,10 +119,12 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Acquire pinned Core runtime
+      - name: Acquire exact retained Recipe 7 candidate
+        id: acquisition
         run: |
           runtime="$(python3 script/core_runtime.py provision macos-${{ matrix.core_arch }})"
           echo "$runtime" >> "$GITHUB_PATH"
+          echo "AVID_RUNTIME_DIRECTORY=$runtime" >> "$GITHUB_ENV"
       - name: Configure release signing and notarization
         if: startsWith(github.ref, 'refs/tags/') || inputs.sign_macos
         env:
@@ -149,6 +152,7 @@ jobs:
           security list-keychains -d user -s "${KEYCHAIN}"
           xcrun notarytool store-credentials ativ-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
       - name: Verify canonical media and host contract with release tools
+        id: media
         shell: bash
         run: |
           cargo test --locked --all-targets
@@ -156,17 +160,21 @@ jobs:
           # Explicit concurrent-render tests still launch and verify their own threads.
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
+          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test runtime_contract -- --ignored --test-threads=1
           ./script/test_engine_integration.sh macos-${{ matrix.core_arch }}
       - name: Build and package native application
+        id: packaging
         env:
           APPLE_SIGN_IDENTITY: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
           APPLE_NOTARY_PROFILE: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && 'ativ-notary' || '' }}
         run: ./script/package_macos.sh "${{ matrix.arch }}"
       - name: Native process integration tests
+        id: native_tests
         run: |
           python3 script/create_smoke_media.py build/native-fixtures
           ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
       - name: Validate packaged application and startup
+        id: launch
         run: |
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
           python3 script/validate_package.py "build/package-macos-${{ matrix.arch }}/ATIV.app" "macos-$label"
@@ -174,11 +182,36 @@ jobs:
           for attempt in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
           test -s "$RUNNER_TEMP/ativ-smoke.json"
           pkill -x ATIV || true
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ATIV-macos-${{ matrix.arch }}
+          name: R7-candidate-macos-${{ matrix.arch }}
           path: ATIV/packages/*
           if-no-files-found: error
+
+      - name: Record exact candidate and partial qualification evidence
+        if: always()
+        shell: bash
+        env:
+          QUALIFICATION_STEPS: ${{ toJSON(steps) }}
+        run: python3 script/recipe7_evidence.py macos-${{ matrix.core_arch }}
+      - name: Retain qualification evidence even when a gate fails
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: R7-evidence-macos-${{ matrix.core_arch }}
+          path: |
+            ATIV/build/qualification-evidence/*
+            ATIV/build/*smoke*.json
+            ATIV/build/*smoke*.log
+            ATIV/build/recipe7/*/acquisition-evidence.json
+          if-no-files-found: error
+      - name: Enforce outstanding application release gates
+        if: always()
+        shell: bash
+        run: |
+          echo 'host_packaging remains incomplete: signing setup, authenticated application upgrades and manual UI/accessibility evidence are not complete.'
+          exit 1
 
   windows:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows'
@@ -221,15 +254,18 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Acquire pinned Core runtime
+      - name: Acquire exact retained Recipe 7 candidate
+        id: acquisition
         shell: bash
         run: |
           runtime="$(python3 script/core_runtime.py provision windows-${{ matrix.core_arch }})"
           echo "$runtime" >> "$GITHUB_PATH"
+          echo "AVID_RUNTIME_DIRECTORY=$runtime" >> "$GITHUB_ENV"
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --version=6.7.1 --yes --no-progress
       - name: Verify canonical media and host contract with release tools
+        id: media
         shell: bash
         run: |
           cargo test --locked --all-targets
@@ -237,21 +273,49 @@ jobs:
           # Explicit concurrent-render tests still launch and verify their own threads.
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
+          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test runtime_contract -- --ignored --test-threads=1
           ./script/test_engine_integration.sh windows-${{ matrix.core_arch }}
       - name: Build and package native application
+        id: packaging
         shell: pwsh
         env:
           WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
       - name: Native integration and installer smoke tests
+        id: installation_launch
         shell: pwsh
         run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ATIV-windows-${{ matrix.arch }}
+          name: R7-candidate-windows-${{ matrix.arch }}
           path: ATIV/packages/*
           if-no-files-found: error
+
+      - name: Record exact candidate and partial qualification evidence
+        if: always()
+        shell: bash
+        env:
+          QUALIFICATION_STEPS: ${{ toJSON(steps) }}
+        run: python3 script/recipe7_evidence.py windows-${{ matrix.core_arch }}
+      - name: Retain qualification evidence even when a gate fails
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: R7-evidence-windows-${{ matrix.core_arch }}
+          path: |
+            ATIV/build/qualification-evidence/*
+            ATIV/build/*smoke*.json
+            ATIV/build/*smoke*.log
+            ATIV/build/recipe7/*/acquisition-evidence.json
+          if-no-files-found: error
+      - name: Enforce outstanding application release gates
+        if: always()
+        shell: bash
+        run: |
+          echo 'host_packaging remains incomplete: signing setup, authenticated application upgrades and manual UI/accessibility evidence are not complete.'
+          exit 1
 
   linux:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux'
@@ -298,11 +362,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64
-      - name: Acquire pinned Core runtime
+      - name: Acquire exact retained Recipe 7 candidate
+        id: acquisition
         run: |
           runtime="$(python3 script/core_runtime.py provision linux-${{ matrix.core_arch }})"
           echo "$runtime" >> "$GITHUB_PATH"
+          echo "AVID_RUNTIME_DIRECTORY=$runtime" >> "$GITHUB_ENV"
       - name: Verify canonical media and host contract with release tools
+        id: media
         shell: bash
         run: |
           cargo test --locked --all-targets
@@ -310,54 +377,40 @@ jobs:
           # Explicit concurrent-render tests still launch and verify their own threads.
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
+          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test runtime_contract -- --ignored --test-threads=1
           ./script/test_engine_integration.sh linux-${{ matrix.core_arch }}
       - name: Build and package native application
+        id: packaging
         run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests
+        id: installation_launch
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ATIV-linux-${{ matrix.arch }}
+          name: R7-candidate-linux-${{ matrix.arch }}
           path: ATIV/packages/*
 
-  release:
-    name: Publish passing artifacts
-    if: ${{ always() && !cancelled() && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
-    needs: [engine, macos, windows, linux]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          pattern: ATIV-*
-          path: release-assets
-          merge-multiple: true
-      - name: Publish validated passing packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUILD_RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 script/publish_release.py
-      - name: Generate and upload authenticated update feeds
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
-        run: |
-          python3 -m venv build/release-tools
-          build/release-tools/bin/pip install -r script/requirements-build.txt
-          build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel "$ATIV_CHANNEL" --tag "$ATIV_RELEASE_TAG"
-          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS --clobber
-          for feed in release-assets/appcast-*.xml; do
-            [[ -f "$feed" ]] || continue
-            gh release upload "$ATIV_RELEASE_TAG" "$feed" --clobber
-          done
-      - name: Report partial failures
+      - name: Record exact candidate and partial qualification evidence
         if: always()
+        shell: bash
         env:
-          BUILD_RESULTS: ${{ toJSON(needs) }}
+          QUALIFICATION_STEPS: ${{ toJSON(steps) }}
+        run: python3 script/recipe7_evidence.py linux-${{ matrix.core_arch }}
+      - name: Retain qualification evidence even when a gate fails
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: R7-evidence-linux-${{ matrix.core_arch }}
+          path: |
+            ATIV/build/qualification-evidence/*
+            ATIV/build/*smoke*.json
+            ATIV/build/*smoke*.log
+            ATIV/build/recipe7/*/acquisition-evidence.json
+          if-no-files-found: error
+      - name: Enforce outstanding application release gates
+        if: always()
+        shell: bash
         run: |
-          python3 -c 'import json,os; jobs=json.loads(os.environ["BUILD_RESULTS"]); failed=[k for k,v in jobs.items() if v["result"]!="success"]; print("Incomplete targets: " + ", ".join(failed)); raise SystemExit(bool(failed))'
+          echo 'host_packaging remains incomplete: signing setup, authenticated application upgrades and manual UI/accessibility evidence are not complete.'
+          exit 1
