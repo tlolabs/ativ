@@ -20,6 +20,17 @@ $installer = Get-ChildItem (Join-Path $root 'packages') -Filter '*-setup.exe' | 
 $installDir = Join-Path $env:RUNNER_TEMP 'ATIV-installed-smoke'
 $setup = Start-Process $installer.FullName -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$installDir`"") -Wait -PassThru
 if ($setup.ExitCode -ne 0 -or !(Test-Path "$installDir/ATIV.exe")) { throw 'Installer smoke failed' }
+if ($env:ATIV_QUALIFICATION_R7 -eq '1') {
+    python (Join-Path $root 'script/qualify_installed.py') $installDir "windows-$($Architecture.ToLowerInvariant())"
+    if ($LASTEXITCODE -ne 0) { throw 'Installed candidate runtime validation failed' }
+    Remove-Item $env:ATIV_SMOKE_REPORT -ErrorAction SilentlyContinue
+    $installedApp = Start-Process "$installDir/ATIV.exe" -PassThru
+    try {
+        for ($i=0; $i -lt 30 -and !(Test-Path $env:ATIV_SMOKE_REPORT); $i++) { Start-Sleep -Seconds 1 }
+        if (!(Test-Path $env:ATIV_SMOKE_REPORT)) { throw 'Installed WinUI launch failed' }
+        Copy-Item $env:ATIV_SMOKE_REPORT (Join-Path $root 'build/qualification-evidence/installed-windows-startup.json')
+    } finally { if (!$installedApp.HasExited) { Stop-Process -Id $installedApp.Id } }
+}
 # Exercise an upgrade over an existing installation.
 $upgrade = Start-Process $installer.FullName -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$installDir`"") -Wait -PassThru
 if ($upgrade.ExitCode -ne 0) { throw 'Installer upgrade failed' }

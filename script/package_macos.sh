@@ -54,10 +54,10 @@ if [[ "${SIGN_IDENTITY}" != "-" ]]; then SIGN_ARGS+=(--timestamp); fi
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ativ-engine"
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ffmpeg"
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ffprobe"
-codesign "${SIGN_ARGS[@]}" "${MACOS}/ATIV"
 # Sign nested Sparkle code inside-out before the enclosing bundle.
 while IFS= read -r -d '' nested; do codesign "${SIGN_ARGS[@]}" "$nested"; done < <(find "$CONTENTS/Frameworks" -depth \( -name '*.xpc' -o -name '*.app' -o -name '*.framework' -o -name Autoupdate \) -print0)
 python3 "$ROOT_DIR/script/core_runtime.py" finish "macos-$ARCH" --binary "$MACOS" --metadata "$RESOURCES/FFmpeg"
+codesign "${SIGN_ARGS[@]}" "${MACOS}/ATIV"
 codesign "${SIGN_ARGS[@]}" "${APP}"
 codesign --verify --deep --strict "${APP}"
 python3 "$ROOT_DIR/script/validate_package.py" "$APP" "macos-$LABEL"

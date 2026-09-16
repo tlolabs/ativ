@@ -35,6 +35,10 @@ if [[ "${CI:-}" == true ]]; then
   for attempt in {1..30}; do [[ ! -s "$ATIV_SMOKE_REPORT" ]] || break; sleep 1; done
   kill "$INSTALLED_PID" 2>/dev/null || true
   if [[ ! -s "$ATIV_SMOKE_REPORT" ]]; then cat "$ROOT_DIR/build/deb-smoke.log"; exit 1; fi
+  if [[ "${ATIV_QUALIFICATION_R7:-}" == 1 ]]; then
+    LABEL=x64; [[ "$ARCH" != aarch64 ]] || LABEL=arm64
+    python3 "$ROOT_DIR/script/qualify_installed.py" / "linux-$LABEL-deb"
+  fi
   sudo apt-get install --reinstall --yes "$ROOT_DIR"/packages/*.deb
   sudo apt-get remove --yes "$NAME"
   test ! -f "/usr/bin/$NAME"
