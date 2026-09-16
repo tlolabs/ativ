@@ -15,6 +15,8 @@ elif target.startswith('windows'):
     metadata = root
 else:
     metadata = root / 'usr/lib/ativ-development'
+    if not metadata.exists():
+        metadata = root / 'usr/lib/ativ'
 out = ROOT / 'build/qualification-evidence'
 out.mkdir(parents=True, exist_ok=True)
 (out / ('installed-' + target + '.json')).write_text(json.dumps({

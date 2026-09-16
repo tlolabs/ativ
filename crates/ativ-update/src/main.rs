@@ -266,3 +266,6 @@ mod tests {
         assert!(!not_newer);
     }
 }
+
+#[cfg(test)]
+mod candidate_qualification;

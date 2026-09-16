@@ -314,10 +314,8 @@ jobs:
         env:
           ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
         run: |
-          python3 -m venv build/signature-tools
-          if [[ -f build/signature-tools/Scripts/python.exe ]]; then py=build/signature-tools/Scripts/python.exe; else py=build/signature-tools/bin/python; fi
-          "$py" -m pip install -r script/requirements-build.txt
-          "$py" script/qualify_update_signatures.py
+          export ATIV_QUALIFICATION_CONFIG="$PWD/build/windows-${{ matrix.arch }}/publish/update-config.json"
+          cargo test --locked -p ativ-update qualifies_real_candidate_package_signatures -- --ignored
       - name: Record exact candidate and partial qualification evidence
         if: always()
         shell: bash

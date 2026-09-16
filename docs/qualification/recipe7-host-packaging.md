@@ -19,3 +19,10 @@ python3 script/qualify_recipe7.py <native-target>
 ```
 
 Then run the matching existing packaging/native scripts as specified in the workflow. `gh` needs read access to the public Core Actions artifacts. Missing/expired or changed artifacts fail closed. Never set these qualification variables for production release jobs.
+
+## ATIV-local failures found and repaired
+
+- macOS `codesign` initially rejected the app executable because runtime notices were still under `Contents/MacOS`. Move the existing Core metadata/notices relocation before signing the main executable. Original media helper hashes are verified before signing and signed hashes are retained.
+- Both Linux AppImage builds failed `Packaged binary changed after signing: ffprobe`. `linuxdeploy` changes ELF RPATH even in the already-qualified Core tools. Restore both tools from the authenticated package stage after deployment and compare their bytes; do not accept a new hash for modified runtime bytes. Qualification additionally extracts the final AppImage and rechecks its runtime and media behavior.
+- Windows ARM64's added Python signature harness could not build cryptography without OpenSSL. Windows now uses an ignored, explicitly credentialed native Rust test to exercise the updater's existing `verify` and `download` code against actual candidate packages, including metadata/package tampering. macOS retains Sparkle-format offline signature verification. These tests do not claim authenticated delivery or full application upgrade acceptance.
+- The macOS installed-launch helper resolves `/tmp` aliases, checks that the installed app is still running after startup and waits for that exact app to exit. It does not stop unrelated application processes.

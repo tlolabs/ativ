@@ -23,6 +23,13 @@ export PATH="$TOOLS:$PATH"
 DESKTOP="$(find "$APPDIR/usr/share/applications" -name '*.desktop' -print -quit)"
 sed -i 's/^Exec=ativ-development$/Exec=ativ/' "$DESKTOP"
 linuxdeploy --appdir "$APPDIR" --executable "$APPDIR/usr/bin/ativ" --desktop-file "$DESKTOP" --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/$(basename "$DESKTOP" .desktop).png" --plugin gtk
+# linuxdeploy rewrites RPATH in every ELF it encounters, including Core's
+# already-qualified, system-library-only media tools. Restore the authenticated
+# pair from the verified package stage; never rehash a changed runtime as accepted.
+for tool in ffmpeg ffprobe; do
+  cp -p "$STAGE/usr/lib/ativ/$tool" "$APPDIR/usr/lib/ativ/$tool"
+  cmp "$STAGE/usr/lib/ativ/$tool" "$APPDIR/usr/lib/ativ/$tool"
+done
 # linuxdeploy-generated AppRun supplies the relocatable runtime environment.
 ARCH="$ARCH" "$TOOLS/appimagetool" --runtime-file "$TOOLS/runtime" "$APPDIR" "$ROOT_DIR/packages/ATIV-$VERSION-linux-$LABEL.AppImage"
 python3 "$ROOT_DIR/script/validate_package.py" "$APPDIR" "linux-$LABEL-appimage"

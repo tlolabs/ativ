@@ -21,7 +21,10 @@ for base in [ROOT / 'packages', ROOT / 'build/recipe7' / target]:
 packaged = []
 for pattern in ['build/package-*/**/signed-payload.json', 'build/windows-*/publish/signed-payload.json', 'build/*.AppDir/**/signed-payload.json']:
     for path in ROOT.glob(pattern):
-        packaged.append({'path': str(path.relative_to(ROOT)), 'signed_payload': json.loads(path.read_text()),
+        signed = json.loads(path.read_text())
+        binary = path.parents[2] / 'MacOS' if target.startswith('macos') else path.parent
+        packaged.append({'path': str(path.relative_to(ROOT)), 'signed_payload': signed,
+                         'actual_binary_sha256': {name: digest(binary / name) for name in signed['signed_binary_sha256']},
                          'provenance': json.loads(path.with_name('ativ-runtime.json').read_text())})
 report = {
     'schema': 1, 'gate': 'host_packaging', 'status': 'incomplete', 'host': 'ATIV', 'target': target,

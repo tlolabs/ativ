@@ -25,6 +25,15 @@ for attempt in {1..30}; do [[ ! -s "$ATIV_SMOKE_REPORT" ]] || break; sleep 1; do
 kill "$IMAGE_PID" 2>/dev/null || true
 if [[ ! -s "$ATIV_SMOKE_REPORT" ]]; then cat "$ROOT_DIR/build/appimage-smoke.log"; exit 1; fi
 
+# Verify bytes and media inside the distributable image, not only its AppDir.
+if [[ "${ATIV_QUALIFICATION_R7:-}" == 1 ]]; then
+  IMAGE=("$ROOT_DIR"/packages/*.AppImage)
+  EXTRACT="$(mktemp -d)"
+  (cd "$EXTRACT"; "${IMAGE[0]}" --appimage-extract >/dev/null)
+  LABEL=x64; [[ "$ARCH" != aarch64 ]] || LABEL=arm64
+  python3 "$ROOT_DIR/script/qualify_installed.py" "$EXTRACT/squashfs-root" "linux-$LABEL-appimage"
+fi
+
 # Install the actual deb to exercise the compiled runtime path and desktop identity.
 if [[ "${CI:-}" == true ]]; then
   sudo apt-get install --yes "$ROOT_DIR"/packages/*.deb
