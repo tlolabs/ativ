@@ -1,6 +1,8 @@
+mod media_tools;
+
 use ativ_core::{
     AtivError, CancellationToken, Composition, EventSink, MediaTools, PRESETS, PreviewRequest,
-    RenderMode, RenderProgress, RenderRequest, RenderSettings, Renderer, Stage, ToolDiscovery,
+    RenderMode, RenderProgress, RenderRequest, RenderSettings, Renderer, Stage,
 };
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -173,14 +175,11 @@ fn stdin_cancellation() -> CancellationToken {
 }
 
 fn tools(arguments: &Arguments, token: &CancellationToken) -> ativ_core::Result<MediaTools> {
-    Ok(MediaTools::discover(
-        ToolDiscovery {
-            ffmpeg: arguments.values.get("ffmpeg").map(PathBuf::from),
-            ffprobe: arguments.values.get("ffprobe").map(PathBuf::from),
-            ..Default::default()
-        },
+    media_tools::resolve(
+        arguments.values.get("ffmpeg").map(PathBuf::from),
+        arguments.values.get("ffprobe").map(PathBuf::from),
         token,
-    )?)
+    )
 }
 
 #[derive(Default)]

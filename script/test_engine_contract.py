@@ -31,16 +31,19 @@ def main():
     parser.add_argument('--ffmpeg', default=shutil.which('ffmpeg'))
     parser.add_argument('--ffprobe', default=shutil.which('ffprobe'))
     parser.add_argument('--reference', type=Path)
+    parser.add_argument('--managed', action='store_true', help='Exercise default bundled Core discovery for the staged managed engine')
     options = parser.parse_args()
     assert options.ffmpeg and options.ffprobe, 'The distribution FFmpeg/ffprobe pair is required'
     engine = options.engine.resolve()
     ffmpeg, ffprobe = Path(options.ffmpeg).resolve(), Path(options.ffprobe).resolve()
     versions = [run([tool, '-version']).decode().splitlines()[0].split()[2] for tool in (ffmpeg, ffprobe)]
-    assert versions[0] == versions[1] and versions[0].lstrip('n').startswith('9.0.1'), versions
+    assert versions[0] == versions[1], versions
+    if not options.managed:
+        assert versions[0].lstrip('n').startswith('9.0.1'), versions
     with tempfile.TemporaryDirectory(prefix='ativ contract ü ') as directory:
         root = Path(directory)
         env = dict(os.environ, ATIV_LOG_PATH=str(root / 'private.log'))
-        overrides = ['--ffmpeg', str(ffmpeg), '--ffprobe', str(ffprobe)]
+        overrides = [] if options.managed else ['--ffmpeg', str(ffmpeg), '--ffprobe', str(ffprobe)]
 
         def invoke(command, *args, status=0, tools=None, executable=engine):
             result = subprocess.run([str(executable), command, *(str(x) for x in args), *(overrides if tools is None else tools)],
