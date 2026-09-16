@@ -2,6 +2,7 @@
 """Validate staged resources, target machine types, identity and bundled discovery."""
 import argparse,json,os,plistlib,struct,subprocess
 from pathlib import Path
+from core_runtime import validate as validate_runtime
 
 def machine(path,target):
     data=path.read_bytes()[:4096]
@@ -50,6 +51,9 @@ def validate(root,target):
     assert '"event":"tools"' in result.stdout
     presets=subprocess.run([str(engine.resolve()),'presets'],capture_output=True,text=True,check=True,timeout=20)
     assert len(json.loads(presets.stdout)['items'])==27
+    metadata = contents/'Resources/FFmpeg' if target.startswith('macos') else binary
+    provenance = validate_runtime(target, binary, metadata)
+    assert provenance['ativ_version'] == config['version'], 'ATIV/runtime provenance version mismatch'
     print(f'Validated {target}: machine types, resources, identity, updater and bundled media discovery')
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('root',type=Path);p.add_argument('target');a=p.parse_args();validate(a.root,a.target)

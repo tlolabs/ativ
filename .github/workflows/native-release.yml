@@ -23,8 +23,10 @@ concurrency:
 
 permissions:
   contents: read
+  attestations: read
 
 env:
+  GH_TOKEN: ${{ github.token }}
   CARGO_TERM_COLOR: always
   ATIV_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
@@ -46,7 +48,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 2e2e8eb79ae80d40823ae3b37f83464e31750cd3
+          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -60,10 +62,6 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Fetch the same approved tools used by Linux packaging
-        run: |
-          ./script/fetch_ffmpeg.sh linux x86_64 build/ffmpeg-linux-x86_64
-          echo "$PWD/build/ffmpeg-linux-x86_64" >> "$GITHUB_PATH"
       - name: Validate release infrastructure
         run: |
           python3 -m venv build/release-tools
@@ -76,8 +74,8 @@ jobs:
           cargo check --locked --all-targets
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --workspace --locked --all-targets
-      - name: Verify executable protocol and a real encode
-        run: ./script/test_engine_integration.sh
+      - name: Enforce Core runtime ownership
+        run: python3 script/test_runtime_ownership.py
 
   macos:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos'
@@ -92,10 +90,10 @@ jobs:
       matrix:
         include:
           - arch: arm64
-            fetch_arch: aarch64
+            core_arch: arm64
             runner: macos-15
           - arch: x86_64
-            fetch_arch: x86_64
+            core_arch: x86_64
             runner: macos-15-intel
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -106,7 +104,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 2e2e8eb79ae80d40823ae3b37f83464e31750cd3
+          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -120,8 +118,10 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Fetch verified static FFmpeg 9.0.1
-        run: ./script/fetch_ffmpeg.sh macos "${{ matrix.fetch_arch }}" "build/ffmpeg-macos-${{ matrix.arch }}"
+      - name: Acquire pinned Core runtime
+        run: |
+          runtime="$(python3 script/core_runtime.py provision macos-${{ matrix.core_arch }})"
+          echo "$runtime" >> "$GITHUB_PATH"
       - name: Configure release signing and notarization
         if: startsWith(github.ref, 'refs/tags/') || inputs.sign_macos
         env:
@@ -151,24 +151,21 @@ jobs:
       - name: Verify canonical media and host contract with release tools
         shell: bash
         run: |
-          export PATH="$PWD/build/ffmpeg-macos-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
           # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
           # Explicit concurrent-render tests still launch and verify their own threads.
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh
-      - name: Native process integration tests
-        run: |
-          python3 script/create_smoke_media.py build/native-fixtures
-          PATH="$PWD/build/ffmpeg-macos-${{ matrix.arch }}:$PATH" ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/target/debug/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
+          ./script/test_engine_integration.sh macos-${{ matrix.core_arch }}
       - name: Build and package native application
         env:
           APPLE_SIGN_IDENTITY: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
           APPLE_NOTARY_PROFILE: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && 'ativ-notary' || '' }}
-          FFMPEG_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
-          FFPROBE_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
         run: ./script/package_macos.sh "${{ matrix.arch }}"
+      - name: Native process integration tests
+        run: |
+          python3 script/create_smoke_media.py build/native-fixtures
+          ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
       - name: Validate packaged application and startup
         run: |
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
@@ -196,10 +193,10 @@ jobs:
       matrix:
         include:
           - arch: x64
-            fetch_arch: x86_64
+            core_arch: x86_64
             runner: windows-2025
           - arch: ARM64
-            fetch_arch: aarch64
+            core_arch: arm64
             runner: windows-11-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -210,7 +207,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 2e2e8eb79ae80d40823ae3b37f83464e31750cd3
+          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -224,28 +221,29 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Fetch verified FFmpeg 9.0.1
+      - name: Acquire pinned Core runtime
         shell: bash
-        run: ./script/fetch_ffmpeg.sh windows "${{ matrix.fetch_arch }}" "build/ffmpeg-windows-${{ matrix.arch }}"
+        run: |
+          runtime="$(python3 script/core_runtime.py provision windows-${{ matrix.core_arch }})"
+          echo "$runtime" >> "$GITHUB_PATH"
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --version=6.7.1 --yes --no-progress
       - name: Verify canonical media and host contract with release tools
         shell: bash
         run: |
-          export PATH="$PWD/build/ffmpeg-windows-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
           # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
           # Explicit concurrent-render tests still launch and verify their own threads.
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh
+          ./script/test_engine_integration.sh windows-${{ matrix.core_arch }}
       - name: Build and package native application
         shell: pwsh
         env:
           WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
-        run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}" -FfmpegDirectory "build/ffmpeg-windows-${{ matrix.arch }}"
+        run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
       - name: Native integration and installer smoke tests
         shell: pwsh
         run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
@@ -268,8 +266,10 @@ jobs:
       matrix:
         include:
           - arch: x86_64
+            core_arch: x86_64
             runner: ubuntu-24.04
           - arch: aarch64
+            core_arch: arm64
             runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -280,7 +280,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: tlolabs/avid-core
-          ref: 2e2e8eb79ae80d40823ae3b37f83464e31750cd3
+          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
           persist-credentials: false
           path: AVID Core
       - name: Configure build identity
@@ -298,20 +298,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64
-      - name: Fetch verified FFmpeg 9.0.1
-        run: ./script/fetch_ffmpeg.sh linux "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
+      - name: Acquire pinned Core runtime
+        run: |
+          runtime="$(python3 script/core_runtime.py provision linux-${{ matrix.core_arch }})"
+          echo "$runtime" >> "$GITHUB_PATH"
       - name: Verify canonical media and host contract with release tools
         shell: bash
         run: |
-          export PATH="$PWD/build/ffmpeg-linux-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
           # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
           # Explicit concurrent-render tests still launch and verify their own threads.
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
           cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh
+          ./script/test_engine_integration.sh linux-${{ matrix.core_arch }}
       - name: Build and package native application
-        run: ./script/package_linux.sh "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
+        run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

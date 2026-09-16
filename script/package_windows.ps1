@@ -1,6 +1,5 @@
 param(
-    [ValidateSet("x64", "ARM64")][string]$Architecture = "x64",
-    [Parameter(Mandatory = $true)][string]$FfmpegDirectory
+    [ValidateSet("x64", "ARM64")][string]$Architecture = "x64"
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,12 +13,9 @@ $runtime = if ($Architecture -eq "ARM64") { "win-arm64" } else { "win-x64" }
 $build = Join-Path $root "build/windows-$Architecture"
 $publish = Join-Path $build "publish"
 $packages = Join-Path $root "packages"
-$ffmpeg = Join-Path $FfmpegDirectory "ffmpeg.exe"
-$ffprobe = Join-Path $FfmpegDirectory "ffprobe.exe"
-
-if (!(Test-Path $ffmpeg) -or !(Test-Path $ffprobe)) { throw "Verified FFmpeg and ffprobe binaries are required." }
-$ffmpegVersion = & $ffmpeg -version | Select-Object -First 1
-if ($ffmpegVersion -notmatch 'ffmpeg version n9\.0\.1') { throw "Expected the pinned FFmpeg 9.0.1 build, got: $ffmpegVersion" }
+$coreTarget = if ($Architecture -eq "ARM64") { "windows-arm64" } else { "windows-x86_64" }
+$coreRuntime = & python (Join-Path $root "script/core_runtime.py") provision $coreTarget
+if ($LASTEXITCODE -ne 0) { throw "AVID Core production runtime unavailable" }
 
 rustup target add $rustTarget
 cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p ativ-engine -p ativ-update
@@ -33,16 +29,11 @@ Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-engine.exe") $publis
 Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-update.exe") $publish
 python (Join-Path $root "script/configure_distribution.py") $publish "windows-$label"
 if ($LASTEXITCODE -ne 0) { throw "Distribution configuration failed" }
-Copy-Item $ffmpeg $publish
-Copy-Item $ffprobe $publish
+python (Join-Path $root "script/core_runtime.py") stage $coreTarget --runtime $coreRuntime --binary $publish
+if ($LASTEXITCODE -ne 0) { throw "Core runtime staging failed" }
 Copy-Item (Join-Path $root "LICENSE") $publish
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
 Copy-Item (Join-Path $root "../AVID Core/LICENSE") (Join-Path $publish "AVID_CORE_LICENSE.txt")
-python (Join-Path $root "script/verify_ffmpeg_distribution.py") --engine (Join-Path $publish "ativ-engine.exe") --ffmpeg (Join-Path $publish "ffmpeg.exe") --ffprobe (Join-Path $publish "ffprobe.exe")
-if ($LASTEXITCODE -ne 0) { throw "FFmpeg distribution validation failed." }
-if (Test-Path (Join-Path $FfmpegDirectory "FFMPEG_LICENSE.txt")) { Copy-Item (Join-Path $FfmpegDirectory "FFMPEG_LICENSE.txt") $publish }
-(& $ffmpeg -buildconf 2>&1) | Set-Content (Join-Path $publish "FFMPEG_BUILD_CONFIGURATION.txt")
-
 python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
 if ($LASTEXITCODE -ne 0) { throw "License collection failed" }
 
@@ -58,6 +49,11 @@ if ($env:WINDOWS_CERTIFICATE_BASE64) {
     }
     # The installer is signed below using the same temporary certificate.
 }
+
+python (Join-Path $root "script/core_runtime.py") finish $coreTarget --binary $publish
+if ($LASTEXITCODE -ne 0) { throw "Signed Core runtime recording failed" }
+python (Join-Path $root "script/validate_package.py") $publish "windows-$label"
+if ($LASTEXITCODE -ne 0) { throw "Packaged Core runtime validation failed" }
 
 $zip = Join-Path $packages "ATIV-$version-windows-$label.zip"
 if (Test-Path $zip) { Remove-Item $zip }

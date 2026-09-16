@@ -9,18 +9,36 @@ import subprocess
 import sys
 import tempfile
 from acquire_core_runtime import ROOT, check_core
+from core_runtime import stage, finish, validate
 
 
-def test(engine,runtime,target):
+def test(engine,runtime,target,candidate=False):
     core=check_core()
     with tempfile.TemporaryDirectory(prefix='ativ-managed-') as temporary:
         staged=Path(temporary)/'bundle';staged.mkdir()
         suffix='.exe' if target.startswith('windows-') else ''
         executable=staged/('ativ-engine'+suffix);shutil.copy2(engine,executable)
-        subprocess.run([sys.executable,str(core/'scripts/ffmpeg/host.py'),'stage',target,str(runtime),
-                        '--destination',str(staged),'--candidate'],check=True)
-        subprocess.run([sys.executable,str(ROOT/'script/test_engine_contract.py'),'--engine',str(executable),
-                        '--ffmpeg',str(staged/('ffmpeg'+suffix)),'--ffprobe',str(staged/('ffprobe'+suffix)),'--managed'],check=True)
+        stage(target, runtime, staged, candidate)
+        finish(target, staged, staged)
+        validate(target, staged, staged, runtime, candidate)
+        # These edits must fail before any media invocation. Provenance cannot merely be present.
+        for name, mutate in [
+            ('ativ-runtime.json', lambda data: data.replace(b'"architecture": "', b'"architecture": "wrong-')),
+            ('build.json', lambda data: data + b' '),
+            ('signed-payload.json', lambda data: data.replace(b'"target": "', b'"target": "wrong-')),
+        ]:
+            path = staged/name
+            original = path.read_bytes()
+            try:
+                path.write_bytes(mutate(original))
+                try:
+                    validate(target, staged, staged, runtime, candidate)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError('Accepted changed provenance: ' + name)
+            finally:
+                path.write_bytes(original)
         # A usable fallback pair exists on PATH throughout every negative check.
         env=dict(os.environ,PATH=str(runtime)+os.pathsep+os.environ.get('PATH',''))
         for name in ['spec.json','build.json','ffmpeg'+suffix,'ffprobe'+suffix]:
@@ -38,4 +56,4 @@ def test(engine,runtime,target):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--engine',type=Path,required=True);p.add_argument('--runtime',type=Path,required=True);p.add_argument('--target',required=True);a=p.parse_args();test(a.engine.resolve(),a.runtime.resolve(),a.target)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--engine',type=Path,required=True);p.add_argument('--runtime',type=Path,required=True);p.add_argument('--target',required=True);p.add_argument('--candidate',action='store_true');a=p.parse_args();test(a.engine.resolve(),a.runtime.resolve(),a.target,a.candidate)

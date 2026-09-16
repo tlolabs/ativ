@@ -38,8 +38,6 @@ def main():
     ffmpeg, ffprobe = Path(options.ffmpeg).resolve(), Path(options.ffprobe).resolve()
     versions = [run([tool, '-version']).decode().splitlines()[0].split()[2] for tool in (ffmpeg, ffprobe)]
     assert versions[0] == versions[1], versions
-    if not options.managed:
-        assert versions[0].lstrip('n').startswith('9.0.1'), versions
     with tempfile.TemporaryDirectory(prefix='ativ contract ü ') as directory:
         root = Path(directory)
         env = dict(os.environ, ATIV_LOG_PATH=str(root / 'private.log'))

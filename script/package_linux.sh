@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCH="${1:-$(uname -m)}"
-FFMPEG_DIR="${2:-${ROOT_DIR}/build/ffmpeg-linux-${ARCH}}"
 VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "${ROOT_DIR}/Cargo.toml" | head -n 1)"
 
 VERSION="${ATIV_VERSION:-$VERSION}"
@@ -17,8 +16,8 @@ case "${ARCH}" in
   *) echo "unsupported Linux architecture: ${ARCH}" >&2; exit 2 ;;
 esac
 [[ "$(uname -m)" == "${ARCH}" || ( "$(uname -m)" == "arm64" && "${ARCH}" == "aarch64" ) ]] || { echo "Run on a native ${ARCH} Linux runner." >&2; exit 2; }
-[[ -x "${FFMPEG_DIR}/ffmpeg" && -x "${FFMPEG_DIR}/ffprobe" ]]
-"${FFMPEG_DIR}/ffmpeg" -version | head -n 1 | grep -F "ffmpeg version n9.0.1"
+RUNTIME_TARGET="linux-$ARCH"
+RUNTIME="$(python3 "$ROOT_DIR/script/core_runtime.py" provision "$RUNTIME_TARGET")"
 
 BUILD_DIR="${ROOT_DIR}/build/linux-${ARCH}"
 PACKAGE_ROOT="${ROOT_DIR}/build/package-linux-${ARCH}"
@@ -33,14 +32,11 @@ DESTDIR="${PACKAGE_ROOT}" meson install -C "${BUILD_DIR}"
 cp "${ROOT_DIR}/target/release/ativ-engine" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine"
 cp "${ROOT_DIR}/target/release/ativ-update" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-update"
 python3 "$ROOT_DIR/script/configure_distribution.py" "$PACKAGE_ROOT/usr/lib/ativ" "linux-$LABEL-deb"
-cp "${FFMPEG_DIR}/ffmpeg" "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg"
-cp "${FFMPEG_DIR}/ffprobe" "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
+python3 "$ROOT_DIR/script/core_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$PACKAGE_ROOT/usr/lib/ativ"
+python3 "$ROOT_DIR/script/core_runtime.py" finish "$RUNTIME_TARGET" --binary "$PACKAGE_ROOT/usr/lib/ativ"
 cp "${ROOT_DIR}/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${PACKAGE_ROOT}/usr/share/doc/ativ/THIRD_PARTY_NOTICES.md"
 cp "${ROOT_DIR}/../AVID Core/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/AVID_CORE_LICENSE.txt"
-python3 "${ROOT_DIR}/script/verify_ffmpeg_distribution.py" --engine "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" --ffmpeg "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" --ffprobe "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
-if [[ -f "${FFMPEG_DIR}/FFMPEG_LICENSE.txt" ]]; then cp "${FFMPEG_DIR}/FFMPEG_LICENSE.txt" "${PACKAGE_ROOT}/usr/share/doc/ativ/"; fi
-"${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" -buildconf > "${PACKAGE_ROOT}/usr/share/doc/ativ/FFMPEG_BUILD_CONFIGURATION.txt" 2>&1
 python3 "$ROOT_DIR/script/collect_licenses.py" "$PACKAGE_ROOT/usr/share/doc/ativ/licenses"
 chmod 0755 "${PACKAGE_ROOT}/usr/bin/ativ" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
 

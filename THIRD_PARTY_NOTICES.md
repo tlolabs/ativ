@@ -1,12 +1,10 @@
 # Third-party notices
 
-## FFmpeg 9.0.1
+## FFmpeg and FFprobe
 
-A.T.I.V. distribution packages include FFmpeg and ffprobe 9.0.1. FFmpeg is available from <https://ffmpeg.org/> under the GNU Lesser General Public License 2.1 or later, with optional components that can make a particular build subject to GNU General Public License 2 or later. A.T.I.V. itself is GPL-3.0-or-later and release builds enable GPL components such as libx264.
+ATIV consumes the runtime built from official FFmpeg source by the pinned AVID Core implementation. Core owns codec-library pins, configuration and runtime redistribution notices. Packages include the actual runtime license tree, build/specification manifests, corresponding-source archive and `SOURCE.json`. `ativ-runtime.json` records the exact ATIV/Core/FFmpeg versions, Core commit, recipe and target. On macOS these are in `Contents/Resources/FFmpeg`; elsewhere they accompany the engine.
 
-Release packaging must include the exact FFmpeg build's license and configuration alongside this notice. Source and corresponding-build information are available from the distributor named in the release manifest and from <https://ffmpeg.org/download.html>.
-
-Windows and Linux packages use checksum-pinned GPL builds from BtbN's FFmpeg-Builds project. macOS packages use architecture-specific, checksum-pinned static builds distributed by Martin Riedl. The pinned URLs and SHA-256 values are recorded in `script/fetch_ffmpeg.sh` and are verified before any binary is copied or signed.
+The selected profile includes GPL software encoders. ATIV's own license is not a substitute for FFmpeg's or its dependencies' notices. Consult the included Core `licenses/REDISTRIBUTION.md` and exact upstream license texts.
 
 ## Windows App SDK
 
@@ -18,7 +16,7 @@ The Linux application uses GTK 4 and libadwaita, distributed under the GNU Lesse
 
 ## AVID Core and Rust dependencies
 
-ATIV links `avid-core` 0.1.0 from https://github.com/tlolabs/avid-core at revision `0cce6ba838827d0bed540efc98731e74a1014456`. It contains reconciled ATIV and EnCAP video work and is GPL-3.0-only. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`. The host source retains GPL-3.0-or-later; the linked shared component does not grant a later-version option.
+ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in `runtime/core-revision`; Cargo.lock records its version. It contains reconciled ATIV and EnCAP video work and is GPL-3.0-only. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`. The host source retains GPL-3.0-or-later; the linked shared component does not grant a later-version option.
 
 The exact Rust dependency versions and checksums are in Cargo.lock. The following packages retain their upstream notices and licenses (source archives are available from https://crates.io):
 

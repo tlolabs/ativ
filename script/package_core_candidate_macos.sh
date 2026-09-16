@@ -14,7 +14,7 @@ WORK="$ROOT/build/runtime-qualification"
 mkdir -p "$WORK"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 export MACOSX_DEPLOYMENT_TARGET=13.0
-cargo build --manifest-path "$ROOT/Cargo.toml" --locked --release -p ativ-engine --features managed-runtime --target-dir "$WORK/rust"
+cargo build --manifest-path "$ROOT/Cargo.toml" --locked --release -p ativ-engine --target-dir "$WORK/rust"
 swift build --package-path "$ROOT/platform/macos" --scratch-path "$WORK/swift" --configuration release --arch "$ARCH"
 SWIFT_BIN="$(swift build --package-path "$ROOT/platform/macos" --scratch-path "$WORK/swift" --configuration release --arch "$ARCH" --show-bin-path)/ATIV"
 STAGE="$(mktemp -d "$WORK/package.XXXXXX")"
@@ -27,7 +27,7 @@ rm "$MACOS/ffmpeg" "$MACOS/ffprobe"
 rm -f "$RESOURCES/FFMPEG_LICENSE.txt" "$RESOURCES/FFMPEG_BUILD_CONFIGURATION.txt"
 cp "$WORK/rust/release/ativ-engine" "$MACOS/ativ-engine"
 cp "$SWIFT_BIN" "$MACOS/ATIV"
-$PYTHON "$CORE/scripts/ffmpeg/host.py" stage "$TARGET" "$RUNTIME" --destination "$MACOS" --candidate
+$PYTHON "$ROOT/script/core_runtime.py" stage "$TARGET" --runtime "$RUNTIME" --binary "$MACOS" --candidate
 $PYTHON - "$APP" <<'PY'
 import json,plistlib,sys
 from pathlib import Path
@@ -42,21 +42,11 @@ PY
 $PYTHON "$CORE/scripts/ffmpeg/host.py" verify "$TARGET" "$MACOS" --candidate
 # Sign executable helpers before relocating verified data to the resource directory.
 for NAME in ffmpeg ffprobe ativ-engine; do codesign --force --options runtime --sign - "$MACOS/$NAME"; done
-$PYTHON "$CORE/scripts/ffmpeg/host.py" record-signed "$TARGET" "$MACOS"
-mkdir -p "$RESOURCES/FFmpeg"
-for SOURCE in "$RUNTIME"/*; do
-  NAME="${SOURCE##*/}"
-  case "$NAME" in
-    ffmpeg|ffprobe) ;;
-    *) mv "$MACOS/$NAME" "$RESOURCES/FFmpeg/$NAME" ;;
-  esac
-done
-mv "$MACOS/signed-payload.json" "$RESOURCES/FFmpeg/signed-payload.json"
+$PYTHON "$ROOT/script/core_runtime.py" finish "$TARGET" --binary "$MACOS" --metadata "$RESOURCES/FFmpeg"
 codesign --force --options runtime --sign - "$APP"
 codesign --verify --deep --strict "$APP"
-PATH='' "$MACOS/ativ-engine" check
-$PYTHON "$ROOT/script/test_engine_contract.py" --engine "$MACOS/ativ-engine" --ffmpeg "$MACOS/ffmpeg" --ffprobe "$MACOS/ffprobe" --managed
-$PYTHON "$ROOT/script/create_smoke_media.py" "$WORK/native-fixtures"
+$PYTHON "$ROOT/script/core_runtime.py" validate "$TARGET" --runtime "$RUNTIME" --binary "$MACOS" --metadata "$RESOURCES/FFmpeg" --candidate
+PATH="$MACOS:$PATH" $PYTHON "$ROOT/script/create_smoke_media.py" "$WORK/native-fixtures"
 ATIV_TEST_MEDIA="$WORK/native-fixtures" ATIV_ENGINE_PATH="$MACOS/ativ-engine" \
   swift test --package-path "$ROOT/platform/macos" --scratch-path "$WORK/native-tests"
 printf '%s\n' "$APP"

@@ -6,7 +6,7 @@ ATIV baseline: d88043d. ENcap reference: 46ffd343d3e83c5d58d522c8c33f8013f3b849f
 
 Both hosts already use SwiftUI/AppKit, WinUI 3, and GTK 4/libadwaita over a Rust JSON subprocess boundary. ATIV retains its standalone adapter, all 27 presets, original input/audio semantics, software H.264/AAC, flips, progress, cancellation and atomic publication. No document format or hardware encoding changes are needed.
 
-ENcap uses macOS 13, Windows 10 1809, GTK 4.10/libadwaita 1.4, and Linux x64. ATIV will align these baselines and retain its existing Linux ARM64 support as an additional target. Both now acquire the same pinned FFmpeg 9.0.1 artifacts; the source recipe wrappers in ENcap delegate to acquisition. No second FFmpeg pair is necessary.
+ENcap uses macOS 13, Windows 10 1809, GTK 4.10/libadwaita 1.4, and Linux x64. ATIV will align these baselines and retain its existing Linux ARM64 support as an additional target. ATIV now delegates runtime provisioning to its pinned Core checkout; see `core-runtime-migration.md` for the production publication blocker. No second FFmpeg pair is necessary.
 
 ENcap dynamically loads checksum-pinned Sparkle 2.9.6 and publishes Ed25519 appcasts and signed JSON metadata from encap-release. Its Windows and Linux clients do not consume update metadata. No current nightly, AppImage, deb, rpm, Windows installer, production Developer ID/notary workflow, or acceptance matrix exists to copy. Its release job requires all platforms, contrary to this request. These are documented adaptations, not claims of proven ENcap functionality. Use signed metadata plus native installers for ATIV, Sparkle on macOS, separate development identity/feed, and publish only validated passing targets.
 

@@ -18,7 +18,7 @@ curl --fail --location --proto '=https' 'https://raw.githubusercontent.com/linux
 chmod +x "$TOOLS/linuxdeploy-plugin-gtk.sh"
 rm -rf "$APPDIR"; mkdir -p "$APPDIR"; cp -a "$STAGE/usr" "$APPDIR/"
 python3 "$ROOT_DIR/script/configure_distribution.py" "$APPDIR/usr/lib/ativ" "linux-$LABEL-appimage"
-export APPIMAGE_EXTRACT_AND_RUN=1 DEPLOY_GTK_VERSION=4
+export APPIMAGE_EXTRACT_AND_RUN=1 DEPLOY_GTK_VERSION=4 NO_STRIP=1
 export PATH="$TOOLS:$PATH"
 DESKTOP="$(find "$APPDIR/usr/share/applications" -name '*.desktop' -print -quit)"
 sed -i 's/^Exec=ativ-development$/Exec=ativ/' "$DESKTOP"

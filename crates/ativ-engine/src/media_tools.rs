@@ -8,7 +8,6 @@ pub fn resolve(
     token: &CancellationToken,
 ) -> ativ_core::Result<MediaTools> {
     // CLI paths are deliberate development overrides, retaining their existing policy.
-    #[cfg(feature = "managed-runtime")]
     if ffmpeg.is_none() && ffprobe.is_none() {
         let executable = std::env::current_exe().map_err(|_| {
             ativ_core::AtivError::InvalidInput(
