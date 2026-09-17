@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "qualification_only": true,
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "run_id": 35157560636,
+  "target": "linux-x86_64",
+  "runtime_sha256": "7e7f55a445a6c5815d9753cfa74ebb61e68c96fae1aa8b271bbc3749c48ed4fd",
+  "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+  "native_host": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "macos": "",
+    "windows": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "linux": {
+      "NAME": "Ubuntu",
+      "ID": "ubuntu",
+      "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+      "VERSION_ID": "24.04",
+      "VERSION": "24.04.5 LTS (Noble Numbat)",
+      "VERSION_CODENAME": "noble",
+      "ID_LIKE": "debian",
+      "HOME_URL": "https://www.ubuntu.com/",
+      "SUPPORT_URL": "https://help.ubuntu.com/",
+      "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+      "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+      "UBUNTU_CODENAME": "noble",
+      "LOGO": "ubuntu-logo"
+    }
+  },
+  "binary_sha256": {
+    "ffmpeg": "31c6b0506442b3b8fd719c84a76023949a688548fcacabd9f13fe3fe6793d10a",
+    "ffprobe": "c729cd015f6cd208b4c7eaf6cc3215e7e3076f7433d94ba2f43794e1582a6697"
+  },
+  "artifact_id": 10472137672,
+  "artifact_sha256": "sha256:0b2a83c1d959c3b394a378c35527a858f409e92619c404cf95a6861edec74d69",
+  "job_id": 105000546888,
+  "media_tests_passed": [
+    "standalone_preview_render_and_original_audio_format",
+    "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+    "hevc_has_hvc1_tag",
+    "simple_matches_legacy_pixels_audio_and_requested_cadence",
+    "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+  ],
+  "status": "passed"
+}

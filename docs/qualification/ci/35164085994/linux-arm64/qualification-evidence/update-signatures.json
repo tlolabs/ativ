@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "scope": "offline signatures of real candidate packages; not end-to-end update acceptance",
+  "metadata_tampering_rejected": true,
+  "packages": {
+    "linux-arm64-deb": {
+      "url": "https://github.com/tlolabs/ativ/releases/download/development/ATIV-0.2.3-dev.3-linux-arm64.deb",
+      "filename": "ATIV-0.2.3-dev.3-linux-arm64.deb",
+      "size": 40650044,
+      "sha256": "e86c0c239ba5c5399b9595d1421d10856bc0b9a106cd75364278209b36ad2b38"
+    },
+    "linux-arm64-appimage": {
+      "url": "https://github.com/tlolabs/ativ/releases/download/development/ATIV-0.2.3-dev.3-linux-arm64.AppImage",
+      "filename": "ATIV-0.2.3-dev.3-linux-arm64.AppImage",
+      "size": 78899720,
+      "sha256": "4023b5121fd2bafd2503f78c604b98df0995f355e2a3e283d44fc9dbb9674e21"
+    }
+  },
+  "envelope": {
+    "payload": "eyJhc3NldHMiOnsibGludXgtYXJtNjQtYXBwaW1hZ2UiOnsiZmlsZW5hbWUiOiJBVElWLTAuMi4zLWRldi4zLWxpbnV4LWFybTY0LkFwcEltYWdlIiwic2hhMjU2IjoiNDAyM2I1MTIxZmQyYmFmZDI1MDNmNzhjNjA0Yjk4ZGYwOTk1ZjM1NWUyYTNlMjgzZDQ0ZmM5ZGJiOTY3NGUyMSIsInNpemUiOjc4ODk5NzIwLCJ1cmwiOiJodHRwczovL2dpdGh1Yi5jb20vdGxvbGFicy9hdGl2L3JlbGVhc2VzL2Rvd25sb2FkL2RldmVsb3BtZW50L0FUSVYtMC4yLjMtZGV2LjMtbGludXgtYXJtNjQuQXBwSW1hZ2UifSwibGludXgtYXJtNjQtZGViIjp7ImZpbGVuYW1lIjoiQVRJVi0wLjIuMy1kZXYuMy1saW51eC1hcm02NC5kZWIiLCJzaGEyNTYiOiJlODZjMGMyMzliYTVjNTM5OWI5NTk1ZDE0MjFkMTA4NTZiYzBiOWExMDZjZDc1MzY0Mjc4MjA5YjM2YWQyYjM4Iiwic2l6ZSI6NDA2NTAwNDQsInVybCI6Imh0dHBzOi8vZ2l0aHViLmNvbS90bG9sYWJzL2F0aXYvcmVsZWFzZXMvZG93bmxvYWQvZGV2ZWxvcG1lbnQvQVRJVi0wLjIuMy1kZXYuMy1saW51eC1hcm02NC5kZWIifX0sImNoYW5uZWwiOiJkZXZlbG9wbWVudCIsInNjaGVtYSI6MSwidmVyc2lvbiI6IjAuMi4zLWRldi4zIn0=",
+    "signature": "L4F1OGV+47wfQPoUOtiFF5E+VywGOG/QfCTzAXA+AjYzhcFlmVA6tfjxuNh95oEQUK6OZfRu6Ox/UETTvT64BQ=="
+  },
+  "public_key": "sa41y6tc9UzUoXwbNHFzWMdYm8g0Y4hLvcxFN+0lpGo=",
+  "published": false
+}

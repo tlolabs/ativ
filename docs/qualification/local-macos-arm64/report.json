@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "status": "observed",
+  "gate": "host_packaging",
+  "target": "macos-arm64",
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "candidate": {
+    "runtime_sha256": "b029c0f44f888e2d686bca0e22e0687164f80da28e5822fe5be3b7e3b3f529df",
+    "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+    "native_host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "macos": "15.7.9",
+      "windows": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "linux": {}
+    },
+    "binary_sha256": {
+      "ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+      "ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7"
+    },
+    "artifact_id": 10471918442,
+    "artifact_sha256": "sha256:872871bb159c7f820cba56b25543c4db0adccbe4c5238bf0f420f997f31769ec",
+    "job_id": 105000547082,
+    "media_tests_passed": [
+      "standalone_preview_render_and_original_audio_format",
+      "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+      "hevc_has_hvc1_tag",
+      "simple_matches_legacy_pixels_audio_and_requested_cadence",
+      "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+    ],
+    "status": "passed"
+  },
+  "ativ_engine_build_base": "db48432d081dea602da9340ff546e07983045263",
+  "packaging_changes_committed_as": "163c46063269e7ecd296f1e04fb8677013c9c6cc",
+  "worktree_was_modified_during_packaging": true,
+  "scope": "Supplemental local observation; authoritative clean source results are the six-target CI reports.",
+  "native_host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "passed": [
+    "application_build",
+    "ad_hoc_signing_verification",
+    "zip_dmg_packaging",
+    "dmg_installation",
+    "installed_application_launch",
+    "bundled_runtime_discovery",
+    "ffmpeg_ffprobe_execution",
+    "27_presets_20_previews_3_exports",
+    "cancellation_failure_cleanup",
+    "missing_damaged_runtime_rejection_with_valid_pair_on_PATH",
+    "native_Swift_tests_2",
+    "original_and_signed_runtime_checksums"
+  ],
+  "not_passed": [
+    "production_signing_notarization",
+    "authenticated_application_upgrade",
+    "manual_ui_accessibility"
+  ],
+  "files": {
+    "installed-macos-arm64-startup.json": "cdfb97a989dac2fd74aca815b8e95e22fc4ffc43f3cf96c3cca7056f3e763263",
+    "ativ-r7-swift-tests.log.gz": "65b3dc563c30884029957fbe8415c55ecaab4efef2cff3151fd8d58f6fa10328",
+    "installed-macos-arm64.json": "b8c25fc85acfa117a1d6027c058f1183706dcdc8bc390ed65b63a42ef8556849",
+    "ativ-r7-install.log.gz": "77df687203bdb1a3797e4ec733f93d0daa8fdb2e5c211517bd76a695d6563e12",
+    "ativ-r7-macos-package.log.gz": "0caa5e5cab68c0e81be1ad0aaaf2ca141330ccb9630f17199af07452bb61bf18",
+    "ativ-r7-managed.log.gz": "82a155ef2fdcbb1d3634bd02c543854ad45921a30eba9ac3bafe942375108b4a"
+  },
+  "raw_log_sha256": {
+    "ativ-r7-install.log": "71863b3e7ecf88110f419acf956acec004f8fb8c70683482c7dbf538c329ff98",
+    "ativ-r7-swift-tests.log": "29ab37f632f1b07dcfc184f87bfdfacc1ad60f6874629d5bb39667d9cd7be167",
+    "ativ-r7-macos-package.log": "45ccbfaa30177f50b3a243e1ab82d3fffcc256adf045ffa2e0f8c87a719a4c65",
+    "ativ-r7-managed.log": "94af0000de96b9e0c0b5fd911f5f7775117e817a0a11bd9e5f1319e11985b318"
+  }
+}

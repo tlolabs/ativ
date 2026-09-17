@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "scope": "offline signatures of real candidate packages; not end-to-end update acceptance",
+  "metadata_tampering_rejected": true,
+  "packages": {
+    "macos-arm64": {
+      "url": "https://github.com/tlolabs/ativ/releases/download/development/ATIV-0.2.3-dev.3-macos-arm64.dmg",
+      "filename": "ATIV-0.2.3-dev.3-macos-arm64.dmg",
+      "size": 44780000,
+      "sha256": "620cd665b805cce1a7944905618852fbe6dc60aeffeb8996b1f8c6982793066b"
+    }
+  },
+  "envelope": {
+    "payload": "eyJhc3NldHMiOnsibWFjb3MtYXJtNjQiOnsiZmlsZW5hbWUiOiJBVElWLTAuMi4zLWRldi4zLW1hY29zLWFybTY0LmRtZyIsInNoYTI1NiI6IjYyMGNkNjY1YjgwNWNjZTFhNzk0NDkwNTYxODg1MmZiZTZkYzYwYWVmZmViODk5NmIxZjhjNjk4Mjc5MzA2NmIiLCJzaXplIjo0NDc4MDAwMCwidXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL3Rsb2xhYnMvYXRpdi9yZWxlYXNlcy9kb3dubG9hZC9kZXZlbG9wbWVudC9BVElWLTAuMi4zLWRldi4zLW1hY29zLWFybTY0LmRtZyJ9fSwiY2hhbm5lbCI6ImRldmVsb3BtZW50Iiwic2NoZW1hIjoxLCJ2ZXJzaW9uIjoiMC4yLjMtZGV2LjMifQ==",
+    "signature": "D50BVXoQcs4wz8HzBnYJRMsZkRb5RSIWBYCDIm6UVUWxZOkraB7rv47zmnPYn6aCNyZ+yCzAvYGo/CDWSGodBw=="
+  },
+  "public_key": "sa41y6tc9UzUoXwbNHFzWMdYm8g0Y4hLvcxFN+0lpGo=",
+  "published": false
+}

@@ -1,0 +1,37 @@
+{
+  "packages": [
+    {
+      "asset": {
+        "filename": "ATIV-0.2.3-dev.3-windows-x64-setup.exe",
+        "sha256": "cf5d03b07143d514511b22fda074cd7c6f2995c7138eb55dc8dda82ce0821e2f",
+        "size": 98624270,
+        "url": "https://github.com/tlolabs/ativ/releases/download/development/ATIV-0.2.3-dev.3-windows-x64-setup.exe"
+      },
+      "envelope": {
+        "payload": "eyJzY2hlbWEiOjEsInZlcnNpb24iOiIwLjIuMy1kZXYuMyIsImNoYW5uZWwiOiJkZXZlbG9wbWVudCIsImFzc2V0cyI6eyJ3aW5kb3dzLXg2NCI6eyJ1cmwiOiJodHRwczovL2dpdGh1Yi5jb20vdGxvbGFicy9hdGl2L3JlbGVhc2VzL2Rvd25sb2FkL2RldmVsb3BtZW50L0FUSVYtMC4yLjMtZGV2LjMtd2luZG93cy14NjQtc2V0dXAuZXhlIiwic2hhMjU2IjoiY2Y1ZDAzYjA3MTQzZDUxNDUxMWIyMmZkYTA3NGNkN2M2ZjI5OTVjNzEzOGViNTVkYzhkZGE4MmNlMDgyMWUyZiIsInNpemUiOjk4NjI0MjcwLCJmaWxlbmFtZSI6IkFUSVYtMC4yLjMtZGV2LjMtd2luZG93cy14NjQtc2V0dXAuZXhlIn19fQ==",
+        "signature": "8y72Sqiphmj2kVXSuDKp859OAKW2BJmJ630hasby8HXtAE16i0cQQPOmtmGzfb7QBYYjVxWEdkeSGRVQxqRLBA=="
+      },
+      "metadata_tampering_rejected": true,
+      "package_tampering_rejected": true
+    },
+    {
+      "asset": {
+        "filename": "ATIV-0.2.3-dev.3-windows-x64.zip",
+        "sha256": "d401e668d0dbd449d4b7dcfe83beab60101ac30cd740c4649ed61713e24c41e7",
+        "size": 135348165,
+        "url": "https://github.com/tlolabs/ativ/releases/download/development/ATIV-0.2.3-dev.3-windows-x64.zip"
+      },
+      "envelope": {
+        "payload": "eyJzY2hlbWEiOjEsInZlcnNpb24iOiIwLjIuMy1kZXYuMyIsImNoYW5uZWwiOiJkZXZlbG9wbWVudCIsImFzc2V0cyI6eyJ3aW5kb3dzLXg2NCI6eyJ1cmwiOiJodHRwczovL2dpdGh1Yi5jb20vdGxvbGFicy9hdGl2L3JlbGVhc2VzL2Rvd25sb2FkL2RldmVsb3BtZW50L0FUSVYtMC4yLjMtZGV2LjMtd2luZG93cy14NjQuemlwIiwic2hhMjU2IjoiZDQwMWU2NjhkMGRiZDQ0OWQ0YjdkY2ZlODNiZWFiNjAxMDFhYzMwY2Q3NDBjNDY0OWVkNjE3MTNlMjRjNDFlNyIsInNpemUiOjEzNTM0ODE2NSwiZmlsZW5hbWUiOiJBVElWLTAuMi4zLWRldi4zLXdpbmRvd3MteDY0LnppcCJ9fX0=",
+        "signature": "SOMlCb7bmdxWXWTgC5oNMudRxjLIcUkyHeMbZibi409KPKDkpSaFVeaV5rJzln4uqxCknL/2DvkUYZEU3hILAA=="
+      },
+      "metadata_tampering_rejected": true,
+      "package_tampering_rejected": true
+    }
+  ],
+  "public_key": "sa41y6tc9UzUoXwbNHFzWMdYm8g0Y4hLvcxFN+0lpGo=",
+  "published": false,
+  "scope": "native updater verify/download against real candidate packages; offline, not end-to-end upgrade",
+  "status": "passed",
+  "target": "windows-x64"
+}

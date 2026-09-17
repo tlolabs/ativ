@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "qualification_only": true,
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "run_id": 35157560636,
+  "target": "windows-arm64",
+  "runtime_sha256": "2af04f658cba2dd6742651fc62207a15fd0170f6109740cc96096cc80c5acae3",
+  "source_sha256": "a676c3b40288048c32014839495b3f05ec005a162dd7bbe164d71e1888a171a5",
+  "native_host": {
+    "system": "Windows",
+    "machine": "ARM64",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "macos": "",
+    "windows": [
+      "11",
+      "10.0.26200",
+      "SP0",
+      "Multiprocessor Free"
+    ],
+    "linux": {}
+  },
+  "binary_sha256": {
+    "ffmpeg.exe": "3c517bf55da49f21733e0639a2afcaf809a6d95ddea1114a1801d44281b78989",
+    "ffprobe.exe": "83259b8ded9cb1399e431541f3d31ab54949fee69d203f41148f50189d6aab8d"
+  },
+  "artifact_id": 10472307413,
+  "artifact_sha256": "sha256:3be7dab475381acf6afdd5bcd669ad2689494bfce68d7a1dc4039238c9e0631b",
+  "job_id": 105000546708,
+  "media_tests_passed": [
+    "standalone_preview_render_and_original_audio_format",
+    "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+    "hevc_has_hvc1_tag",
+    "simple_matches_legacy_pixels_audio_and_requested_cadence",
+    "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+  ],
+  "status": "passed"
+}

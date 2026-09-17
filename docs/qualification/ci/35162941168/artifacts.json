@@ -1,0 +1,242 @@
+[
+  {
+    "id": 10474230660,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3NDIzMDY2MA==",
+    "name": "R7-evidence-macos-x86_64",
+    "size_in_bytes": 6270,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10474230660",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10474230660/zip",
+    "expired": false,
+    "digest": "sha256:537d8fb55d355c136bdbcdf187930b94d910e7f687c0b8ae7bd822f5a6d9ffc7",
+    "created_at": "2026-09-16T23:50:51Z",
+    "updated_at": "2026-09-16T23:50:51Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10474082277,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3NDA4MjI3Nw==",
+    "name": "R7-evidence-macos-arm64",
+    "size_in_bytes": 6254,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10474082277",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10474082277/zip",
+    "expired": false,
+    "digest": "sha256:05901753275aea903e0d94ffce37557710392004839ba9d099210f52dd0b2389",
+    "created_at": "2026-09-16T23:47:35Z",
+    "updated_at": "2026-09-16T23:47:35Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10474027217,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3NDAyNzIxNw==",
+    "name": "R7-candidate-windows-ARM64",
+    "size_in_bytes": 224643535,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10474027217",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10474027217/zip",
+    "expired": false,
+    "digest": "sha256:3096009c49f0f0d3a2b73785b5c6db5fc9cbc53cb78d44bf8d8b4e0be96b9277",
+    "created_at": "2026-09-16T23:45:40Z",
+    "updated_at": "2026-09-16T23:45:40Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473887715,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3Mzg4NzcxNQ==",
+    "name": "R7-evidence-windows-arm64",
+    "size_in_bytes": 5601,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473887715",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473887715/zip",
+    "expired": false,
+    "digest": "sha256:d9c8d32ff55b10d1cd952e5d5eaa77a5487c3679e4de5f5353ba78bb748a260b",
+    "created_at": "2026-09-16T23:46:07Z",
+    "updated_at": "2026-09-16T23:46:07Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473848330,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3Mzg0ODMzMA==",
+    "name": "R7-candidate-macos-x86_64",
+    "size_in_bytes": 90278534,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473848330",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473848330/zip",
+    "expired": false,
+    "digest": "sha256:2fee4eba38975413ce61524a0efc2c60e264b5286ed15edb0766d8adab4a907e",
+    "created_at": "2026-09-16T23:48:36Z",
+    "updated_at": "2026-09-16T23:48:36Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473633910,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3MzYzMzkxMA==",
+    "name": "R7-candidate-macos-arm64",
+    "size_in_bytes": 85652037,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473633910",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473633910/zip",
+    "expired": false,
+    "digest": "sha256:99eab5360a74288b9ef24c1101c8a39196980881bc7eafae8197719626a608f4",
+    "created_at": "2026-09-16T23:45:24Z",
+    "updated_at": "2026-09-16T23:45:24Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473403829,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3MzQwMzgyOQ==",
+    "name": "R7-evidence-linux-x86_64",
+    "size_in_bytes": 4579,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473403829",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473403829/zip",
+    "expired": false,
+    "digest": "sha256:d1059bb71ab6f03dc95e905cec2d330fa0071c688b18b46fa80d0d10767cc964",
+    "created_at": "2026-09-16T23:39:59Z",
+    "updated_at": "2026-09-16T23:39:59Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473364485,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3MzM2NDQ4NQ==",
+    "name": "R7-candidate-windows-x64",
+    "size_in_bytes": 232669883,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473364485",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473364485/zip",
+    "expired": false,
+    "digest": "sha256:910e71c08e2a40cd201cd2eba6f3edda5c7c3e9fed5828c3eccff6e663918ada",
+    "created_at": "2026-09-16T23:44:49Z",
+    "updated_at": "2026-09-16T23:44:49Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473134447,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3MzEzNDQ0Nw==",
+    "name": "R7-candidate-linux-x86_64",
+    "size_in_bytes": 79437870,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473134447",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473134447/zip",
+    "expired": false,
+    "digest": "sha256:91c7fd49bf8297ede490a30425a17a912327757b8b35015eb4e66011f911996f",
+    "created_at": "2026-09-16T23:39:59Z",
+    "updated_at": "2026-09-16T23:39:59Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473114427,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3MzExNDQyNw==",
+    "name": "R7-candidate-linux-aarch64",
+    "size_in_bytes": 78309733,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473114427",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473114427/zip",
+    "expired": false,
+    "digest": "sha256:c651bb8ca4df6c45de8632d822428c5b355e55f1801f825eb09c3e67288e8ab2",
+    "created_at": "2026-09-16T23:40:34Z",
+    "updated_at": "2026-09-16T23:40:34Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10473029902,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3MzAyOTkwMg==",
+    "name": "R7-evidence-windows-x86_64",
+    "size_in_bytes": 6583,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473029902",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10473029902/zip",
+    "expired": false,
+    "digest": "sha256:6d1a6f027e40d48a8bc51b15f5aac79ac3e53dfed95d4f17115b8312d3982e7f",
+    "created_at": "2026-09-16T23:44:59Z",
+    "updated_at": "2026-09-16T23:44:59Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  },
+  {
+    "id": 10472854686,
+    "node_id": "MDg6QXJ0aWZhY3QxMDQ3Mjg1NDY4Ng==",
+    "name": "R7-evidence-linux-arm64",
+    "size_in_bytes": 4568,
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10472854686",
+    "archive_download_url": "https://api.github.com/repos/tlolabs/ativ/actions/artifacts/10472854686/zip",
+    "expired": false,
+    "digest": "sha256:d9703373c59675ddb6a978f0d12937f0c8da25d210631f285df2d1db3f019e18",
+    "created_at": "2026-09-16T23:40:35Z",
+    "updated_at": "2026-09-16T23:40:35Z",
+    "expires_at": "2026-12-15T23:35:10Z",
+    "workflow_run": {
+      "id": 35162941168,
+      "repository_id": 1169056250,
+      "head_repository_id": 1169056250,
+      "head_branch": "codex/recipe7-host-qualification",
+      "head_sha": "163c46063269e7ecd296f1e04fb8677013c9c6cc"
+    }
+  }
+]

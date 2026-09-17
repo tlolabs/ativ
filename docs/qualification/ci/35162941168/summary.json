@@ -1,0 +1,310 @@
+{
+  "schema": 1,
+  "status": "incomplete",
+  "gate": "host_packaging",
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "ativ_tested_revision": "163c46063269e7ecd296f1e04fb8677013c9c6cc",
+  "run_url": "https://github.com/tlolabs/ativ/actions/runs/35162941168",
+  "run_id": 35162941168,
+  "targets": {
+    "macos-arm64": {
+      "status": "incomplete",
+      "steps": {
+        "acquisition": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "media": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "packaging": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "native_tests": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "launch": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "installed_package": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "update_signatures": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        }
+      },
+      "report": "macos-arm64/qualification-evidence/macos-arm64.json",
+      "evidence_artifact": {
+        "id": 10474082277,
+        "name": "R7-evidence-macos-arm64",
+        "digest": "sha256:05901753275aea903e0d94ffce37557710392004839ba9d099210f52dd0b2389"
+      },
+      "unperformed_gates": {
+        "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+        "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately.",
+        "production_signing_notarization": "Owner confirms Developer ID/notarization setup is not completed. Ad-hoc signature observations do not satisfy this gate."
+      }
+    },
+    "macos-x86_64": {
+      "status": "incomplete",
+      "steps": {
+        "acquisition": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "media": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "packaging": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "native_tests": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "launch": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "installed_package": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "update_signatures": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        }
+      },
+      "report": "macos-x86_64/qualification-evidence/macos-x86_64.json",
+      "evidence_artifact": {
+        "id": 10474230660,
+        "name": "R7-evidence-macos-x86_64",
+        "digest": "sha256:537d8fb55d355c136bdbcdf187930b94d910e7f687c0b8ae7bd822f5a6d9ffc7"
+      },
+      "unperformed_gates": {
+        "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+        "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately.",
+        "production_signing_notarization": "Owner confirms Developer ID/notarization setup is not completed. Ad-hoc signature observations do not satisfy this gate."
+      }
+    },
+    "windows-x86_64": {
+      "status": "incomplete",
+      "steps": {
+        "acquisition": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "media": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "packaging": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "installation_launch": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "update_signatures": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        }
+      },
+      "report": "windows-x86_64/qualification-evidence/windows-x86_64.json",
+      "evidence_artifact": {
+        "id": 10473029902,
+        "name": "R7-evidence-windows-x86_64",
+        "digest": "sha256:6d1a6f027e40d48a8bc51b15f5aac79ac3e53dfed95d4f17115b8312d3982e7f"
+      },
+      "unperformed_gates": {
+        "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+        "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately.",
+        "production_signing": "Owner confirms signing setup is not completed. Unsigned candidate observations do not satisfy this gate."
+      }
+    },
+    "windows-arm64": {
+      "status": "incomplete",
+      "steps": {
+        "acquisition": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "media": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "packaging": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "installation_launch": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "update_signatures": {
+          "outputs": {},
+          "outcome": "failure",
+          "conclusion": "failure"
+        }
+      },
+      "report": "windows-arm64/qualification-evidence/windows-arm64.json",
+      "evidence_artifact": {
+        "id": 10473887715,
+        "name": "R7-evidence-windows-arm64",
+        "digest": "sha256:d9c8d32ff55b10d1cd952e5d5eaa77a5487c3679e4de5f5353ba78bb748a260b"
+      },
+      "unperformed_gates": {
+        "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+        "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately.",
+        "production_signing": "Owner confirms signing setup is not completed. Unsigned candidate observations do not satisfy this gate."
+      }
+    },
+    "linux-x86_64": {
+      "status": "incomplete",
+      "steps": {
+        "acquisition": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "media": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "packaging": {
+          "outputs": {},
+          "outcome": "failure",
+          "conclusion": "failure"
+        },
+        "installation_launch": {
+          "outputs": {},
+          "outcome": "skipped",
+          "conclusion": "skipped"
+        },
+        "update_signatures": {
+          "outputs": {},
+          "outcome": "skipped",
+          "conclusion": "skipped"
+        }
+      },
+      "report": "linux-x86_64/qualification-evidence/linux-x86_64.json",
+      "evidence_artifact": {
+        "id": 10473403829,
+        "name": "R7-evidence-linux-x86_64",
+        "digest": "sha256:d1059bb71ab6f03dc95e905cec2d330fa0071c688b18b46fa80d0d10767cc964"
+      },
+      "unperformed_gates": {
+        "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+        "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately."
+      }
+    },
+    "linux-arm64": {
+      "status": "incomplete",
+      "steps": {
+        "acquisition": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "media": {
+          "outputs": {},
+          "outcome": "success",
+          "conclusion": "success"
+        },
+        "packaging": {
+          "outputs": {},
+          "outcome": "failure",
+          "conclusion": "failure"
+        },
+        "installation_launch": {
+          "outputs": {},
+          "outcome": "skipped",
+          "conclusion": "skipped"
+        },
+        "update_signatures": {
+          "outputs": {},
+          "outcome": "skipped",
+          "conclusion": "skipped"
+        }
+      },
+      "report": "linux-arm64/qualification-evidence/linux-arm64.json",
+      "evidence_artifact": {
+        "id": 10472854686,
+        "name": "R7-evidence-linux-arm64",
+        "digest": "sha256:d9703373c59675ddb6a978f0d12937f0c8da25d210631f285df2d1db3f019e18"
+      },
+      "unperformed_gates": {
+        "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+        "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately."
+      }
+    }
+  },
+  "files_sha256": {
+    "artifacts.json": "23ee99607a01a13e8fa912d90e16622eef588bfd5577b6a99370be67d0f65853",
+    "jobs.json": "5a605c1c583c1388b5c5206a9b42ea0699c009ca4db05b44ee0e40aedd0b6be0",
+    "linux-arm64/qualification-evidence/linux-arm64.json": "5956539d97af7d69d9c2bdfd0f1ca5d47d039dff95105aad4179854c1db19467",
+    "linux-arm64/recipe7/linux-arm64/acquisition-evidence.json": "3e5acf488487bb6f48cc3e0ebf8c9a6f410bb18c152aa21b40397d94e81c0a9b",
+    "linux-x86_64/qualification-evidence/linux-x86_64.json": "de8e3176de694df554a625621b2f2b2e7d355809114e520484e2be887dc7bbe4",
+    "linux-x86_64/recipe7/linux-x86_64/acquisition-evidence.json": "18cc16810ab2b29e2614412d1ca68573ca6f8788ab4f797458b232d2be8a43a3",
+    "logs/105017668795.log.gz": "4bb1f8b11a6470d0bbb37b515a82580d69e338caa5ceb1552dc205238d6dd03b",
+    "logs/105017840211.log.gz": "65c0f06d1ef496ca303d8a18c8d6932e26e35f5812996efd762bee42c31c4138",
+    "logs/105017840229.log.gz": "530e65ce5bbcbe35800eafbad20b00ce9ff274c1a101287a3e861c8bd8e7bfc6",
+    "logs/105017840247.log.gz": "0b981e92193812980db023d0a8ea5e6a9f36f7c7033ae89d724e5bfa1aea97d9",
+    "logs/105017840263.log.gz": "4045bc2cd6d900e169721d9d7582740159850685a3708bd645c2273d472371d8",
+    "logs/105017840324.log.gz": "9973154b4610485996e88d8658c5fbec8a0438fc817b1a750fe26960a515a9f2",
+    "logs/105017840339.log.gz": "46ef59d63f7e79973473567d9daabf4b15636e42d4a8e731275727d61e5f1274",
+    "macos-arm64/qualification-evidence/installed-macos-arm64-startup.json": "cdfb97a989dac2fd74aca815b8e95e22fc4ffc43f3cf96c3cca7056f3e763263",
+    "macos-arm64/qualification-evidence/installed-macos-arm64.json": "78fee29b024f8db45c5c1407df3bce53a18c10804639caf11f2f31b579729e0a",
+    "macos-arm64/qualification-evidence/macos-arm64.json": "68a8f65f961e5f4bc6d3d8abf92436851b4dd7f463f5367ec67f528acba7dfaa",
+    "macos-arm64/qualification-evidence/update-signatures.json": "dc3e247cf5d9a97d2ddf06a85b33833d3f648fd31aa3307d773cd0886808e7a5",
+    "macos-arm64/recipe7/macos-arm64/acquisition-evidence.json": "7e18bbc7adde4b97af39ef52aefc8d51112c8471de6082de090886f546099e8a",
+    "macos-x86_64/qualification-evidence/installed-macos-intel.json": "bbca90721d926bbb84f0bca79c9bfe735dcfd6d3cc701f45b0c9cff6902065ca",
+    "macos-x86_64/qualification-evidence/installed-macos-x86_64-startup.json": "cdfb97a989dac2fd74aca815b8e95e22fc4ffc43f3cf96c3cca7056f3e763263",
+    "macos-x86_64/qualification-evidence/macos-x86_64.json": "9feab2b03c03ec1b739464dbb5817e7d069b44b2fc82b04fa8799904dd3b8f53",
+    "macos-x86_64/qualification-evidence/update-signatures.json": "35a51f65f6cf041d7aabad8a59d962670137169197ba4cd98c2be1a96d97839b",
+    "macos-x86_64/recipe7/macos-x86_64/acquisition-evidence.json": "f867ac590caf7e8d3fe08c5b38de1dce78c6bb6f7fc4c57519de354e036cc219",
+    "windows-arm64/qualification-evidence/installed-windows-arm64.json": "2ae056e285b3e6da6ba27b6b596af917b70916925cec027379d497f017db113e",
+    "windows-arm64/qualification-evidence/installed-windows-startup.json": "cdfb97a989dac2fd74aca815b8e95e22fc4ffc43f3cf96c3cca7056f3e763263",
+    "windows-arm64/qualification-evidence/windows-arm64.json": "17add48b329ebe257e77ee51b8f4f2a2d2a5cc44d8282e306ccb52fbd9730f8e",
+    "windows-arm64/recipe7/windows-arm64/acquisition-evidence.json": "98a2b7d01085aae03ea63c410990e7a0c40024f9178f000c0ca28e4250436f30",
+    "windows-x86_64/qualification-evidence/installed-windows-startup.json": "cdfb97a989dac2fd74aca815b8e95e22fc4ffc43f3cf96c3cca7056f3e763263",
+    "windows-x86_64/qualification-evidence/installed-windows-x64.json": "6aaf60beb8b73aeb7e2ae189ef237b1cbec694bf19196f5b563c307af5131ac2",
+    "windows-x86_64/qualification-evidence/update-signatures.json": "498b441805b7c0e6e5121ad64eeb9ea72a6daf673fb84aab002a8814d41643ed",
+    "windows-x86_64/qualification-evidence/windows-x86_64.json": "a13ffeb6fe7135341c2c57be387346a089dfcb14cf74304f84b88816242d42a1",
+    "windows-x86_64/recipe7/windows-x86_64/acquisition-evidence.json": "b363488c25203c7c80e9e381bb2396a9d9e75bcbf6cb1a468ff00f018b84372d"
+  },
+  "production_release_published": false
+}

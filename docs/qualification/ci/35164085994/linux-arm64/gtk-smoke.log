@@ -1,0 +1,7 @@
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+dbus-daemon[28176]: [session uid=1001 pid=28176] Activating service name='org.a11y.Bus' requested by ':1.0' (uid=1001 pid=28177 comm="/home/runner/work/ativ/ativ/ATIV/build/package-lin" label="unconfined")
+dbus-daemon[28176]: [session uid=1001 pid=28176] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[28201]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=1001 pid=28177 comm="/home/runner/work/ativ/ativ/ATIV/build/package-lin" label="unconfined")
+dbus-daemon[28201]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry

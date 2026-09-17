@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "target": "linux-x64-deb",
+  "scope": "installed package architecture, resources, managed discovery, media/lifecycle and runtime provenance",
+  "signed_payload": {
+    "schema": 1,
+    "target": "linux-x86_64",
+    "original_binary_sha256": {
+      "ffmpeg": "31c6b0506442b3b8fd719c84a76023949a688548fcacabd9f13fe3fe6793d10a",
+      "ffprobe": "c729cd015f6cd208b4c7eaf6cc3215e7e3076f7433d94ba2f43794e1582a6697"
+    },
+    "signed_binary_sha256": {
+      "ffmpeg": "31c6b0506442b3b8fd719c84a76023949a688548fcacabd9f13fe3fe6793d10a",
+      "ffprobe": "c729cd015f6cd208b4c7eaf6cc3215e7e3076f7433d94ba2f43794e1582a6697"
+    },
+    "scope": "Host signing changes; original release identity and checksums remain intact. Host verifies platform signatures."
+  },
+  "provenance": {
+    "schema": 1,
+    "ativ_version": "0.2.3-dev.3",
+    "avid_core_version": "0.2.2",
+    "avid_core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+    "runtime_build_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+    "ffmpeg_version": "9.0.1",
+    "runtime_recipe": 7,
+    "target": "linux-x86_64",
+    "architecture": "x86_64",
+    "qualification_only": true,
+    "source_asset": "avid-ffmpeg-9.0.1-r7-linux-x86_64-sources.tar.gz"
+  }
+}

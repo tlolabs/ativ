@@ -1,0 +1,1126 @@
+[
+  {
+    "id": 105021143494,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc795xg",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021143494",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021143494",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-09-16T23:51:14Z",
+    "started_at": "2026-09-16T23:51:16Z",
+    "completed_at": "2026-09-16T23:52:02Z",
+    "name": "Shared Rust engine",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:51:17Z",
+        "completed_at": "2026-09-16T23:51:18Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:51:18Z",
+        "completed_at": "2026-09-16T23:51:19Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:51:19Z",
+        "completed_at": "2026-09-16T23:51:20Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:51:20Z",
+        "completed_at": "2026-09-16T23:51:20Z"
+      },
+      {
+        "name": "Validate release infrastructure",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:51:20Z",
+        "completed_at": "2026-09-16T23:51:25Z"
+      },
+      {
+        "name": "Validate Rust workspace",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-09-16T23:51:25Z",
+        "completed_at": "2026-09-16T23:52:00Z"
+      },
+      {
+        "name": "Enforce Core runtime ownership",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:52:00Z",
+        "completed_at": "2026-09-16T23:52:00Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-16T23:52:00Z",
+        "completed_at": "2026-09-16T23:52:01Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 14,
+        "started_at": "2026-09-16T23:52:01Z",
+        "completed_at": "2026-09-16T23:52:01Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-09-16T23:52:01Z",
+        "completed_at": "2026-09-16T23:52:01Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021143494",
+    "labels": [
+      "ubuntu-24.04"
+    ],
+    "runner_id": 1000001535,
+    "runner_name": "GitHub Actions 1000001535",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  {
+    "id": 105021314384,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc8IVUA",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021314384",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021314384",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-09-16T23:52:02Z",
+    "started_at": "2026-09-16T23:52:05Z",
+    "completed_at": "2026-09-16T23:59:58Z",
+    "name": "Linux x86_64",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:52:06Z",
+        "completed_at": "2026-09-16T23:52:06Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:52:06Z",
+        "completed_at": "2026-09-16T23:52:09Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:52:09Z",
+        "completed_at": "2026-09-16T23:52:10Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:52:10Z",
+        "completed_at": "2026-09-16T23:52:10Z"
+      },
+      {
+        "name": "Install native toolkit",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:52:10Z",
+        "completed_at": "2026-09-16T23:52:32Z"
+      },
+      {
+        "name": "Acquire exact retained Recipe 7 candidate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-09-16T23:52:32Z",
+        "completed_at": "2026-09-16T23:52:36Z"
+      },
+      {
+        "name": "Verify canonical media and host contract with release tools",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:52:36Z",
+        "completed_at": "2026-09-16T23:54:13Z"
+      },
+      {
+        "name": "Build and package native application",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-16T23:54:13Z",
+        "completed_at": "2026-09-16T23:57:43Z"
+      },
+      {
+        "name": "Native GTK and package smoke tests",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-16T23:57:43Z",
+        "completed_at": "2026-09-16T23:59:43Z"
+      },
+      {
+        "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-09-16T23:59:43Z",
+        "completed_at": "2026-09-16T23:59:48Z"
+      },
+      {
+        "name": "Authenticate candidate package update signatures offline",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-09-16T23:59:48Z",
+        "completed_at": "2026-09-16T23:59:53Z"
+      },
+      {
+        "name": "Record exact candidate and partial qualification evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-09-16T23:59:53Z",
+        "completed_at": "2026-09-16T23:59:54Z"
+      },
+      {
+        "name": "Retain qualification evidence even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-16T23:59:54Z",
+        "completed_at": "2026-09-16T23:59:55Z"
+      },
+      {
+        "name": "Enforce outstanding application release gates",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 14,
+        "started_at": "2026-09-16T23:59:55Z",
+        "completed_at": "2026-09-16T23:59:55Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 27,
+        "started_at": "2026-09-16T23:59:55Z",
+        "completed_at": "2026-09-16T23:59:55Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 28,
+        "started_at": "2026-09-16T23:59:55Z",
+        "completed_at": "2026-09-16T23:59:55Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 29,
+        "started_at": "2026-09-16T23:59:55Z",
+        "completed_at": "2026-09-16T23:59:55Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021314384",
+    "labels": [
+      "ubuntu-24.04"
+    ],
+    "runner_id": 1000001536,
+    "runner_name": "GitHub Actions 1000001536",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  {
+    "id": 105021314396,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc8IVXA",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021314396",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021314396",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-09-16T23:52:02Z",
+    "started_at": "2026-09-16T23:52:08Z",
+    "completed_at": "2026-09-17T00:05:52Z",
+    "name": "macOS x86_64",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:52:09Z",
+        "completed_at": "2026-09-16T23:52:10Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:52:10Z",
+        "completed_at": "2026-09-16T23:52:17Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:52:17Z",
+        "completed_at": "2026-09-16T23:52:21Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:52:21Z",
+        "completed_at": "2026-09-16T23:52:21Z"
+      },
+      {
+        "name": "Acquire exact retained Recipe 7 candidate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:52:21Z",
+        "completed_at": "2026-09-16T23:52:33Z"
+      },
+      {
+        "name": "Configure release signing and notarization",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 6,
+        "started_at": "2026-09-16T23:52:33Z",
+        "completed_at": "2026-09-16T23:52:33Z"
+      },
+      {
+        "name": "Verify canonical media and host contract with release tools",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:52:33Z",
+        "completed_at": "2026-09-16T23:56:46Z"
+      },
+      {
+        "name": "Build and package native application",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-16T23:56:46Z",
+        "completed_at": "2026-09-17T00:00:10Z"
+      },
+      {
+        "name": "Native process integration tests",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-17T00:00:10Z",
+        "completed_at": "2026-09-17T00:01:20Z"
+      },
+      {
+        "name": "Validate packaged application and startup",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-09-17T00:01:20Z",
+        "completed_at": "2026-09-17T00:03:24Z"
+      },
+      {
+        "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-09-17T00:03:25Z",
+        "completed_at": "2026-09-17T00:03:32Z"
+      },
+      {
+        "name": "Install from DMG and validate installed runtime and launch",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-09-17T00:03:32Z",
+        "completed_at": "2026-09-17T00:05:34Z"
+      },
+      {
+        "name": "Authenticate candidate package update signatures offline",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-17T00:05:34Z",
+        "completed_at": "2026-09-17T00:05:47Z"
+      },
+      {
+        "name": "Record exact candidate and partial qualification evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 14,
+        "started_at": "2026-09-17T00:05:47Z",
+        "completed_at": "2026-09-17T00:05:48Z"
+      },
+      {
+        "name": "Retain qualification evidence even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-09-17T00:05:48Z",
+        "completed_at": "2026-09-17T00:05:49Z"
+      },
+      {
+        "name": "Enforce outstanding application release gates",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 16,
+        "started_at": "2026-09-17T00:05:49Z",
+        "completed_at": "2026-09-17T00:05:49Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 31,
+        "started_at": "2026-09-17T00:05:49Z",
+        "completed_at": "2026-09-17T00:05:50Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 32,
+        "started_at": "2026-09-17T00:05:50Z",
+        "completed_at": "2026-09-17T00:05:50Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 33,
+        "started_at": "2026-09-17T00:05:50Z",
+        "completed_at": "2026-09-17T00:05:51Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021314396",
+    "labels": [
+      "macos-15-intel"
+    ],
+    "runner_id": 1000001537,
+    "runner_name": "GitHub Actions 1000001537",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  {
+    "id": 105021314409,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc8IVaQ",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021314409",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021314409",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-09-16T23:52:02Z",
+    "started_at": "2026-09-16T23:52:08Z",
+    "completed_at": "2026-09-17T00:00:28Z",
+    "name": "Linux aarch64",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:52:09Z",
+        "completed_at": "2026-09-16T23:52:09Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:52:09Z",
+        "completed_at": "2026-09-16T23:52:11Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:52:11Z",
+        "completed_at": "2026-09-16T23:52:12Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:52:12Z",
+        "completed_at": "2026-09-16T23:52:12Z"
+      },
+      {
+        "name": "Install native toolkit",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:52:12Z",
+        "completed_at": "2026-09-16T23:53:00Z"
+      },
+      {
+        "name": "Acquire exact retained Recipe 7 candidate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-09-16T23:53:00Z",
+        "completed_at": "2026-09-16T23:53:05Z"
+      },
+      {
+        "name": "Verify canonical media and host contract with release tools",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:53:05Z",
+        "completed_at": "2026-09-16T23:54:40Z"
+      },
+      {
+        "name": "Build and package native application",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-16T23:54:40Z",
+        "completed_at": "2026-09-16T23:58:11Z"
+      },
+      {
+        "name": "Native GTK and package smoke tests",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-16T23:58:11Z",
+        "completed_at": "2026-09-17T00:00:15Z"
+      },
+      {
+        "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-09-17T00:00:15Z",
+        "completed_at": "2026-09-17T00:00:19Z"
+      },
+      {
+        "name": "Authenticate candidate package update signatures offline",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-09-17T00:00:19Z",
+        "completed_at": "2026-09-17T00:00:23Z"
+      },
+      {
+        "name": "Record exact candidate and partial qualification evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-09-17T00:00:23Z",
+        "completed_at": "2026-09-17T00:00:24Z"
+      },
+      {
+        "name": "Retain qualification evidence even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-17T00:00:24Z",
+        "completed_at": "2026-09-17T00:00:25Z"
+      },
+      {
+        "name": "Enforce outstanding application release gates",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 14,
+        "started_at": "2026-09-17T00:00:25Z",
+        "completed_at": "2026-09-17T00:00:25Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 27,
+        "started_at": "2026-09-17T00:00:25Z",
+        "completed_at": "2026-09-17T00:00:25Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 28,
+        "started_at": "2026-09-17T00:00:25Z",
+        "completed_at": "2026-09-17T00:00:25Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 29,
+        "started_at": "2026-09-17T00:00:25Z",
+        "completed_at": "2026-09-17T00:00:25Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021314409",
+    "labels": [
+      "ubuntu-24.04-arm"
+    ],
+    "runner_id": 1000001539,
+    "runner_name": "GitHub Actions 1000001539",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  {
+    "id": 105021314419,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc8IVcw",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021314419",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021314419",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-09-16T23:52:02Z",
+    "started_at": "2026-09-16T23:52:05Z",
+    "completed_at": "2026-09-17T00:01:16Z",
+    "name": "Windows x64",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:52:06Z",
+        "completed_at": "2026-09-16T23:52:06Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:52:07Z",
+        "completed_at": "2026-09-16T23:52:14Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:52:14Z",
+        "completed_at": "2026-09-16T23:52:19Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:52:19Z",
+        "completed_at": "2026-09-16T23:52:19Z"
+      },
+      {
+        "name": "Acquire exact retained Recipe 7 candidate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:52:19Z",
+        "completed_at": "2026-09-16T23:52:27Z"
+      },
+      {
+        "name": "Install Inno Setup",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-09-16T23:52:27Z",
+        "completed_at": "2026-09-16T23:52:33Z"
+      },
+      {
+        "name": "Verify canonical media and host contract with release tools",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:52:33Z",
+        "completed_at": "2026-09-16T23:54:37Z"
+      },
+      {
+        "name": "Build and package native application",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-16T23:54:37Z",
+        "completed_at": "2026-09-16T23:59:13Z"
+      },
+      {
+        "name": "Native integration and installer smoke tests",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-16T23:59:13Z",
+        "completed_at": "2026-09-17T00:00:18Z"
+      },
+      {
+        "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-09-17T00:00:18Z",
+        "completed_at": "2026-09-17T00:00:27Z"
+      },
+      {
+        "name": "Authenticate candidate package update signatures offline",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-09-17T00:00:27Z",
+        "completed_at": "2026-09-17T00:01:08Z"
+      },
+      {
+        "name": "Record exact candidate and partial qualification evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-09-17T00:01:08Z",
+        "completed_at": "2026-09-17T00:01:09Z"
+      },
+      {
+        "name": "Retain qualification evidence even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-17T00:01:09Z",
+        "completed_at": "2026-09-17T00:01:10Z"
+      },
+      {
+        "name": "Enforce outstanding application release gates",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 14,
+        "started_at": "2026-09-17T00:01:10Z",
+        "completed_at": "2026-09-17T00:01:10Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 27,
+        "started_at": "2026-09-17T00:01:10Z",
+        "completed_at": "2026-09-17T00:01:13Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 28,
+        "started_at": "2026-09-17T00:01:13Z",
+        "completed_at": "2026-09-17T00:01:15Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 29,
+        "started_at": "2026-09-17T00:01:15Z",
+        "completed_at": "2026-09-17T00:01:15Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021314419",
+    "labels": [
+      "windows-2025"
+    ],
+    "runner_id": 1000001538,
+    "runner_name": "GitHub Actions 1000001538",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  {
+    "id": 105021314488,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc8IVuA",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021314488",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021314488",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-09-16T23:52:02Z",
+    "started_at": "2026-09-16T23:52:11Z",
+    "completed_at": "2026-09-17T00:03:36Z",
+    "name": "macOS arm64",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:52:12Z",
+        "completed_at": "2026-09-16T23:52:14Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:52:14Z",
+        "completed_at": "2026-09-16T23:52:16Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:52:16Z",
+        "completed_at": "2026-09-16T23:52:18Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:52:18Z",
+        "completed_at": "2026-09-16T23:52:18Z"
+      },
+      {
+        "name": "Acquire exact retained Recipe 7 candidate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:52:18Z",
+        "completed_at": "2026-09-16T23:52:24Z"
+      },
+      {
+        "name": "Configure release signing and notarization",
+        "status": "completed",
+        "conclusion": "skipped",
+        "number": 6,
+        "started_at": "2026-09-16T23:52:24Z",
+        "completed_at": "2026-09-16T23:52:24Z"
+      },
+      {
+        "name": "Verify canonical media and host contract with release tools",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:52:24Z",
+        "completed_at": "2026-09-16T23:55:42Z"
+      },
+      {
+        "name": "Build and package native application",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-16T23:55:42Z",
+        "completed_at": "2026-09-16T23:58:40Z"
+      },
+      {
+        "name": "Native process integration tests",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-16T23:58:40Z",
+        "completed_at": "2026-09-16T23:59:10Z"
+      },
+      {
+        "name": "Validate packaged application and startup",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-09-16T23:59:10Z",
+        "completed_at": "2026-09-17T00:01:15Z"
+      },
+      {
+        "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-09-17T00:01:15Z",
+        "completed_at": "2026-09-17T00:01:19Z"
+      },
+      {
+        "name": "Install from DMG and validate installed runtime and launch",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-09-17T00:01:19Z",
+        "completed_at": "2026-09-17T00:03:24Z"
+      },
+      {
+        "name": "Authenticate candidate package update signatures offline",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-17T00:03:24Z",
+        "completed_at": "2026-09-17T00:03:29Z"
+      },
+      {
+        "name": "Record exact candidate and partial qualification evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 14,
+        "started_at": "2026-09-17T00:03:29Z",
+        "completed_at": "2026-09-17T00:03:29Z"
+      },
+      {
+        "name": "Retain qualification evidence even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 15,
+        "started_at": "2026-09-17T00:03:29Z",
+        "completed_at": "2026-09-17T00:03:30Z"
+      },
+      {
+        "name": "Enforce outstanding application release gates",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 16,
+        "started_at": "2026-09-17T00:03:30Z",
+        "completed_at": "2026-09-17T00:03:30Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 31,
+        "started_at": "2026-09-17T00:03:30Z",
+        "completed_at": "2026-09-17T00:03:31Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 32,
+        "started_at": "2026-09-17T00:03:31Z",
+        "completed_at": "2026-09-17T00:03:31Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 33,
+        "started_at": "2026-09-17T00:03:31Z",
+        "completed_at": "2026-09-17T00:03:33Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021314488",
+    "labels": [
+      "macos-15"
+    ],
+    "runner_id": 1000001540,
+    "runner_name": "GitHub Actions 1000001540",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  {
+    "id": 105021314571,
+    "run_id": 35164085994,
+    "workflow_name": "Recipe 7 host qualification (no publication)",
+    "head_branch": "codex/recipe7-host-qualification",
+    "run_url": "https://api.github.com/repos/tlolabs/ativ/actions/runs/35164085994",
+    "run_attempt": 1,
+    "node_id": "CR_kwDORa5h-s8AAAAYc8IWCw",
+    "head_sha": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+    "url": "https://api.github.com/repos/tlolabs/ativ/actions/jobs/105021314571",
+    "html_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994/job/105021314571",
+    "status": "completed",
+    "conclusion": "failure",
+    "created_at": "2026-09-16T23:52:02Z",
+    "started_at": "2026-09-16T23:52:05Z",
+    "completed_at": "2026-09-17T00:01:51Z",
+    "name": "Windows ARM64",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-09-16T23:52:06Z",
+        "completed_at": "2026-09-16T23:52:07Z"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-09-16T23:52:07Z",
+        "completed_at": "2026-09-16T23:52:19Z"
+      },
+      {
+        "name": "Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-09-16T23:52:19Z",
+        "completed_at": "2026-09-16T23:52:28Z"
+      },
+      {
+        "name": "Configure build identity",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-09-16T23:52:28Z",
+        "completed_at": "2026-09-16T23:52:29Z"
+      },
+      {
+        "name": "Acquire exact retained Recipe 7 candidate",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-09-16T23:52:29Z",
+        "completed_at": "2026-09-16T23:52:36Z"
+      },
+      {
+        "name": "Install Inno Setup",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-09-16T23:52:36Z",
+        "completed_at": "2026-09-16T23:52:50Z"
+      },
+      {
+        "name": "Verify canonical media and host contract with release tools",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7,
+        "started_at": "2026-09-16T23:52:50Z",
+        "completed_at": "2026-09-16T23:54:59Z"
+      },
+      {
+        "name": "Build and package native application",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8,
+        "started_at": "2026-09-16T23:54:59Z",
+        "completed_at": "2026-09-16T23:59:23Z"
+      },
+      {
+        "name": "Native integration and installer smoke tests",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9,
+        "started_at": "2026-09-16T23:59:23Z",
+        "completed_at": "2026-09-17T00:00:25Z"
+      },
+      {
+        "name": "Run actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 10,
+        "started_at": "2026-09-17T00:00:25Z",
+        "completed_at": "2026-09-17T00:00:33Z"
+      },
+      {
+        "name": "Authenticate candidate package update signatures offline",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-09-17T00:00:33Z",
+        "completed_at": "2026-09-17T00:01:40Z"
+      },
+      {
+        "name": "Record exact candidate and partial qualification evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-09-17T00:01:40Z",
+        "completed_at": "2026-09-17T00:01:41Z"
+      },
+      {
+        "name": "Retain qualification evidence even when a gate fails",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-09-17T00:01:41Z",
+        "completed_at": "2026-09-17T00:01:42Z"
+      },
+      {
+        "name": "Enforce outstanding application release gates",
+        "status": "completed",
+        "conclusion": "failure",
+        "number": 14,
+        "started_at": "2026-09-17T00:01:42Z",
+        "completed_at": "2026-09-17T00:01:42Z"
+      },
+      {
+        "name": "Post Check out the tested canonical media core",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 27,
+        "started_at": "2026-09-17T00:01:42Z",
+        "completed_at": "2026-09-17T00:01:46Z"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 28,
+        "started_at": "2026-09-17T00:01:46Z",
+        "completed_at": "2026-09-17T00:01:50Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 29,
+        "started_at": "2026-09-17T00:01:50Z",
+        "completed_at": "2026-09-17T00:01:50Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/tlolabs/ativ/check-runs/105021314571",
+    "labels": [
+      "windows-11-arm"
+    ],
+    "runner_id": 1000001541,
+    "runner_name": "GitHub Actions 1000001541",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  }
+]

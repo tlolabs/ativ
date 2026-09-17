@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "qualification_only": true,
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "run_id": 35157560636,
+  "target": "macos-x86_64",
+  "runtime_sha256": "45aefa885d02c65dd6b5cc0a800d28734f3736385356e8e4d69e4c38081df5b4",
+  "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+  "native_host": {
+    "system": "Darwin",
+    "machine": "x86_64",
+    "platform": "macOS-15.7.9-x86_64-i386-64bit-Mach-O",
+    "macos": "15.7.9",
+    "windows": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "linux": {}
+  },
+  "binary_sha256": {
+    "ffmpeg": "c0f50e0beecaf4a7c818a6aabfa5d31764233c7fa417775e2ce2edb781dae031",
+    "ffprobe": "861870ff81aedbee37a0479eb2c7f9943e6998c841892a9eb771c98f81d56403"
+  },
+  "artifact_id": 10472720332,
+  "artifact_sha256": "sha256:88e571da1bfc3ac9bf22c661af933b0eed29d4908cd9297728169d0c4e17c3e2",
+  "job_id": 105000546725,
+  "media_tests_passed": [
+    "standalone_preview_render_and_original_audio_format",
+    "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+    "hevc_has_hvc1_tag",
+    "simple_matches_legacy_pixels_audio_and_requested_cadence",
+    "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+  ],
+  "status": "passed"
+}

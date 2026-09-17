@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "scope": "offline signatures of real candidate packages; not end-to-end update acceptance",
+  "metadata_tampering_rejected": true,
+  "packages": {
+    "windows-x64": {
+      "url": "https://github.com/tlolabs/ativ/releases/download/development/ATIV-0.2.3-dev.2-windows-x64-setup.exe",
+      "filename": "ATIV-0.2.3-dev.2-windows-x64-setup.exe",
+      "size": 98640092,
+      "sha256": "cc266d1d350a21373b9ee8c9c9b26a03fd1db0e897730685ea794f137a54ef82"
+    }
+  },
+  "envelope": {
+    "payload": "eyJhc3NldHMiOnsid2luZG93cy14NjQiOnsiZmlsZW5hbWUiOiJBVElWLTAuMi4zLWRldi4yLXdpbmRvd3MteDY0LXNldHVwLmV4ZSIsInNoYTI1NiI6ImNjMjY2ZDFkMzUwYTIxMzczYjllZThjOWM5YjI2YTAzZmQxZGIwZTg5NzczMDY4NWVhNzk0ZjEzN2E1NGVmODIiLCJzaXplIjo5ODY0MDA5MiwidXJsIjoiaHR0cHM6Ly9naXRodWIuY29tL3Rsb2xhYnMvYXRpdi9yZWxlYXNlcy9kb3dubG9hZC9kZXZlbG9wbWVudC9BVElWLTAuMi4zLWRldi4yLXdpbmRvd3MteDY0LXNldHVwLmV4ZSJ9fSwiY2hhbm5lbCI6ImRldmVsb3BtZW50Iiwic2NoZW1hIjoxLCJ2ZXJzaW9uIjoiMC4yLjMtZGV2LjIifQ==",
+    "signature": "aFQbh62RxObiWrD1WC5xzwUCNPg4/4Uf8eEy63BmkH5snT5VfAFdHlookWSJq8N+IbGayxToNOPeRK8pqc52CQ=="
+  },
+  "public_key": "sa41y6tc9UzUoXwbNHFzWMdYm8g0Y4hLvcxFN+0lpGo=",
+  "published": false
+}

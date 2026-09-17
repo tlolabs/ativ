@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "gate": "host_packaging",
+  "status": "incomplete",
+  "host": "ATIV",
+  "target": "linux-arm64",
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "core_run": "https://github.com/tlolabs/avid-core/actions/runs/35157560636",
+  "ativ_revision": "ba87f58fcd42a7d99d46ab8a5f4d3b96569eb61d",
+  "recipe": 7,
+  "binary_sha256": {
+    "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+    "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+  },
+  "candidate": {
+    "runtime_sha256": "da2bc9b680827038be53f6b9d7ad8348fbfdf0f6c162a377b4091d2c508b25f2",
+    "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+    "native_host": {
+      "system": "Linux",
+      "machine": "aarch64",
+      "platform": "Linux-6.17.0-1022-azure-aarch64-with-glibc2.39",
+      "macos": "",
+      "windows": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "linux": {
+        "NAME": "Ubuntu",
+        "ID": "ubuntu",
+        "PRETTY_NAME": "Ubuntu 24.04.5 LTS",
+        "VERSION_ID": "24.04",
+        "VERSION": "24.04.5 LTS (Noble Numbat)",
+        "VERSION_CODENAME": "noble",
+        "ID_LIKE": "debian",
+        "HOME_URL": "https://www.ubuntu.com/",
+        "SUPPORT_URL": "https://help.ubuntu.com/",
+        "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+        "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+        "UBUNTU_CODENAME": "noble",
+        "LOGO": "ubuntu-logo"
+      }
+    },
+    "binary_sha256": {
+      "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+      "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+    },
+    "artifact_id": 10471813710,
+    "artifact_sha256": "sha256:00eb46ec45e2382e9e157abb50bf3662c8adde8de891dd0b4669e1db551ca12b",
+    "job_id": 105000546703,
+    "media_tests_passed": [
+      "standalone_preview_render_and_original_audio_format",
+      "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+      "hevc_has_hvc1_tag",
+      "simple_matches_legacy_pixels_audio_and_requested_cadence",
+      "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+    ],
+    "status": "passed"
+  },
+  "native_host": {
+    "platform": "Linux-6.17.0-1022-azure-aarch64-with-glibc2.39",
+    "machine": "aarch64",
+    "system": "Linux"
+  },
+  "run_url": "https://github.com/tlolabs/ativ/actions/runs/35164085994",
+  "steps": {
+    "acquisition": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "media": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "packaging": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "installation_launch": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "update_signatures": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    }
+  },
+  "artifact_sha256": {
+    "packages/ATIV-0.2.3-dev.3-linux-arm64.deb": "e86c0c239ba5c5399b9595d1421d10856bc0b9a106cd75364278209b36ad2b38",
+    "packages/ATIV-0.2.3-dev.3-linux-arm64.AppImage": "4023b5121fd2bafd2503f78c604b98df0995f355e2a3e283d44fc9dbb9674e21",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64.tar.gz.qualification.json": "034348e39a01bc1919d71dc430178c1ba61cfe93227c6165d13565b1b97a4337",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64-sources.tar.gz.sha256": "48a56e814a72334ab0f88a64fe383f596b3c81ff11b8fa2b2993c0c152035ed1",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64.tar.gz.sha256": "62910d2c08a662e5f2981a00b1de9dca4946a0bbab83683c1a0777155a380b0b",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64.tar.gz": "da2bc9b680827038be53f6b9d7ad8348fbfdf0f6c162a377b4091d2c508b25f2",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64.tar.gz.installation.log": "90ff1ff021dc353df4cb4ae1c971d4feeee5f3982a7f58fef2268cf78c9c7148",
+    "build/recipe7/linux-arm64/acquisition-evidence.json": "3e5acf488487bb6f48cc3e0ebf8c9a6f410bb18c152aa21b40397d94e81c0a9b",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64-sources.tar.gz": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/SHA256SUMS": "c8fa82c587ed8772981051fbe26d769a0897f60cfb3eb6e47ed27168141f7fc2",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/validation.json": "19b38d69058bfaa00e83925471e8889c2154550b38088c630ed8eea1eb406917",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/core-tests-passed.txt": "644abd849a833a2a602819f2d0dc246e0b690590b005198ea70d1293919dec09",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/source-provenance.json": "2ab92056df9d93e2f639930b68f7941c6507933088fcb7f42d21cfe6b3d465ce",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/SOURCE.json": "5d0409586f8907ae079788e63b6d351797900a0c7450a72a642d61c66651e20c",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/hardware-observation.json": "ffb85dd1c3645aa8d37682c4eab062c7fb0afeec842753546b649c654b0643c5",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/build.json": "16737787be5b290ad175af03d51e64b1f2fe606e6169120df1a5a5e39961faf7",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/spec.json": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/repeat-build.json": "44b4cc41b0db00d1ee027b52839e21997830196ae0314963841e7973608497f5",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/REDISTRIBUTION.md": "2febc25f87af06e7f5c5c29598b91e926428d9bd2aa0e0997ea594a9b387f371",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/ffmpeg/COPYING.GPLv3": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/ffmpeg/COPYING.GPLv2": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/ffmpeg/COPYING.LGPLv2.1": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/ffmpeg/LICENSE.md": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/ffmpeg/COPYING.LGPLv3": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/lame/COPYING": "e64f9c5a18f56828c10a575df13ade641aa3af4512a7afe6c411256943b57aaf",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/lame/LICENSE": "5c1f8d44f1eacbea3e1c31ff6ee11a4e1690ccbed4ee4af16de3b6eb61dc69a8",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/nasm/LICENSE": "1563996c52e220e15ef2418e67d39488255aa8c28c89e617074d3afe3ee329e0",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/x264/COPYING": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/x265/COPYING": "d8afb1bcc7a2cfc603683b168d6987ef0a48e59e0da3693bf55c5d33b67e2b49",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/zlib/zlib.h": "8a5579af72ea4f427ff00a4150f0ccb3fc5c1e4379f726e101133b1ab9fc600c",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/zlib/README": "d106dcdb2a0b3087cb3a2380b9f00a0bbadc7eb835cd80408f94a2d78d69727d",
+    "build/recipe7/linux-arm64/avid-ffmpeg-9.0.1-r7-linux-arm64/licenses/zlib/LICENSE": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243"
+  },
+  "packaged_runtime": [
+    {
+      "path": "build/package-linux-aarch64/usr/lib/ativ-development/signed-payload.json",
+      "signed_payload": {
+        "schema": 1,
+        "target": "linux-arm64",
+        "original_binary_sha256": {
+          "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+          "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+        },
+        "signed_binary_sha256": {
+          "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+          "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+        },
+        "scope": "Host signing changes; original release identity and checksums remain intact. Host verifies platform signatures."
+      },
+      "actual_binary_sha256": {
+        "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+        "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+      },
+      "provenance": {
+        "schema": 1,
+        "ativ_version": "0.2.3-dev.3",
+        "avid_core_version": "0.2.2",
+        "avid_core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "runtime_build_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "ffmpeg_version": "9.0.1",
+        "runtime_recipe": 7,
+        "target": "linux-arm64",
+        "architecture": "arm64",
+        "qualification_only": true,
+        "source_asset": "avid-ffmpeg-9.0.1-r7-linux-arm64-sources.tar.gz"
+      }
+    },
+    {
+      "path": "build/ATIV-aarch64.AppDir/usr/lib/ativ/signed-payload.json",
+      "signed_payload": {
+        "schema": 1,
+        "target": "linux-arm64",
+        "original_binary_sha256": {
+          "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+          "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+        },
+        "signed_binary_sha256": {
+          "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+          "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+        },
+        "scope": "Host signing changes; original release identity and checksums remain intact. Host verifies platform signatures."
+      },
+      "actual_binary_sha256": {
+        "ffmpeg": "093c7a9b517205456a5501c5a39bc57d0f067f321fe556e4a94ac4f0dc3c1ecb",
+        "ffprobe": "c731fa3ba4dfab05d150b8fe38329265c71f59ee460809a005b454b5384cace0"
+      },
+      "provenance": {
+        "schema": 1,
+        "ativ_version": "0.2.3-dev.3",
+        "avid_core_version": "0.2.2",
+        "avid_core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "runtime_build_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "ffmpeg_version": "9.0.1",
+        "runtime_recipe": 7,
+        "target": "linux-arm64",
+        "architecture": "arm64",
+        "qualification_only": true,
+        "source_asset": "avid-ffmpeg-9.0.1-r7-linux-arm64-sources.tar.gz"
+      }
+    }
+  ],
+  "unperformed_gates": {
+    "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+    "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately."
+  },
+  "production_release_published": false
+}

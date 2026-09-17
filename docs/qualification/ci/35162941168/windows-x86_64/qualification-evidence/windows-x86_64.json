@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "gate": "host_packaging",
+  "status": "incomplete",
+  "host": "ATIV",
+  "target": "windows-x86_64",
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "core_run": "https://github.com/tlolabs/avid-core/actions/runs/35157560636",
+  "ativ_revision": "163c46063269e7ecd296f1e04fb8677013c9c6cc",
+  "recipe": 7,
+  "binary_sha256": {
+    "ffmpeg.exe": "35d37f442a44ceacd44a513b280835337eb01d45c593f565f283c3fd3781001d",
+    "ffprobe.exe": "635148687f774de7e047e6b6ffcc41f627d644da3eff51f2ca52f4e661d1ac36"
+  },
+  "candidate": {
+    "runtime_sha256": "1924663e2c3649614a275bf48c4a69d4aaaddd1346a038cda7977a311f49d63c",
+    "source_sha256": "a676c3b40288048c32014839495b3f05ec005a162dd7bbe164d71e1888a171a5",
+    "native_host": {
+      "system": "Windows",
+      "machine": "AMD64",
+      "platform": "Windows-2025Server-10.0.26100-SP0",
+      "macos": "",
+      "windows": [
+        "2025Server",
+        "10.0.26100",
+        "SP0",
+        "Multiprocessor Free"
+      ],
+      "linux": {}
+    },
+    "binary_sha256": {
+      "ffmpeg.exe": "35d37f442a44ceacd44a513b280835337eb01d45c593f565f283c3fd3781001d",
+      "ffprobe.exe": "635148687f774de7e047e6b6ffcc41f627d644da3eff51f2ca52f4e661d1ac36"
+    },
+    "artifact_id": 10472705469,
+    "artifact_sha256": "sha256:c43e3b94bfd733185a421881dd400db9e3fa0e9a85d1374b8549d0f8a1765d40",
+    "job_id": 105000546830,
+    "media_tests_passed": [
+      "standalone_preview_render_and_original_audio_format",
+      "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+      "hevc_has_hvc1_tag",
+      "simple_matches_legacy_pixels_audio_and_requested_cadence",
+      "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+    ],
+    "status": "passed"
+  },
+  "native_host": {
+    "platform": "Windows-2025Server-10.0.26100-SP0",
+    "machine": "AMD64",
+    "system": "Windows"
+  },
+  "run_url": "https://github.com/tlolabs/ativ/actions/runs/35162941168",
+  "steps": {
+    "acquisition": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "media": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "packaging": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "installation_launch": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "update_signatures": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    }
+  },
+  "artifact_sha256": {
+    "packages\\ATIV-0.2.3-dev.2-windows-x64-setup.exe": "cc266d1d350a21373b9ee8c9c9b26a03fd1db0e897730685ea794f137a54ef82",
+    "packages\\ATIV-0.2.3-dev.2-windows-x64.zip": "37d4ca04f25d900439c7073a345e46b489a5f5acab3ab25eab0a4ab9bea4a874",
+    "build\\recipe7\\windows-x86_64\\acquisition-evidence.json": "b363488c25203c7c80e9e381bb2396a9d9e75bcbf6cb1a468ff00f018b84372d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64-sources.tar.gz": "a676c3b40288048c32014839495b3f05ec005a162dd7bbe164d71e1888a171a5",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64-sources.tar.gz.sha256": "0be80456a9db50935c4d1e17da9623aa2ce99692a9b496a7f94f86a77f57ac2d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64.tar.gz": "1924663e2c3649614a275bf48c4a69d4aaaddd1346a038cda7977a311f49d63c",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64.tar.gz.installation.log": "90ff1ff021dc353df4cb4ae1c971d4feeee5f3982a7f58fef2268cf78c9c7148",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64.tar.gz.qualification.json": "03c71ccc72eaaea08093c644bdcb2481ddc4f9482ed407e12b74badb89b571e8",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64.tar.gz.sha256": "63cd7e1fc4652ff39108c4f631ea32b88fc67837282b6a06f86451a54a325bf9",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\build.json": "2af10387751e8734727e05db9b666b7a0877e4b6d4fca338753d8e80eb73b3aa",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\core-tests-passed.txt": "644abd849a833a2a602819f2d0dc246e0b690590b005198ea70d1293919dec09",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\ffmpeg.exe": "35d37f442a44ceacd44a513b280835337eb01d45c593f565f283c3fd3781001d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\ffprobe.exe": "635148687f774de7e047e6b6ffcc41f627d644da3eff51f2ca52f4e661d1ac36",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\hardware-observation.json": "eaddab38714d2c640c60ba44465c47a47d6f1119d9b5786452123793485796dd",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\repeat-build.json": "9474bffd8ba38a5c818a9ed478707d9c7f3b823dae514b58cc4d8260598c55ef",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\SHA256SUMS": "28e1b915fb8c06e0c23646f19bbd44a2d896f712886481e3acb7d43d6fdd194f",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\source-provenance.json": "2ab92056df9d93e2f639930b68f7941c6507933088fcb7f42d21cfe6b3d465ce",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\SOURCE.json": "2c0f2f3cf6413f1e766695a677a00fedd564d2d72f6521cdbff47f7c4c448972",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\spec.json": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\validation.json": "8978045073788e1948aeada28f26a9d729e1e2e66921bc97e5d4944587c14d4d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\REDISTRIBUTION.md": "2febc25f87af06e7f5c5c29598b91e926428d9bd2aa0e0997ea594a9b387f371",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\ffmpeg\\COPYING.GPLv2": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\ffmpeg\\COPYING.GPLv3": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\ffmpeg\\COPYING.LGPLv2.1": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\ffmpeg\\COPYING.LGPLv3": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\ffmpeg\\LICENSE.md": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\lame\\COPYING": "e64f9c5a18f56828c10a575df13ade641aa3af4512a7afe6c411256943b57aaf",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\lame\\LICENSE": "5c1f8d44f1eacbea3e1c31ff6ee11a4e1690ccbed4ee4af16de3b6eb61dc69a8",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\nasm\\LICENSE": "1563996c52e220e15ef2418e67d39488255aa8c28c89e617074d3afe3ee329e0",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\x264\\COPYING": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\x265\\COPYING": "d8afb1bcc7a2cfc603683b168d6987ef0a48e59e0da3693bf55c5d33b67e2b49",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\zlib\\LICENSE": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\zlib\\README": "d106dcdb2a0b3087cb3a2380b9f00a0bbadc7eb835cd80408f94a2d78d69727d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\zlib\\zlib.h": "8a5579af72ea4f427ff00a4150f0ccb3fc5c1e4379f726e101133b1ab9fc600c",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\compiler-rt\\LICENSE": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\crt\\COPYING": "99a69660981156c21336fdb5661f89341b013c94e4bf9e1c7467b4745718397f",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\crt\\COPYING.MinGW-w64-runtime.txt": "1db8da07b436c68833c0673ffee3d9fcb2526047f3820b81661865dfedc79a1f",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\crt\\COPYING.MinGW-w64.txt": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\headers\\COPYING": "99a69660981156c21336fdb5661f89341b013c94e4bf9e1c7467b4745718397f",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\headers\\COPYING.MinGW-w64-runtime.txt": "1db8da07b436c68833c0673ffee3d9fcb2526047f3820b81661865dfedc79a1f",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\headers\\COPYING.MinGW-w64.txt": "f38e6194bd3bfa1b654f118e5acefe0aead437bbe669eee43957ccc65a7127f1",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\headers\\ddk-readme.txt": "8d8f9924e4ea5466932000bdb9a4104da1d8ca3e4c979bb8207225522ba63826",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\libc++\\LICENSE": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\libunwind\\LICENSE": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+    "build\\recipe7\\windows-x86_64\\avid-ffmpeg-9.0.1-r7-windows-x86_64\\licenses\\toolchain\\winpthreads\\COPYING": "63263614cdd29f2f93cba85e992f041b31f9fc7b4033692f31269489a8a1b177"
+  },
+  "packaged_runtime": [
+    {
+      "path": "build\\windows-x64\\publish\\signed-payload.json",
+      "signed_payload": {
+        "schema": 1,
+        "target": "windows-x86_64",
+        "original_binary_sha256": {
+          "ffmpeg.exe": "35d37f442a44ceacd44a513b280835337eb01d45c593f565f283c3fd3781001d",
+          "ffprobe.exe": "635148687f774de7e047e6b6ffcc41f627d644da3eff51f2ca52f4e661d1ac36"
+        },
+        "signed_binary_sha256": {
+          "ffmpeg.exe": "35d37f442a44ceacd44a513b280835337eb01d45c593f565f283c3fd3781001d",
+          "ffprobe.exe": "635148687f774de7e047e6b6ffcc41f627d644da3eff51f2ca52f4e661d1ac36"
+        },
+        "scope": "Host signing changes; original release identity and checksums remain intact. Host verifies platform signatures."
+      },
+      "provenance": {
+        "schema": 1,
+        "ativ_version": "0.2.3-dev.2",
+        "avid_core_version": "0.2.2",
+        "avid_core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "runtime_build_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "ffmpeg_version": "9.0.1",
+        "runtime_recipe": 7,
+        "target": "windows-x86_64",
+        "architecture": "x86_64",
+        "qualification_only": true,
+        "source_asset": "avid-ffmpeg-9.0.1-r7-windows-x86_64-sources.tar.gz"
+      }
+    }
+  ],
+  "unperformed_gates": {
+    "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+    "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately.",
+    "production_signing": "Owner confirms signing setup is not completed. Unsigned candidate observations do not satisfy this gate."
+  },
+  "production_release_published": false
+}

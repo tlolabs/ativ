@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "target": "macos-arm64",
+  "scope": "installed package architecture, resources, managed discovery, media/lifecycle and runtime provenance",
+  "signed_payload": {
+    "schema": 1,
+    "target": "macos-arm64",
+    "original_binary_sha256": {
+      "ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+      "ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7"
+    },
+    "signed_binary_sha256": {
+      "ffmpeg": "c192806226eb2f75e85dd7e6619c220e3da6e44cab682c478f2f95e2d752c563",
+      "ffprobe": "0519723017c1aa56f12fdaf7bab881ded85258ec93260f9c8c5d5d90ea7af1c9"
+    },
+    "scope": "Host signing changes; original release identity and checksums remain intact. Host verifies platform signatures."
+  },
+  "provenance": {
+    "schema": 1,
+    "ativ_version": "0.2.3-dev.7001",
+    "avid_core_version": "0.2.2",
+    "avid_core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+    "runtime_build_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+    "ffmpeg_version": "9.0.1",
+    "runtime_recipe": 7,
+    "target": "macos-arm64",
+    "architecture": "arm64",
+    "qualification_only": true,
+    "source_asset": "avid-ffmpeg-9.0.1-r7-macos-arm64-sources.tar.gz"
+  }
+}

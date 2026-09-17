@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "gate": "host_packaging",
+  "status": "incomplete",
+  "host": "ATIV",
+  "target": "macos-arm64",
+  "core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+  "core_run": "https://github.com/tlolabs/avid-core/actions/runs/35157560636",
+  "ativ_revision": "163c46063269e7ecd296f1e04fb8677013c9c6cc",
+  "recipe": 7,
+  "binary_sha256": {
+    "ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+    "ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7"
+  },
+  "candidate": {
+    "runtime_sha256": "b029c0f44f888e2d686bca0e22e0687164f80da28e5822fe5be3b7e3b3f529df",
+    "source_sha256": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+    "native_host": {
+      "system": "Darwin",
+      "machine": "arm64",
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "macos": "15.7.9",
+      "windows": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "linux": {}
+    },
+    "binary_sha256": {
+      "ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+      "ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7"
+    },
+    "artifact_id": 10471918442,
+    "artifact_sha256": "sha256:872871bb159c7f820cba56b25543c4db0adccbe4c5238bf0f420f997f31769ec",
+    "job_id": 105000547082,
+    "media_tests_passed": [
+      "standalone_preview_render_and_original_audio_format",
+      "sequence_hard_cuts_normalizes_audio_and_preserves_order",
+      "hevc_has_hvc1_tag",
+      "simple_matches_legacy_pixels_audio_and_requested_cadence",
+      "simple_timeline_preserves_fractional_hard_cuts_and_audio"
+    ],
+    "status": "passed"
+  },
+  "native_host": {
+    "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "system": "Darwin"
+  },
+  "run_url": "https://github.com/tlolabs/ativ/actions/runs/35162941168",
+  "steps": {
+    "acquisition": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "media": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "packaging": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "native_tests": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "launch": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "installed_package": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    },
+    "update_signatures": {
+      "outputs": {},
+      "outcome": "success",
+      "conclusion": "success"
+    }
+  },
+  "artifact_sha256": {
+    "packages/ATIV-0.2.3-dev.2-macos-arm64.zip": "7734527b06905a8470906ac87c82e0fbf163921aa9a6fc02fdf5c1ca3d5d4c54",
+    "packages/ATIV-0.2.3-dev.2-macos-arm64.dmg": "18708460e4cd2cc1cd98525b4f8299747e21b51c8d46ed6a0c51c1cef89c31af",
+    "build/recipe7/macos-arm64/acquisition-evidence.json": "7e18bbc7adde4b97af39ef52aefc8d51112c8471de6082de090886f546099e8a",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64-sources.tar.gz": "77d0732976e25903c2f10b460c3a7b7db5a938045cb7a5b3acdbe8cd6ceef03b",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64-sources.tar.gz.sha256": "eb5806083d86fc6bb5bdd3f1addd42fa6f6791cacd1ccbf4ac73b00a5b2f8aca",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64.tar.gz.installation.log": "90ff1ff021dc353df4cb4ae1c971d4feeee5f3982a7f58fef2268cf78c9c7148",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64.tar.gz": "b029c0f44f888e2d686bca0e22e0687164f80da28e5822fe5be3b7e3b3f529df",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64.tar.gz.sha256": "5d0e77fe369e18bac5215b2da171c39020e314d94addbeeb9dbe161c3d8e9119",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64.tar.gz.qualification.json": "d3b5a936c4178cf2c393c3729360d3c599beb35d494ba804552f10fb46a5943f",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/spec.json": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/hardware-observation.json": "7060a57bc962940d3dd6c0f927dcdeef2a37feb9cc1b78dfe11d0e3da1b78c0c",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/repeat-build.json": "0d5647f77190ed29da9ac42dfa163f13e44a115613b01d5b111c69190a81699d",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/SOURCE.json": "6f02c6128aacc683627e959fc44a6131030c5eb76e4e96afdcb5fabc5296bd30",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/validation.json": "7021a5da1dcc711de4eb3678bdb6dc12799dc4dc35678ce990e0d5cbaf68e260",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/source-provenance.json": "2ab92056df9d93e2f639930b68f7941c6507933088fcb7f42d21cfe6b3d465ce",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/core-tests-passed.txt": "644abd849a833a2a602819f2d0dc246e0b690590b005198ea70d1293919dec09",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/SHA256SUMS": "50ebba1ed57ba8f6b2ebbaef5e9ff390bbf47c6ce070a3682a12bf644c05988f",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/build.json": "82ce34cbe5bb95df30e428a656945f2779eb5f162c2d877c3cd0044c8576f60a",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/REDISTRIBUTION.md": "2febc25f87af06e7f5c5c29598b91e926428d9bd2aa0e0997ea594a9b387f371",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/lame/LICENSE": "5c1f8d44f1eacbea3e1c31ff6ee11a4e1690ccbed4ee4af16de3b6eb61dc69a8",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/lame/COPYING": "e64f9c5a18f56828c10a575df13ade641aa3af4512a7afe6c411256943b57aaf",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/ffmpeg/LICENSE.md": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/ffmpeg/COPYING.LGPLv2.1": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/ffmpeg/COPYING.GPLv2": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/ffmpeg/COPYING.GPLv3": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/ffmpeg/COPYING.LGPLv3": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/nasm/LICENSE": "1563996c52e220e15ef2418e67d39488255aa8c28c89e617074d3afe3ee329e0",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/zlib/LICENSE": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/zlib/README": "d106dcdb2a0b3087cb3a2380b9f00a0bbadc7eb835cd80408f94a2d78d69727d",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/zlib/zlib.h": "8a5579af72ea4f427ff00a4150f0ccb3fc5c1e4379f726e101133b1ab9fc600c",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/x264/COPYING": "32b1062f7da84967e7019d01ab805935caa7ab7321a7ced0e30ebe75e5df1670",
+    "build/recipe7/macos-arm64/avid-ffmpeg-9.0.1-r7-macos-arm64/licenses/x265/COPYING": "d8afb1bcc7a2cfc603683b168d6987ef0a48e59e0da3693bf55c5d33b67e2b49"
+  },
+  "packaged_runtime": [
+    {
+      "path": "build/package-macos-arm64/ATIV.app/Contents/Resources/FFmpeg/signed-payload.json",
+      "signed_payload": {
+        "schema": 1,
+        "target": "macos-arm64",
+        "original_binary_sha256": {
+          "ffmpeg": "eb9937d7e3d27b7bbbb73698d50e1e20149b540113b09e3d430d55d718b36ec0",
+          "ffprobe": "1851a46d6de0467078019b4f66269c56fc081e96fe7778d6ec91914adbb3f0a7"
+        },
+        "signed_binary_sha256": {
+          "ffmpeg": "b454e6e2ce6c7108e2580b2cfdb2c539d07db8c7f4175e7259bfb68eaae559a3",
+          "ffprobe": "0557967f8480708cf8a780257157c0b06eda6479ed79ff6671c758d956d3f9ff"
+        },
+        "scope": "Host signing changes; original release identity and checksums remain intact. Host verifies platform signatures."
+      },
+      "provenance": {
+        "schema": 1,
+        "ativ_version": "0.2.3-dev.2",
+        "avid_core_version": "0.2.2",
+        "avid_core_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "runtime_build_revision": "fab2ed86bb64582d3f7a7dd736c713cc3951550b",
+        "ffmpeg_version": "9.0.1",
+        "runtime_recipe": 7,
+        "target": "macos-arm64",
+        "architecture": "arm64",
+        "qualification_only": true,
+        "source_asset": "avid-ffmpeg-9.0.1-r7-macos-arm64-sources.tar.gz"
+      }
+    }
+  ],
+  "unperformed_gates": {
+    "authenticated_application_upgrade": "No isolated authenticated delivery endpoint. Package-signature tests and same-version installer replacement are not end-to-end authenticated application upgrades.",
+    "manual_ui_accessibility": "Not performed; automated native launch tests are recorded separately.",
+    "production_signing_notarization": "Owner confirms Developer ID/notarization setup is not completed. Ad-hoc signature observations do not satisfy this gate."
+  },
+  "production_release_published": false
+}
