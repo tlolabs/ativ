@@ -1,0 +1,4 @@
+# Preserve authenticated evidence bytes, including native Windows CRLF records.
+docs/qualification/ci/** -text whitespace=cr-at-eol
+docs/qualification/local-macos-arm64/** -text whitespace=cr-at-eol
+runtime/recipe7-candidate.json -text whitespace=cr-at-eol
