@@ -71,6 +71,12 @@ def main():
         def invoke(command, *args, status=0, tools=None, executable=engine):
             result = subprocess.run([str(executable), command, *(str(x) for x in args), *(overrides if tools is None else tools)],
                                     capture_output=True, env=env, timeout=45)
+            if result.returncode != status:
+                diagnostics = (root / 'private.log').read_text(errors='replace') if (root / 'private.log').exists() else 'No engine diagnostics'
+                (ROOT / 'build').mkdir(exist_ok=True)
+                (ROOT / 'build/ffmpeg-contract-failure.log').write_text(diagnostics)
+                print('Failed fixture operation:', command, args, flush=True)
+                print(diagnostics[-16000:], flush=True)
             assert result.returncode == status, (command, result.returncode, result.stdout, result.stderr)
             events = [json.loads(line) for line in result.stdout.splitlines()]
             if status:

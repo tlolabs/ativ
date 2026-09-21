@@ -33,7 +33,8 @@ runs:
       run: echo "value=$(python3 script/ffmpeg_build.py fingerprint '${{ inputs.target }}')" >> "$GITHUB_OUTPUT"
     - name: Restore exact source-build cache
       if: inputs.clean != 'true'
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      id: runtime-cache
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
       with:
         path: ATIV/build/ffmpeg/${{ inputs.target }}
         key: ativ-ffmpeg-${{ inputs.target }}-${{ steps.key.outputs.value }}
@@ -46,6 +47,12 @@ runs:
         runtime="$PWD/build/ffmpeg/${{ inputs.target }}"
         if [[ "$RUNNER_OS" == Windows ]]; then runtime="$(cygpath -w "$runtime")"; fi
         echo "ATIV_FFMPEG_RUNTIME=$runtime" >> "$GITHUB_ENV"
+    - name: Save verified runtime before application tests
+      if: inputs.clean != 'true' && steps.runtime-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: ATIV/build/ffmpeg/${{ inputs.target }}
+        key: ativ-ffmpeg-${{ inputs.target }}-${{ steps.key.outputs.value }}
     - name: Preserve source build diagnostics
       if: always()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
