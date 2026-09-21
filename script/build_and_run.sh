@@ -30,6 +30,7 @@ cp "${ROOT_DIR}/platform/macos/Info.plist" "${APP_CONTENTS}/Info.plist"
 cp "${ROOT_DIR}/platform/macos/Resources/ATIV.icns" "${APP_RESOURCES}/ATIV.icns"
 cp "${ROOT_DIR}/LICENSE" "${APP_RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${APP_RESOURCES}/THIRD_PARTY_NOTICES.md"
+python3 "$ROOT_DIR/script/collect_licenses.py" "$APP_RESOURCES/licenses"
 chmod +x "${APP_MACOS}/${APP_NAME}" "${APP_MACOS}/ativ-engine" "${APP_MACOS}/ffmpeg" "${APP_MACOS}/ffprobe"
 for NAME in ffmpeg ffprobe ativ-engine; do codesign --force --options runtime --sign - "$APP_MACOS/$NAME"; done
 python3 "$ROOT_DIR/script/ffmpeg_runtime.py" finish "$RUNTIME_TARGET" --binary "$APP_MACOS" --metadata "$APP_RESOURCES/FFmpeg"

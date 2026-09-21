@@ -28,6 +28,7 @@ if [[ ! -s "$ATIV_SMOKE_REPORT" ]]; then cat "$ROOT_DIR/build/appimage-smoke.log
 # Install the actual deb to exercise the compiled runtime path and desktop identity.
 if [[ "${CI:-}" == true ]]; then
   sudo apt-get install --yes "$ROOT_DIR"/packages/*.deb
+  env PATH= "/usr/lib/$NAME/ativ-engine" check
   unset XDG_DATA_DIRS ATIV_ENGINE_PATH
   rm -f "$ATIV_SMOKE_REPORT"
   xvfb-run -a dbus-run-session -- "/usr/bin/$NAME" > "$ROOT_DIR/build/deb-smoke.log" 2>&1 &

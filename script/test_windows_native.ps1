@@ -20,6 +20,13 @@ $installer = Get-ChildItem (Join-Path $root 'packages') -Filter '*-setup.exe' | 
 $installDir = Join-Path $env:RUNNER_TEMP 'ATIV-installed-smoke'
 $setup = Start-Process $installer.FullName -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$installDir`"") -Wait -PassThru
 if ($setup.ExitCode -ne 0 -or !(Test-Path "$installDir/ATIV.exe")) { throw 'Installer smoke failed' }
+# Verify discovery from the actual installed payload with no PATH fallback.
+$previousPath = $env:PATH
+try {
+    $env:PATH = ''
+    & (Join-Path $installDir 'ativ-engine.exe') check
+    if ($LASTEXITCODE -ne 0) { throw 'Installed FFmpeg runtime discovery failed' }
+} finally { $env:PATH = $previousPath }
 # Exercise an upgrade over an existing installation.
 $upgrade = Start-Process $installer.FullName -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=`"$installDir`"") -Wait -PassThru
 if ($upgrade.ExitCode -ne 0) { throw 'Installer upgrade failed' }

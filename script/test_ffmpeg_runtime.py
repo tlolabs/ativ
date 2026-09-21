@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Host migration tests: isolated candidate bundle, actual media, and no production PATH fallback."""
+"""ATIV-owned source-runtime tests: real media, manifest rejection and no PATH fallback."""
 import argparse
 import json
 import os
@@ -20,6 +20,7 @@ def test(engine,runtime,target):
         stage(target, runtime, staged)
         finish(target, staged, staged)
         validate(target, staged, staged, runtime)
+        env=dict(os.environ,PATH=str(runtime)+os.pathsep+os.environ.get('PATH',''))
         # These edits must fail before any media invocation. Provenance cannot merely be present.
         for name, mutate in [
             ('ativ-runtime.json', lambda data: data.replace(b'"architecture": "', b'"architecture": "wrong-')),
@@ -36,11 +37,12 @@ def test(engine,runtime,target):
                     pass
                 else:
                     raise AssertionError('Accepted changed provenance: ' + name)
+                result=subprocess.run([str(executable),'check'],env=env,capture_output=True,timeout=60)
+                assert result.returncode!=0,(name,'engine accepted changed provenance')
             finally:
                 path.write_bytes(original)
         # A usable fallback pair exists on PATH throughout every negative check.
-        env=dict(os.environ,PATH=str(runtime)+os.pathsep+os.environ.get('PATH',''))
-        for name in ['dependency.json','build.json','ffmpeg'+suffix,'ffprobe'+suffix]:
+        for name in ['dependency.json','build.json','payload.json','signed-payload.json','ativ-runtime.json','ffmpeg'+suffix,'ffprobe'+suffix]:
             path=staged/name;original=path.read_bytes();mode=path.stat().st_mode
             path.unlink()
             p=subprocess.run([str(executable),'check'],env=env,capture_output=True,timeout=60)
