@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import sys
 
 runtime = Path(os.environ['ATIV_FFMPEG_RUNTIME'])
 results = []
@@ -19,4 +20,13 @@ with tempfile.TemporaryDirectory(prefix='ativ-ffmpeg-diagnostic-') as directory:
         record = {'options':options, 'returncode':result.returncode, 'stderr':result.stderr}
         print(json.dumps(record), flush=True)
         results.append(record)
+    if '--backtrace' in sys.argv:
+        # The unstripped executable has function symbols even in a release build.
+        source = Path('build/ffmpeg-work/windows-x86_64/ffmpeg')
+        executable = next(source.glob('*/ffmpeg_g.exe')).resolve()
+        native = lambda p: subprocess.check_output(['cygpath','-w',str(p)],text=True).strip()
+        command = ['gdb','--batch','-ex','set pagination off','-ex','run','-ex','thread apply all bt','-ex','x/12i $pc-16','--args',native(executable),'-nostdin','-hide_banner','-loglevel','error','-y','-i',native(image),'-filter_complex',graph,'-map','[video]','-frames:v','1','-f','image2',native(root/'backtrace.png')]
+        result = subprocess.run(command,capture_output=True,text=True,timeout=90)
+        Path('build/ffmpeg-windows-backtrace.log').write_text(result.stdout+result.stderr)
+        print(result.stdout+result.stderr,flush=True)
 Path('build/ffmpeg-windows-diagnostic.json').write_text(json.dumps(results,indent=2)+'\n')
