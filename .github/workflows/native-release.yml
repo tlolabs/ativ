@@ -22,7 +22,7 @@ on:
     tags: ["v*"]
 
 concurrency:
-  group: native-${{ github.ref }}
+  group: native-${{ github.ref }}-${{ inputs.platform || 'all' }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
