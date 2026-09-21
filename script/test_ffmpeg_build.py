@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Small regression tests for source trust boundaries and cache invalidation."""
 import io
+import hashlib
 from pathlib import Path
 import tarfile
 import tempfile
@@ -18,6 +19,19 @@ class SourceTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
                     recipe.fetch('https://ffmpeg.org/releases/source.tar.xz', archive, '0' * 64)
                 network.assert_not_called()
+
+    def test_fresh_download_retries_without_relaxing_checksum(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / 'source.tar.xz'
+            expected = hashlib.sha256(b'expected').hexdigest()
+            with patch('urllib.request.urlopen', side_effect=[io.BytesIO(b'corrupt'), io.BytesIO(b'expected')]) as network, patch.object(recipe.time, 'sleep'):
+                recipe.fetch('https://ffmpeg.org/releases/source.tar.xz', archive, expected)
+                self.assertEqual(network.call_count, 2)
+                self.assertEqual(archive.read_bytes(), b'expected')
+
+    def test_runner_architecture_survives_msys_environment_rewriting(self):
+        with patch.object(recipe.platform, 'system', return_value='MSYS_NT-10.0'), patch.object(recipe.platform, 'machine', return_value='x86_64'), patch.dict(recipe.os.environ, {'RUNNER_OS': 'Windows', 'RUNNER_ARCH': 'ARM64', 'PROCESSOR_ARCHITECTURE': 'AMD64', 'PROCESSOR_ARCHITEW6432': ''}):
+            self.assertEqual(recipe.native_target(), 'windows-arm64')
 
     def test_archive_traversal_and_links_are_rejected(self):
         for name, kind in [('../escape', tarfile.REGTYPE), ('/absolute', tarfile.REGTYPE), ('root/link', tarfile.SYMTYPE)]:

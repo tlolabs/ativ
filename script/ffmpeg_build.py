@@ -45,7 +45,11 @@ def native_target():
     if system == 'windows':
         # MSYS Python may be x64-emulated on an ARM64 Windows builder. Use the
         # native Windows host architecture, not the build shell's architecture.
-        machine = os.environ.get('PROCESSOR_ARCHITEW6432') or os.environ.get('PROCESSOR_ARCHITECTURE') or machine
+        runner_arch = os.environ.get('RUNNER_ARCH') if os.environ.get('RUNNER_OS') == 'Windows' else None
+        machine = runner_arch or os.environ.get('PROCESSOR_ARCHITEW6432') or os.environ.get('PROCESSOR_ARCHITECTURE') or machine
+        if not runner_arch and os.environ.get('MSYSTEM') == 'CLANGARM64':
+            architecture = output(['powershell.exe', '-NoProfile', '-Command', '(Get-CimInstance Win32_Processor | Select-Object -First 1).Architecture'])
+            machine = {'12': 'arm64', '9': 'x86_64'}.get(architecture, machine)
     return target_id(system + '-' + machine)
 
 
@@ -91,11 +95,14 @@ def fetch(url, path, expected=None):
                 request = urllib.request.Request(url, headers={'User-Agent': 'ATIV-source-builder/1'})
                 with urllib.request.urlopen(request, timeout=90) as response, temporary.open('wb') as stream:
                     shutil.copyfileobj(response, stream)
+                if expected and digest(temporary) != expected:
+                    raise ValueError('Downloaded source checksum mismatch: ' + path.name)
                 temporary.replace(path)
                 break
-            except (urllib.error.URLError, TimeoutError, ConnectionError):
+            except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError) as error:
                 if attempt == 3:
                     raise
+                print(str(error) + '; retrying the same official source', file=__import__('sys').stderr, flush=True)
                 time.sleep(2 ** attempt)
             finally:
                 temporary.unlink(missing_ok=True)
@@ -139,7 +146,7 @@ def extract(archive, destination):
 
 def build(target, clean=False):
     if target != native_target():
-        raise ValueError('Run on a native builder for ' + target)
+        raise ValueError('Run on a native builder for ' + target + '; detected ' + native_target())
     key, inputs = fingerprint(target)
     destination = ROOT / 'build/ffmpeg' / target
     if destination.exists() and not clean:
