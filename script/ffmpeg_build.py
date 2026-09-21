@@ -41,7 +41,12 @@ def target_id(value):
 def native_target():
     system = platform.system().lower()
     system = 'macos' if system == 'darwin' else 'windows' if system.startswith(('windows', 'mingw', 'msys')) else system
-    return target_id(system + '-' + platform.machine())
+    machine = platform.machine()
+    if system == 'windows':
+        # MSYS Python may be x64-emulated on an ARM64 Windows builder. Use the
+        # native Windows host architecture, not the build shell's architecture.
+        machine = os.environ.get('PROCESSOR_ARCHITEW6432') or os.environ.get('PROCESSOR_ARCHITECTURE') or machine
+    return target_id(system + '-' + machine)
 
 
 def recipe_digest():
