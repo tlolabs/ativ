@@ -64,7 +64,7 @@ def output(args, **kwargs):
 
 
 def toolchain(target):
-    cc = os.environ.get('CC', 'clang' if target.startswith(('macos', 'windows')) else 'gcc')
+    cc = os.environ.get('CC', SPEC['targets'][target]['cc'])
     result = {'cc': cc, 'compiler': output([cc, '--version']), 'machine': output([cc, '-dumpmachine']),
               'make': output(['make', '--version']), 'ar': output([os.environ.get('AR', 'ar'), '--version']) if not target.startswith('macos') else output(['xcrun', '--find', 'ar']),
               'platform': platform.platform(), 'python': platform.python_version(),
@@ -234,6 +234,25 @@ def build(target, clean=False):
                 shutil.copy2(item, licenses / (name + '-' + item.name))
         if name == 'zlib':
             shutil.copy2(src / 'README', licenses / 'zlib-README')
+    # Include the notices for compiler support code linked into Windows executables.
+    # Codec libraries above still come exclusively from the pinned source archives.
+    toolchain_licenses = []
+    if target.startswith('windows'):
+        notice_root = Path(os.environ['MINGW_PREFIX']) / 'share/licenses'
+        required = ['crt', 'libgcc' if env['CC'] == 'gcc' else 'compiler-rt']
+        for name in [*required, 'headers', 'winpthreads']:
+            notices = notice_root / name
+            if not notices.is_dir():
+                if name in required:
+                    raise ValueError('Missing compiler runtime license: ' + name)
+                continue
+            shutil.copytree(notices, licenses / ('toolchain-' + name))
+            toolchain_licenses.append(name)
+    elif target.startswith('linux'):
+        for notice in sorted(Path('/usr/share/doc').glob('gcc-*-base/copyright')):
+            shutil.copy2(notice, licenses / ('toolchain-' + notice.parent.name + '-copyright'))
+            toolchain_licenses.append(notice.parent.name)
+        shutil.copy2('/usr/share/common-licenses/GPL-3', licenses / 'toolchain-GPL-3')
     versions = {n: output([str((stage / n).resolve()), '-version']) for n in ['ffmpeg' + ('.exe' if target.startswith('windows') else ''), 'ffprobe' + ('.exe' if target.startswith('windows') else '')]}
     for name, version in versions.items():
         if version.splitlines()[0].split()[2] != SPEC['source']['version']:
@@ -269,7 +288,7 @@ def build(target, clean=False):
         linkage[name] = report
     write_json(stage / 'linkage.json', linkage)
     write_json(stage / 'build.json', {**inputs, 'cache_key': key, 'schema': 1, 'owner': 'ATIV', 'source_verification': status,
-               'configure': configure, 'commands': commands, 'versions': versions,
+               'configure': configure, 'commands': commands, 'versions': versions, 'toolchain_runtime_licenses': toolchain_licenses,
                'binary_sha256': {name: digest(stage / name) for name in versions}})
     files = {str(p.relative_to(stage)).replace('\\', '/'): digest(p) for p in sorted(stage.rglob('*')) if p.is_file()}
     write_json(stage / 'payload.json', files)

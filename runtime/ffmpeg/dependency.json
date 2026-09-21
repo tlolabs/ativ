@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "recipe": 1,
+  "recipe": 2,
   "source": {
     "version": "9.0.2",
     "tag": "n9.0.2",
@@ -71,7 +71,8 @@
         "--enable-videotoolbox",
         "--enable-encoder=h264_videotoolbox"
       ],
-      "minimum_os": "13.0"
+      "minimum_os": "13.0",
+      "cc": "clang"
     },
     "macos-x86_64": {
       "arch": "x86_64",
@@ -80,31 +81,36 @@
         "--enable-videotoolbox",
         "--enable-encoder=h264_videotoolbox"
       ],
-      "minimum_os": "13.0"
+      "minimum_os": "13.0",
+      "cc": "clang"
     },
     "windows-x86_64": {
       "arch": "x86_64",
       "os": "mingw32",
       "configure": [],
-      "minimum_os": "Windows 10 1809"
+      "minimum_os": "Windows 10 1809",
+      "cc": "gcc"
     },
     "windows-arm64": {
       "arch": "aarch64",
       "os": "mingw32",
       "configure": [],
-      "minimum_os": "Windows 10 1809"
+      "minimum_os": "Windows 10 1809",
+      "cc": "clang"
     },
     "linux-x86_64": {
       "arch": "x86_64",
       "os": "linux",
       "configure": [],
-      "minimum_os": "Ubuntu 24.04"
+      "minimum_os": "Ubuntu 24.04",
+      "cc": "gcc"
     },
     "linux-arm64": {
       "arch": "aarch64",
       "os": "linux",
       "configure": [],
-      "minimum_os": "Ubuntu 24.04"
+      "minimum_os": "Ubuntu 24.04",
+      "cc": "gcc"
     }
   }
 }

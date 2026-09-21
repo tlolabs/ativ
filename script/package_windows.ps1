@@ -15,7 +15,7 @@ $publish = Join-Path $build "publish"
 $packages = Join-Path $root "packages"
 $ffmpegTarget = if ($Architecture -eq "ARM64") { "windows-arm64" } else { "windows-x86_64" }
 $ffmpegRuntime = & python (Join-Path $root "script/ffmpeg_runtime.py") provision $ffmpegTarget
-if ($LASTEXITCODE -ne 0) { throw "AVID ATIV FFmpeg runtime unavailable" }
+if ($LASTEXITCODE -ne 0) { throw "ATIV FFmpeg runtime unavailable" }
 
 rustup target add $rustTarget
 cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p ativ-engine -p ativ-update
