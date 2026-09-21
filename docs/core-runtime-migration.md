@@ -1,5 +1,7 @@
 # Production runtime migration audit (2026-09-16)
 
+> Historical record: superseded by [ATIV-owned FFmpeg source builds](ffmpeg-source-runtime.md). The Core publication blocker below no longer controls ATIV runtime acquisition.
+
 ## Before changes
 
 ATIV's successful local qualification app and normal builds had different entrypoints:

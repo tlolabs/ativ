@@ -8,6 +8,8 @@ pub enum AtivError {
     /// Host-authored CLI guidance only; never put shared diagnostic text here.
     InvalidInput(String),
     Shared(Error),
+    /// The packaged ATIV-owned runtime is incomplete or does not match its manifest.
+    RuntimeUnavailable,
 }
 impl From<Error> for AtivError {
     fn from(error: Error) -> Self {
@@ -19,7 +21,9 @@ impl AtivError {
         match self {
             Self::InvalidInput(_) | Self::Shared(Error::InvalidInput(_)) => "invalid_input",
             Self::Shared(Error::Cancelled) => "cancelled",
-            Self::Shared(Error::ToolUnavailable { .. }) => "media_tools_unavailable",
+            Self::RuntimeUnavailable | Self::Shared(Error::ToolUnavailable { .. }) => {
+                "media_tools_unavailable"
+            }
             Self::Shared(Error::Io { .. }) => "io_error",
             // Preserve the old discovery exit/spawn categories without discarding causes.
             Self::Shared(Error::Process {

@@ -2,9 +2,9 @@
 
 ## FFmpeg and FFprobe
 
-ATIV consumes the runtime built from official FFmpeg source by the pinned AVID Core implementation. Core owns codec-library pins, configuration and runtime redistribution notices. Packages include the actual runtime license tree, build/specification manifests, corresponding-source archive and `SOURCE.json`. `ativ-runtime.json` records the exact ATIV/Core/FFmpeg versions, Core commit, recipe and target. On macOS these are in `Contents/Resources/FFmpeg`; elsewhere they accompany the engine.
+ATIV builds FFmpeg 9.0.2 and ffprobe from the official FFmpeg release archive, verified with SHA-256 and the upstream release signature. The exact source, configure options and external pins are in `runtime/ffmpeg/dependency.json`.
 
-The selected profile includes GPL software encoders. ATIV's own license is not a substitute for FFmpeg's or its dependencies' notices. Consult the included Core `licenses/REDISTRIBUTION.md` and exact upstream license texts.
+The statically linked external libraries are x264 (GPL-2.0-or-later, stable commit b35605ace3ddf7c1a5d67a2eb553f034aef41d55) and zlib 1.3.1 (Zlib license). The resulting FFmpeg executables are GPL-2.0-or-later; version3 and nonfree components are disabled. Packages include complete corresponding source archives, build scripts, original upstream notices in `ffmpeg-licenses/`, and build/provenance records. On macOS these live in `Contents/Resources/FFmpeg`; elsewhere they accompany the engine. Preserve these materials when redistributing. See [the source-runtime documentation](docs/ffmpeg-source-runtime.md).
 
 ## Windows App SDK
 

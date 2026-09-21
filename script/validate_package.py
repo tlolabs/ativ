@@ -2,7 +2,7 @@
 """Validate staged resources, target machine types, identity and bundled discovery."""
 import argparse,json,os,plistlib,struct,subprocess
 from pathlib import Path
-from core_runtime import validate as validate_runtime
+from ffmpeg_runtime import validate as validate_runtime
 
 def machine(path,target):
     data=path.read_bytes()[:4096]

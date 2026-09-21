@@ -14,8 +14,8 @@ $build = Join-Path $root "build/windows-$Architecture"
 $publish = Join-Path $build "publish"
 $packages = Join-Path $root "packages"
 $coreTarget = if ($Architecture -eq "ARM64") { "windows-arm64" } else { "windows-x86_64" }
-$coreRuntime = & python (Join-Path $root "script/core_runtime.py") provision $coreTarget
-if ($LASTEXITCODE -ne 0) { throw "AVID Core production runtime unavailable" }
+$coreRuntime = & python (Join-Path $root "script/ffmpeg_runtime.py") provision $coreTarget
+if ($LASTEXITCODE -ne 0) { throw "AVID ATIV FFmpeg runtime unavailable" }
 
 rustup target add $rustTarget
 cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p ativ-engine -p ativ-update
@@ -29,11 +29,10 @@ Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-engine.exe") $publis
 Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-update.exe") $publish
 python (Join-Path $root "script/configure_distribution.py") $publish "windows-$label"
 if ($LASTEXITCODE -ne 0) { throw "Distribution configuration failed" }
-python (Join-Path $root "script/core_runtime.py") stage $coreTarget --runtime $coreRuntime --binary $publish
-if ($LASTEXITCODE -ne 0) { throw "Core runtime staging failed" }
+python (Join-Path $root "script/ffmpeg_runtime.py") stage $coreTarget --runtime $coreRuntime --binary $publish
+if ($LASTEXITCODE -ne 0) { throw "ATIV FFmpeg runtime staging failed" }
 Copy-Item (Join-Path $root "LICENSE") $publish
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
-Copy-Item (Join-Path $root "../AVID Core/LICENSE") (Join-Path $publish "AVID_CORE_LICENSE.txt")
 python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
 if ($LASTEXITCODE -ne 0) { throw "License collection failed" }
 
@@ -50,10 +49,10 @@ if ($env:WINDOWS_CERTIFICATE_BASE64) {
     # The installer is signed below using the same temporary certificate.
 }
 
-python (Join-Path $root "script/core_runtime.py") finish $coreTarget --binary $publish
-if ($LASTEXITCODE -ne 0) { throw "Signed Core runtime recording failed" }
+python (Join-Path $root "script/ffmpeg_runtime.py") finish $coreTarget --binary $publish
+if ($LASTEXITCODE -ne 0) { throw "Signed ATIV FFmpeg runtime recording failed" }
 python (Join-Path $root "script/validate_package.py") $publish "windows-$label"
-if ($LASTEXITCODE -ne 0) { throw "Packaged Core runtime validation failed" }
+if ($LASTEXITCODE -ne 0) { throw "Packaged ATIV FFmpeg runtime validation failed" }
 
 $zip = Join-Path $packages "ATIV-$version-windows-$label.zip"
 if (Test-Path $zip) { Remove-Item $zip }

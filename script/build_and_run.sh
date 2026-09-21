@@ -13,7 +13,7 @@ APP_MACOS="${APP_CONTENTS}/MacOS"
 APP_RESOURCES="${APP_CONTENTS}/Resources"
 SWIFT_BUILD_DIR="${ROOT_DIR}/build/native-swift"
 RUNTIME_TARGET="macos-$(uname -m)"
-RUNTIME="$(python3 "$ROOT_DIR/script/core_runtime.py" provision "$RUNTIME_TARGET")"
+RUNTIME="$(python3 "$ROOT_DIR/script/ffmpeg_runtime.py" provision "$RUNTIME_TARGET")"
 
 pkill -x "${APP_NAME}" >/dev/null 2>&1 || true
 
@@ -25,15 +25,14 @@ rm -rf "${APP_BUNDLE}"
 mkdir -p "${APP_MACOS}" "${APP_RESOURCES}"
 cp "${SWIFT_BIN_DIR}/${APP_NAME}" "${APP_MACOS}/${APP_NAME}"
 cp "${ROOT_DIR}/target/debug/ativ-engine" "${APP_MACOS}/ativ-engine"
-python3 "$ROOT_DIR/script/core_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$APP_MACOS"
+python3 "$ROOT_DIR/script/ffmpeg_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$APP_MACOS"
 cp "${ROOT_DIR}/platform/macos/Info.plist" "${APP_CONTENTS}/Info.plist"
 cp "${ROOT_DIR}/platform/macos/Resources/ATIV.icns" "${APP_RESOURCES}/ATIV.icns"
 cp "${ROOT_DIR}/LICENSE" "${APP_RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${APP_RESOURCES}/THIRD_PARTY_NOTICES.md"
-cp "${ROOT_DIR}/../AVID Core/LICENSE" "${APP_RESOURCES}/AVID_CORE_LICENSE.txt"
 chmod +x "${APP_MACOS}/${APP_NAME}" "${APP_MACOS}/ativ-engine" "${APP_MACOS}/ffmpeg" "${APP_MACOS}/ffprobe"
 for NAME in ffmpeg ffprobe ativ-engine; do codesign --force --options runtime --sign - "$APP_MACOS/$NAME"; done
-python3 "$ROOT_DIR/script/core_runtime.py" finish "$RUNTIME_TARGET" --binary "$APP_MACOS" --metadata "$APP_RESOURCES/FFmpeg"
+python3 "$ROOT_DIR/script/ffmpeg_runtime.py" finish "$RUNTIME_TARGET" --binary "$APP_MACOS" --metadata "$APP_RESOURCES/FFmpeg"
 "${APP_MACOS}/ativ-engine" check
 
 LABEL="$(uname -m)"; [[ "$LABEL" != x86_64 ]] || LABEL=intel

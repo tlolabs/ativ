@@ -17,7 +17,7 @@ case "${ARCH}" in
 esac
 [[ "$(uname -m)" == "${ARCH}" || ( "$(uname -m)" == "arm64" && "${ARCH}" == "aarch64" ) ]] || { echo "Run on a native ${ARCH} Linux runner." >&2; exit 2; }
 RUNTIME_TARGET="linux-$ARCH"
-RUNTIME="$(python3 "$ROOT_DIR/script/core_runtime.py" provision "$RUNTIME_TARGET")"
+RUNTIME="$(python3 "$ROOT_DIR/script/ffmpeg_runtime.py" provision "$RUNTIME_TARGET")"
 
 BUILD_DIR="${ROOT_DIR}/build/linux-${ARCH}"
 PACKAGE_ROOT="${ROOT_DIR}/build/package-linux-${ARCH}"
@@ -32,11 +32,10 @@ DESTDIR="${PACKAGE_ROOT}" meson install -C "${BUILD_DIR}"
 cp "${ROOT_DIR}/target/release/ativ-engine" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine"
 cp "${ROOT_DIR}/target/release/ativ-update" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-update"
 python3 "$ROOT_DIR/script/configure_distribution.py" "$PACKAGE_ROOT/usr/lib/ativ" "linux-$LABEL-deb"
-python3 "$ROOT_DIR/script/core_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$PACKAGE_ROOT/usr/lib/ativ"
-python3 "$ROOT_DIR/script/core_runtime.py" finish "$RUNTIME_TARGET" --binary "$PACKAGE_ROOT/usr/lib/ativ"
+python3 "$ROOT_DIR/script/ffmpeg_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$PACKAGE_ROOT/usr/lib/ativ"
+python3 "$ROOT_DIR/script/ffmpeg_runtime.py" finish "$RUNTIME_TARGET" --binary "$PACKAGE_ROOT/usr/lib/ativ"
 cp "${ROOT_DIR}/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${PACKAGE_ROOT}/usr/share/doc/ativ/THIRD_PARTY_NOTICES.md"
-cp "${ROOT_DIR}/../AVID Core/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/AVID_CORE_LICENSE.txt"
 python3 "$ROOT_DIR/script/collect_licenses.py" "$PACKAGE_ROOT/usr/share/doc/ativ/licenses"
 chmod 0755 "${PACKAGE_ROOT}/usr/bin/ativ" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-engine" "${PACKAGE_ROOT}/usr/lib/ativ/ffmpeg" "${PACKAGE_ROOT}/usr/lib/ativ/ffprobe"
 

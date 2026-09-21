@@ -2,7 +2,7 @@
 
 ## Checkouts and toolchains
 
-Clone `tlolabs/ativ` and `tlolabs/avid-core` into sibling directories named `ATIV` and `AVID Core`. Check out the exact shared commit in `runtime/core-revision`; the Rust build and CI enforce that pin. ENcap is a read-only architectural reference and is not a build dependency. See [the migration plan](native-distribution-plan.md) for the exact reference revision.
+Clone `tlolabs/ativ`. Cargo fetches the existing AVID Core API at the immutable revision recorded in Cargo.toml, Cargo.lock and `runtime/core-revision`. No sibling Core or EnCAP checkout is required or modified.
 
 Use a current stable Rust toolchain and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements. macOS builds need full Xcode, Windows needs .NET 8+ and Windows App SDK build tools, and Linux needs GTK 4.10+, libadwaita 1.4+, json-glib, Meson and Ninja. CI installs each platform's requirements.
 
@@ -19,23 +19,17 @@ Python is build/test tooling only; no Python runtime ships in ATIV. The maintain
 
 ## Media tools
 
-Normal local, CI, development and release builds consume only AVID Core's authenticated runtime. Python 3.11+ and an authenticated GitHub CLI are required for acquisition. Core owns the version, recipe, checksums, signatures, corresponding source, notices and target mapping.
+ATIV builds its own FFmpeg and ffprobe from official, signature/checksum-verified source. See [the source recipe, native prerequisites, cache and update instructions](ffmpeg-source-runtime.md).
 
 ```sh
-python3 script/core_runtime.py provision macos-arm64
+python3 script/ffmpeg_runtime.py provision macos-arm64
 ./script/build_and_run.sh --verify
 ./script/package_macos.sh arm64
 ./script/package_windows.ps1 -Architecture x64
 ./script/package_linux.sh x86_64
 ```
 
-Packaging chooses the target and validates the complete Core payload before signing. Its cache is `build/core-runtime/<Core commit>/<target>`; existing entries are revalidated. There is no independent FFmpeg URL, version selector, arbitrary-binary input or PATH fallback. Explicit engine `--ffmpeg`/`--ffprobe` options remain available for deliberate development tests, but packaging does not use them.
-
-Core's selected runtime is currently a candidate without published production assets. Normal acquisition therefore fails clearly before overwriting any working package. See [the audit and blockers](core-runtime-migration.md). The separate qualification harness accepts an explicit validated Core candidate and uses the same staging, provenance and packaged-media checks as production:
-
-```sh
-bash script/package_core_candidate_macos.sh '/absolute/path/to/Core/dist/runtime-directory'
-```
+Packaging verifies ATIV's source payload before signing and verifies the packaged binaries afterward. There is no system/PATH production fallback. Both explicit engine `--ffmpeg`/`--ffprobe` paths remain available for deliberate development tests. Manual workflow dispatch supports `clean_ffmpeg=true` for a fresh source qualification.
 
 macOS packaging retains ATIV's signing, notarization, Sparkle and installer ownership. Windows packaging retains its .NET build, Authenticode signing and Inno Setup installer. Linux retains its GTK, AppImage and Debian packaging. All native package validators run bundled discovery with an empty PATH and representative exports/previews through the actual packaged engine.
 

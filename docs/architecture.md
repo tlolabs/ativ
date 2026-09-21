@@ -10,8 +10,9 @@ GTK 4/Adwaita ──┘                                  adapter
 
 ## Components
 
-- `avid-core` in the sibling `AVID Core` repository owns presets, validation, probing, media commands, previews, rendering, progress, cancellation, staging, and publication.
+- The pinned `avid-core` Cargo dependency owns presets, validation, probing, media commands, previews, rendering, progress, cancellation, staging, and publication.
 - `ativ-core` is a thin ATIV compatibility adapter: it maps the standalone request to single-track, fitted, software H.264 settings, presents path-free errors, and retains ATIV application version identity. It contains no media implementation.
+- ATIV owns FFmpeg/ffprobe source acquisition, build configuration, packaging and runtime discovery; Core runtime assets are not used.
 - `ativ-engine` exposes that functionality through a stable newline-delimited JSON process interface.
 - `platform/macos`, `platform/windows`, and `platform/linux` provide native file pickers, drag and drop, accessibility, window management, and each platform’s visual language.
 

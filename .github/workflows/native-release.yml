@@ -8,6 +8,10 @@ on:
         type: choice
         options: [all, macos, windows, linux]
         default: all
+      clean_ffmpeg:
+        description: Force a clean FFmpeg source rebuild, bypassing all runtime caches
+        type: boolean
+        default: false
       sign_macos:
         description: Sign and notarize macOS validation artifacts (does not publish a release)
         type: boolean
@@ -44,13 +48,6 @@ jobs:
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
@@ -74,7 +71,7 @@ jobs:
           cargo check --locked --all-targets
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --workspace --locked --all-targets
-      - name: Enforce Core runtime ownership
+      - name: Enforce ATIV runtime ownership
         run: python3 script/test_runtime_ownership.py
 
   macos:
@@ -90,23 +87,16 @@ jobs:
       matrix:
         include:
           - arch: arm64
-            core_arch: arm64
+            runtime_arch: arm64
             runner: macos-15
           - arch: x86_64
-            core_arch: x86_64
+            runtime_arch: x86_64
             runner: macos-15-intel
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
@@ -118,10 +108,11 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Acquire pinned Core runtime
-        run: |
-          runtime="$(python3 script/core_runtime.py provision macos-${{ matrix.core_arch }})"
-          echo "$runtime" >> "$GITHUB_PATH"
+      - name: Build ATIV FFmpeg from verified sources
+        uses: ./ATIV/.github/actions/ffmpeg
+        with:
+          target: macos-${{ matrix.runtime_arch }}
+          clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Configure release signing and notarization
         if: startsWith(github.ref, 'refs/tags/') || inputs.sign_macos
         env:
@@ -148,15 +139,11 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
           security list-keychains -d user -s "${KEYCHAIN}"
           xcrun notarytool store-credentials ativ-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
-      - name: Verify canonical media and host contract with release tools
+      - name: Verify ATIV tests and packaged media contract
         shell: bash
         run: |
           cargo test --locked --all-targets
-          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
-          # Explicit concurrent-render tests still launch and verify their own threads.
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh macos-${{ matrix.core_arch }}
+          ./script/test_engine_integration.sh macos-${{ matrix.runtime_arch }}
       - name: Build and package native application
         env:
           APPLE_SIGN_IDENTITY: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
@@ -193,23 +180,16 @@ jobs:
       matrix:
         include:
           - arch: x64
-            core_arch: x86_64
+            runtime_arch: x86_64
             runner: windows-2025
           - arch: ARM64
-            core_arch: arm64
+            runtime_arch: arm64
             runner: windows-11-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
@@ -221,23 +201,19 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Acquire pinned Core runtime
-        shell: bash
-        run: |
-          runtime="$(python3 script/core_runtime.py provision windows-${{ matrix.core_arch }})"
-          echo "$runtime" >> "$GITHUB_PATH"
+      - name: Build ATIV FFmpeg from verified sources
+        uses: ./ATIV/.github/actions/ffmpeg
+        with:
+          target: windows-${{ matrix.runtime_arch }}
+          clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --version=6.7.1 --yes --no-progress
-      - name: Verify canonical media and host contract with release tools
+      - name: Verify ATIV tests and packaged media contract
         shell: bash
         run: |
           cargo test --locked --all-targets
-          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
-          # Explicit concurrent-render tests still launch and verify their own threads.
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh windows-${{ matrix.core_arch }}
+          ./script/test_engine_integration.sh windows-${{ matrix.runtime_arch }}
       - name: Build and package native application
         shell: pwsh
         env:
@@ -266,23 +242,16 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            core_arch: x86_64
+            runtime_arch: x86_64
             runner: ubuntu-24.04
           - arch: aarch64
-            core_arch: arm64
+            runtime_arch: arm64
             runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: eab97dd043187aa8b7a1cae4eb2c1228fa25a9db
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
@@ -298,19 +267,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64
-      - name: Acquire pinned Core runtime
-        run: |
-          runtime="$(python3 script/core_runtime.py provision linux-${{ matrix.core_arch }})"
-          echo "$runtime" >> "$GITHUB_PATH"
-      - name: Verify canonical media and host contract with release tools
+      - name: Build ATIV FFmpeg from verified sources
+        uses: ./ATIV/.github/actions/ffmpeg
+        with:
+          target: linux-${{ matrix.runtime_arch }}
+          clean: ${{ inputs.clean_ffmpeg || false }}
+      - name: Verify ATIV tests and packaged media contract
         shell: bash
         run: |
           cargo test --locked --all-targets
-          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
-          # Explicit concurrent-render tests still launch and verify their own threads.
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh linux-${{ matrix.core_arch }}
+          ./script/test_engine_integration.sh linux-${{ matrix.runtime_arch }}
       - name: Build and package native application
         run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests

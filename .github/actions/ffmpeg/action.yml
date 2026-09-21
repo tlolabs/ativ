@@ -1,0 +1,59 @@
+name: ATIV FFmpeg source runtime
+description: Build and cache ATIV's verified official FFmpeg sources on native builders
+inputs:
+  target:
+    required: true
+    description: ATIV runtime target
+  clean:
+    default: 'false'
+    description: Ignore caches and rebuild every source
+runs:
+  using: composite
+  steps:
+    - name: Install macOS source build tools
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install pkg-config gnupg
+    - name: Install Linux source build tools
+      if: runner.os == 'Linux'
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config gnupg python3
+    - name: Install Windows native source toolchain
+      if: runner.os == 'Windows'
+      uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884
+      with:
+        msystem: ${{ runner.arch == 'ARM64' && 'CLANGARM64' || 'CLANG64' }}
+        update: true
+        install: make diffutils pkgconf python gnupg
+        pacboy: clang:p llvm:p lld:p pkgconf:p
+    - name: Fingerprint exact source recipe and installed toolchain
+      id: key
+      shell: ${{ runner.os == 'Windows' && 'msys2 {0}' || 'bash' }}
+      working-directory: ATIV
+      run: echo "value=$(python3 script/ffmpeg_build.py fingerprint '${{ inputs.target }}')" >> "$GITHUB_OUTPUT"
+    - name: Restore exact source-build cache
+      if: inputs.clean != 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: ATIV/build/ffmpeg/${{ inputs.target }}
+        key: ativ-ffmpeg-${{ inputs.target }}-${{ steps.key.outputs.value }}
+        # Deliberately no restore-keys: a different recipe/toolchain is never reused.
+    - name: Build or verify cached FFmpeg and ffprobe
+      shell: ${{ runner.os == 'Windows' && 'msys2 {0}' || 'bash' }}
+      working-directory: ATIV
+      run: |
+        python3 script/ffmpeg_build.py build '${{ inputs.target }}' ${{ inputs.clean == 'true' && '--clean' || '' }}
+        runtime="$PWD/build/ffmpeg/${{ inputs.target }}"
+        if [[ "$RUNNER_OS" == Windows ]]; then runtime="$(cygpath -w "$runtime")"; fi
+        echo "ATIV_FFMPEG_RUNTIME=$runtime" >> "$GITHUB_ENV"
+    - name: Preserve source build diagnostics
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      with:
+        name: ffmpeg-evidence-${{ inputs.target }}
+        path: |
+          ATIV/build/ffmpeg-work/${{ inputs.target }}/build.log
+          ATIV/build/ffmpeg-work/${{ inputs.target }}/ffmpeg/*/ffbuild/config.log
+          ATIV/build/ffmpeg/${{ inputs.target }}/build.json
+          ATIV/build/ffmpeg/${{ inputs.target }}/payload.json
+        if-no-files-found: warn

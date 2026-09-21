@@ -34,7 +34,7 @@ The interfaces use SwiftUI/AppKit, WinUI 3 and GTK/libadwaita, respectively. The
 
 ## Development
 
-Clone `tlolabs/avid-core` beside ATIV as `AVID Core`, at the revision pinned in the workflow. Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms.
+Cargo fetches the existing AVID Core API at its pinned commit; no sibling checkout is needed. ATIV builds and bundles its own [verified FFmpeg source runtime](docs/ffmpeg-source-runtime.md). Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms.
 
 Completed exports are staged beside the destination and published only after successful rendering. Failed or cancelled exports preserve existing output and never change the selected source files.
 
