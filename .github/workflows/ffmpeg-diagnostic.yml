@@ -1,11 +1,26 @@
 name: FFmpeg Windows source diagnostic
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/ativ-owned-ffmpeg]
+    paths: [.github/workflows/ffmpeg-diagnostic.yml, script/diagnose_ffmpeg_windows.py]
 permissions:
   contents: read
 jobs:
   diagnose:
     runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: CLANG64
+            compiler: clang
+            packages: clang:p llvm:p lld:p pkgconf:p gdb:p
+          - system: UCRT64
+            compiler: gcc
+            packages: gcc:p llvm:p pkgconf:p gdb:p
+    env:
+      CC: ${{ matrix.compiler }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -13,10 +28,10 @@ jobs:
           persist-credentials: false
       - uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884
         with:
-          msystem: CLANG64
+          msystem: ${{ matrix.system }}
           update: true
           install: make diffutils pkgconf python gnupg
-          pacboy: clang:p llvm:p lld:p pkgconf:p gdb:p
+          pacboy: ${{ matrix.packages }}
       - name: Build the exact source recipe and retain unstripped executable
         shell: msys2 {0}
         working-directory: ATIV
@@ -30,7 +45,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
-          name: ffmpeg-windows-backtrace
+          name: ffmpeg-windows-backtrace-${{ matrix.system }}
           path: |
             ATIV/build/ffmpeg-windows-diagnostic.json
             ATIV/build/ffmpeg-windows-backtrace.log
