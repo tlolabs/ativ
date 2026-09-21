@@ -25,13 +25,38 @@ def run(args, **kwargs):
     return subprocess.run([str(x) for x in args], check=True, capture_output=True, **kwargs).stdout
 
 
+def process_tree():
+    if os.name == 'nt':
+        command = ['powershell.exe', '-NoProfile', '-Command',
+                   'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name | ConvertTo-Json -Compress']
+        rows = json.loads(run(command))
+        return {int(row['ProcessId']): (int(row['ParentProcessId']), row['Name']) for row in rows}
+    rows = run(['ps', '-axo', 'pid=,ppid=,comm=']).decode().splitlines()
+    return {int(parts[0]): (int(parts[1]), parts[2]) for row in rows if len(parts := row.strip().split(None, 2)) == 3}
+
+
+def owned_media_processes(parent):
+    tree = process_tree()
+    owned = {parent}
+    for _ in range(8):
+        owned |= {pid for pid, (ppid, _) in tree.items() if ppid in owned}
+    return {pid for pid in owned - {parent} if 'ffmpeg' in tree[pid][1].lower()}
+
+
+def assert_reaped(pids):
+    deadline = time.monotonic() + 5
+    while pids & process_tree().keys() and time.monotonic() < deadline:
+        time.sleep(.05)
+    assert not pids & process_tree().keys(), 'Cancelled FFmpeg process remained alive'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--engine', type=Path, default=ROOT / 'target/debug/ativ-engine')
     parser.add_argument('--ffmpeg', default=shutil.which('ffmpeg'))
     parser.add_argument('--ffprobe', default=shutil.which('ffprobe'))
     parser.add_argument('--reference', type=Path)
-    parser.add_argument('--managed', action='store_true', help='Exercise default bundled Core discovery for the staged managed engine')
+    parser.add_argument('--managed', action='store_true', help='Exercise default bundled ATIV discovery for the staged managed engine')
     options = parser.parse_args()
     assert options.ffmpeg and options.ffprobe, 'The distribution FFmpeg/ffprobe pair is required'
     engine = options.engine.resolve()
@@ -136,6 +161,12 @@ def main():
                 invoke('render', *args, '--output', reference, executable=options.reference)
                 assert decode(output) == decode(reference), 'Decoded video parity'
                 assert decode(output, 'audio') == decode(reference, 'audio'), 'Decoded audio parity'
+        legacy = root / 'per-frame.mp4'
+        invoke('render', '--image', image, '--audio', audio_paths[0], '--output', legacy,
+               '--width', 90, '--height', 160, '--fps', 60, '--render-mode', 'current')
+        legacy_stream = info(legacy)['streams'][0]
+        assert legacy_stream['codec_name'] == 'h264' and legacy_stream['r_frame_rate'] == '60/1'
+        assert decode(legacy), 'Per-frame render produced no decodable video'
         output = root / 'preserved.mp4'
         output.write_bytes(b'previous output')
         base = ['--image', image, '--audio', audio_paths[0], '--output', output, '--width', 160, '--height', 90]
@@ -155,8 +186,11 @@ def main():
                 time.sleep(.15)
                 break
         assert encoding
+        child_pids = owned_media_processes(process.pid)
+        assert child_pids, 'Cancellation test must observe an actual FFmpeg child'
         stdout, _ = process.communicate(b'cancel\n', timeout=10)
         assert process.returncode == 130 and json.loads(stdout.splitlines()[-1])['code'] == 'cancelled'
+        assert_reaped(child_pids)
         assert output.read_bytes() == b'previous output'
         clean()
         corrupt = root / 'corrupt ü.media'
@@ -253,7 +287,7 @@ exec sleep 60
         for path, digest in sources.items():
             assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'Source media changed'
         clean()
-    print('ATIV contract/media checks passed (27 presets, 20 previews, 3 exports, failures and lifecycle).')
+    print('ATIV contract/media checks passed (27 presets, 20 previews, 4 exports, failures and process cleanup).')
 
 
 if __name__ == '__main__':

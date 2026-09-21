@@ -13,8 +13,8 @@ $runtime = if ($Architecture -eq "ARM64") { "win-arm64" } else { "win-x64" }
 $build = Join-Path $root "build/windows-$Architecture"
 $publish = Join-Path $build "publish"
 $packages = Join-Path $root "packages"
-$coreTarget = if ($Architecture -eq "ARM64") { "windows-arm64" } else { "windows-x86_64" }
-$coreRuntime = & python (Join-Path $root "script/ffmpeg_runtime.py") provision $coreTarget
+$ffmpegTarget = if ($Architecture -eq "ARM64") { "windows-arm64" } else { "windows-x86_64" }
+$ffmpegRuntime = & python (Join-Path $root "script/ffmpeg_runtime.py") provision $ffmpegTarget
 if ($LASTEXITCODE -ne 0) { throw "AVID ATIV FFmpeg runtime unavailable" }
 
 rustup target add $rustTarget
@@ -29,7 +29,7 @@ Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-engine.exe") $publis
 Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-update.exe") $publish
 python (Join-Path $root "script/configure_distribution.py") $publish "windows-$label"
 if ($LASTEXITCODE -ne 0) { throw "Distribution configuration failed" }
-python (Join-Path $root "script/ffmpeg_runtime.py") stage $coreTarget --runtime $coreRuntime --binary $publish
+python (Join-Path $root "script/ffmpeg_runtime.py") stage $ffmpegTarget --runtime $ffmpegRuntime --binary $publish
 if ($LASTEXITCODE -ne 0) { throw "ATIV FFmpeg runtime staging failed" }
 Copy-Item (Join-Path $root "LICENSE") $publish
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
@@ -49,7 +49,7 @@ if ($env:WINDOWS_CERTIFICATE_BASE64) {
     # The installer is signed below using the same temporary certificate.
 }
 
-python (Join-Path $root "script/ffmpeg_runtime.py") finish $coreTarget --binary $publish
+python (Join-Path $root "script/ffmpeg_runtime.py") finish $ffmpegTarget --binary $publish
 if ($LASTEXITCODE -ne 0) { throw "Signed ATIV FFmpeg runtime recording failed" }
 python (Join-Path $root "script/validate_package.py") $publish "windows-$label"
 if ($LASTEXITCODE -ne 0) { throw "Packaged ATIV FFmpeg runtime validation failed" }

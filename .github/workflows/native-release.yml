@@ -72,7 +72,9 @@ jobs:
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --workspace --locked --all-targets
       - name: Enforce ATIV runtime ownership
-        run: python3 script/test_runtime_ownership.py
+        run: |
+          python3 script/test_runtime_ownership.py
+          python3 script/test_ffmpeg_build.py
 
   macos:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos'

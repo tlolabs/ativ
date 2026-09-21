@@ -11,6 +11,8 @@ import subprocess
 import tarfile
 import tempfile
 import urllib.request
+import urllib.error
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATH = ROOT / 'runtime/ffmpeg/dependency.json'
@@ -78,12 +80,20 @@ def fingerprint(target):
 def fetch(url, path, expected=None):
     if not path.exists():
         temporary = path.with_suffix(path.suffix + '.part')
-        try:
-            with urllib.request.urlopen(url, timeout=90) as response, temporary.open('wb') as stream:
-                shutil.copyfileobj(response, stream)
-            temporary.replace(path)
-        finally:
-            temporary.unlink(missing_ok=True)
+        for attempt in range(4):
+            try:
+                print('Fetching verified source: ' + url, file=__import__('sys').stderr, flush=True)
+                request = urllib.request.Request(url, headers={'User-Agent': 'ATIV-source-builder/1'})
+                with urllib.request.urlopen(request, timeout=90) as response, temporary.open('wb') as stream:
+                    shutil.copyfileobj(response, stream)
+                temporary.replace(path)
+                break
+            except (urllib.error.URLError, TimeoutError, ConnectionError):
+                if attempt == 3:
+                    raise
+                time.sleep(2 ** attempt)
+            finally:
+                temporary.unlink(missing_ok=True)
     if expected and digest(path) != expected:
         raise ValueError('Source checksum mismatch: ' + path.name)
     return path

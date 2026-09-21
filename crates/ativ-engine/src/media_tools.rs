@@ -6,6 +6,15 @@ use std::{fs, path::PathBuf};
 
 const DEPENDENCY: &str = include_str!("../../../runtime/ffmpeg/dependency.json");
 
+fn recipe_hash() -> String {
+    let mut hash = Sha256::new();
+    hash.update(DEPENDENCY.as_bytes());
+    hash.update(include_bytes!("../../../runtime/ffmpeg/release-key.asc"));
+    hash.update(include_bytes!("../../../script/ffmpeg_build.py"));
+    hash.update(include_bytes!("../../../script/ffmpeg_runtime.py"));
+    format!("{:x}", hash.finalize())
+}
+
 fn unavailable() -> AtivError {
     AtivError::RuntimeUnavailable
 }
@@ -64,7 +73,10 @@ pub fn resolve(
                 "{:x}",
                 Sha256::digest(fs::read(metadata.join("build.json")).map_err(|_| unavailable())?)
             );
-            if build["owner"] != "ATIV"
+            if build["recipe_sha256"] != recipe_hash()
+                || provenance["recipe_sha256"] != build["recipe_sha256"]
+                || provenance["architecture"] != arch
+                || build["owner"] != "ATIV"
                 || build["target"] != target
                 || signed["target"] != target
                 || provenance["owner"] != "ATIV"
