@@ -22,7 +22,11 @@ export APPIMAGE_EXTRACT_AND_RUN=1 DEPLOY_GTK_VERSION=4 NO_STRIP=1
 export PATH="$TOOLS:$PATH"
 DESKTOP="$(find "$APPDIR/usr/share/applications" -name '*.desktop' -print -quit)"
 sed -i 's/^Exec=ativ-development$/Exec=ativ/' "$DESKTOP"
+# The verified FFmpeg pair only links system libraries. Keep it out of
+# linuxdeploy's ELF rewriting, then restore the exact source-built bytes.
+rm "$APPDIR/usr/lib/ativ/ffmpeg" "$APPDIR/usr/lib/ativ/ffprobe"
 linuxdeploy --appdir "$APPDIR" --executable "$APPDIR/usr/bin/ativ" --desktop-file "$DESKTOP" --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/$(basename "$DESKTOP" .desktop).png" --plugin gtk
+cp -p "$STAGE/usr/lib/ativ/ffmpeg" "$STAGE/usr/lib/ativ/ffprobe" "$APPDIR/usr/lib/ativ/"
 # linuxdeploy-generated AppRun supplies the relocatable runtime environment.
 ARCH="$ARCH" "$TOOLS/appimagetool" --runtime-file "$TOOLS/runtime" "$APPDIR" "$ROOT_DIR/packages/ATIV-$VERSION-linux-$LABEL.AppImage"
 python3 "$ROOT_DIR/script/validate_package.py" "$APPDIR" "linux-$LABEL-appimage"
