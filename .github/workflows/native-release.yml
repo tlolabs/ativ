@@ -208,6 +208,9 @@ jobs:
         with:
           target: windows-${{ matrix.runtime_arch }}
           clean: ${{ inputs.clean_ffmpeg || false }}
+      - name: Diagnose native Windows portrait filtering
+        shell: pwsh
+        run: python script/diagnose_ffmpeg_windows.py
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --version=6.7.1 --yes --no-progress
