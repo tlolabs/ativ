@@ -58,6 +58,19 @@ class SourceTests(unittest.TestCase):
         with patch.object(recipe.platform, 'system', return_value='MSYS_NT-10.0'), patch.object(recipe.platform, 'machine', return_value='x86_64'), patch.dict(recipe.os.environ, {'PROCESSOR_ARCHITECTURE': 'AMD64', 'PROCESSOR_ARCHITEW6432': 'ARM64'}):
             self.assertEqual(recipe.native_target(), 'windows-arm64')
 
+    def test_gcc_runtime_notices_support_both_msys_package_layouts(self):
+        for name in ['libgcc', 'gcc-libs']:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / 'crt').mkdir()
+                (root / name).mkdir()
+                for file in ['COPYING3', 'COPYING.RUNTIME']:
+                    (root / name / file).write_text('required upstream notice')
+                self.assertIn(root / name, recipe.windows_license_dirs(root, 'gcc'))
+                (root / name / 'COPYING.RUNTIME').unlink()
+                with self.assertRaisesRegex(ValueError, 'Missing GCC runtime license'):
+                    recipe.windows_license_dirs(root, 'gcc')
+
     def test_target_aliases_and_unknown_architectures(self):
         self.assertEqual(recipe.target_id('windows-x64'), 'windows-x86_64')
         self.assertEqual(recipe.target_id('linux-aarch64-appimage'), 'linux-arm64')

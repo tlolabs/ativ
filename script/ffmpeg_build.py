@@ -144,6 +144,21 @@ def extract(archive, destination):
     return roots[0]
 
 
+def windows_license_dirs(root, cc):
+    # MSYS2 moved libgcc notices out of gcc-libs in GCC 16.2.0-4.
+    if cc == 'gcc':
+        runtime = next((name for name in ['libgcc', 'gcc-libs']
+                        if all((root / name / file).is_file() for file in ['COPYING3', 'COPYING.RUNTIME'])), None)
+        if runtime is None:
+            raise ValueError('Missing GCC runtime license and exception')
+    else:
+        runtime = 'compiler-rt'
+    required = ['crt', runtime]
+    if any(not (root / name).is_dir() for name in required):
+        raise ValueError('Missing compiler runtime license directory')
+    return [root / name for name in [*required, 'headers', 'winpthreads', 'libwinpthread'] if (root / name).is_dir()]
+
+
 def build(target, clean=False):
     if target != native_target():
         raise ValueError('Run on a native builder for ' + target + '; detected ' + native_target())
@@ -154,6 +169,8 @@ def build(target, clean=False):
         if json.loads((destination / 'build.json').read_text())['cache_key'] == key:
             verify(destination, target)
             return destination
+    # Validate required toolchain notices before spending time compiling.
+    runtime_notices = windows_license_dirs(Path(os.environ['MINGW_PREFIX']) / 'share/licenses', inputs['toolchain']['cc']) if target.startswith('windows') else []
     archives, signature, status = acquire(ROOT / 'build/ffmpeg-downloads')
     work = ROOT / 'build/ffmpeg-work' / target
     shutil.rmtree(work, ignore_errors=True)
@@ -238,16 +255,9 @@ def build(target, clean=False):
     # Codec libraries above still come exclusively from the pinned source archives.
     toolchain_licenses = []
     if target.startswith('windows'):
-        notice_root = Path(os.environ['MINGW_PREFIX']) / 'share/licenses'
-        required = ['crt', 'libgcc' if env['CC'] == 'gcc' else 'compiler-rt']
-        for name in [*required, 'headers', 'winpthreads']:
-            notices = notice_root / name
-            if not notices.is_dir():
-                if name in required:
-                    raise ValueError('Missing compiler runtime license: ' + name)
-                continue
-            shutil.copytree(notices, licenses / ('toolchain-' + name))
-            toolchain_licenses.append(name)
+        for notices in runtime_notices:
+            shutil.copytree(notices, licenses / ('toolchain-' + notices.name))
+            toolchain_licenses.append(notices.name)
     elif target.startswith('linux'):
         for notice in sorted(Path('/usr/share/doc').glob('gcc-*-base/copyright')):
             shutil.copy2(notice, licenses / ('toolchain-' + notice.parent.name + '-copyright'))
