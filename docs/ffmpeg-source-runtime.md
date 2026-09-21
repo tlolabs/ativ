@@ -32,7 +32,7 @@ The native workflow uses macOS 15 ARM64/Intel, Windows 2025 x64, Windows 11 ARM6
 The cache key hashes the dependency record (including FFmpeg version/checksum/configuration and external pins), recipe scripts, release key, target, and actual compiler/toolchain/SDK/runner inputs. There are no partial restore keys. Restored payloads are revalidated before use. Verified runtimes are saved before application tests, so an unrelated app failure does not discard a successful source build. Unrelated Rust/UI edits reuse a matching runtime. CI's `clean_ffmpeg: true` bypasses cache restoration and saving and rebuilds all source. A failed or damaged cache fails verification; use a clean dispatch to replace the build input. Neither signing nor notarization gates manual unsigned qualification.
 
 ```sh
-# Native target only; source build tools and Python 3.11+ are required.
+# Native target only; source build tools and Python 3.12+ are required.
 # macOS: use full Xcode (also required for the app).
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 python3 script/ffmpeg_build.py build macos-arm64 --clean
@@ -44,7 +44,7 @@ python3 script/ffmpeg_runtime.py provision macos-arm64
 gh workflow run native-release.yml --ref YOUR_BRANCH -f platform=all -f clean_ffmpeg=true -f sign_macos=false
 ```
 
-Valid target IDs are `macos-arm64`, `macos-x86_64`, `windows-x86_64`, `windows-arm64`, `linux-x86_64`, and `linux-arm64`. Windows source builds run in the corresponding MSYS2 shell. Other platforms need C compiler/make/pkg-config/GnuPG. Build tools may come from the OS package manager; distributed FFmpeg and linked codec libraries may not.
+Valid target IDs are `macos-arm64`, `macos-x86_64`, `windows-x86_64`, `windows-arm64`, `linux-x86_64`, and `linux-arm64`. Windows source builds run in the corresponding MSYS2 shell (UCRT64 for x64, CLANGARM64 for ARM64). Run `/usr/bin/python3 script/ffmpeg_build.py build windows-x86_64` there; then, in PowerShell, set `$env:ATIV_FFMPEG_RUNTIME = (Resolve-Path build/ffmpeg/windows-x86_64).Path` before `./script/package_windows.ps1 -Architecture x64`. Use the ARM64 target and architecture for an ARM64 host. CI performs these steps automatically. Other platforms need C compiler/make/pkg-config/GnuPG. Build tools may come from the OS package manager; distributed FFmpeg and linked codec libraries may not.
 
 ## Packaged runtime and tests
 

@@ -6,6 +6,8 @@ ATIV builds FFmpeg 9.0.2 and ffprobe from the official FFmpeg release archive, v
 
 The statically linked external libraries are x264 (GPL-2.0-or-later, stable commit b35605ace3ddf7c1a5d67a2eb553f034aef41d55) and zlib 1.3.1 (Zlib license). The resulting FFmpeg executables are GPL-2.0-or-later; version3 and nonfree components are disabled. Packages include complete corresponding source archives, build scripts, original upstream notices in `ffmpeg-licenses/`, and build/provenance records. On macOS these live in `Contents/Resources/FFmpeg`; elsewhere they accompany the engine. Preserve these materials when redistributing. See [the source-runtime documentation](docs/ffmpeg-source-runtime.md).
 
+Windows FFmpeg packages also include the MinGW-w64 runtime notices and the GCC Runtime Library Exception or LLVM compiler-rt notices for compiler support code. Linux packages include GCC runtime copyright/exception material and GPL-3 text. These notices are preserved under `ffmpeg-licenses/toolchain-*`; compiler and package versions are recorded in `build.json`.
+
 ## Windows App SDK
 
 The Windows application uses Microsoft Windows App SDK 2.4 under its accompanying Microsoft license and notices.
