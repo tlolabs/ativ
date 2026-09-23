@@ -24,6 +24,7 @@ def test(engine,runtime,target):
         # These edits must fail before any media invocation. Provenance cannot merely be present.
         for name, mutate in [
             ('ativ-runtime.json', lambda data: data.replace(b'"architecture": "', b'"architecture": "wrong-')),
+            ('ativ-runtime.json', lambda data: data.replace(b'"revision": "', b'"revision": "wrong-')),
             ('build.json', lambda data: data + b' '),
             ('signed-payload.json', lambda data: data.replace(b'"target": "', b'"target": "wrong-')),
         ]:
@@ -53,6 +54,13 @@ def test(engine,runtime,target):
             p=subprocess.run([str(executable),'check'],env=env,capture_output=True,timeout=60)
             assert p.returncode!=0,(name,'damaged bundle silently fell back to PATH')
             path.write_bytes(original);path.chmod(mode)
+        # Explicit missing overrides must also fail despite the intact adjacent pair.
+        for tool in ['ffmpeg', 'ffprobe']:
+            paths = {name: staged / (name + suffix) for name in ['ffmpeg', 'ffprobe']}
+            paths[tool] = staged / 'missing-override'
+            result = subprocess.run([str(executable), 'check', '--ffmpeg', str(paths['ffmpeg']),
+                                     '--ffprobe', str(paths['ffprobe'])], env=env, capture_output=True, timeout=60)
+            assert result.returncode != 0, 'Explicit override fell back to bundled tools'
         print('Managed bundle: real exports/previews, lifecycle and missing/damaged tools passed')
 
 

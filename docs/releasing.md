@@ -2,7 +2,7 @@
 
 ## Reference and adaptations
 
-ENcap supplied the native subprocess boundary, Sparkle 2.9.6 bridge and Ed25519 release-signing pattern. Its reviewed implementation has no Windows/Linux update client, nightly convention, native installers or AppImage pipeline. ATIV adds these host-owned pieces and independent publication. Runtime availability and qualification are owned by AVID Core; see [the migration audit](core-runtime-migration.md). See [the review](native-distribution-plan.md).
+ENcap supplied the native subprocess boundary, Sparkle 2.9.6 bridge and Ed25519 release-signing pattern. Its reviewed implementation has no Windows/Linux update client, nightly convention, native installers or AppImage pipeline. ATIV adds these host-owned pieces and independent publication. ATIV owns runtime source builds and package qualification; see [the integration contract](core-runtime-migration.md). See [the review](native-distribution-plan.md).
 
 ## Repository configuration
 
@@ -51,7 +51,7 @@ Once validation passes, failed macOS jobs for an existing release can be rerun u
 
 ## Stable release
 
-Update the workspace version, validate the branch, merge it, and push the matching `v<version>` tag. No manual approval job is required. The workflow tests Rust/shared media contracts, native integration and startup, acquires the pinned authenticated Core runtime, packages every supported target, validates architectures/resources/metadata, signs where configured and uploads only passing job artifacts.
+Update the workspace version, validate the branch, merge it, and push the matching `v<version>` tag. No manual approval job is required. The workflow tests Rust/shared media contracts, native integration and startup, builds the checksum/signature-pinned official FFmpeg source runtime, packages every supported target, validates architectures/resources/metadata, signs where configured and uploads only passing job artifacts.
 
 Publication uses `always()` after all target jobs. Passing artifacts publish even when another target failed. Release notes explicitly identify incomplete jobs; the final reporting step fails so normal GitHub notifications remain effective. Empty or mixed-version artifact collections fail publication. Update feeds contain only artifacts actually present. An absent target cannot be offered for installation.
 

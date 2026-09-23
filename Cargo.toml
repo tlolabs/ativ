@@ -14,7 +14,7 @@ repository = "https://github.com/tlolabs/ativ"
 rust-version = "1.85"
 
 [workspace.dependencies]
-avid-core = { git = "https://github.com/tlolabs/avid-core", rev = "eab97dd043187aa8b7a1cae4eb2c1228fa25a9db" }
+avid-core = { git = "https://github.com/tlolabs/avid-core", rev = "3fb68807bc7c350359e1634b32af477ea3042c16", version = "=0.3.0" }
 
 [profile.release]
 lto = "thin"

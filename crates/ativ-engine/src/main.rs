@@ -53,6 +53,20 @@ fn run() -> ativ_core::Result<()> {
             println!("ativ-engine {}", ativ_core::VERSION);
             Ok(())
         }
+        "build-info" => {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "ativ_version": ativ_core::VERSION,
+                    "avid_core": {
+                        "version": ativ_core::CORE_VERSION,
+                        "revision": ativ_core::CORE_REVISION,
+                        "source": ativ_core::CORE_SOURCE,
+                    }
+                })
+            );
+            Ok(())
+        }
         "presets" => {
             print_presets();
             Ok(())
@@ -391,7 +405,7 @@ fn escape(value: &str) -> String {
 
 fn print_help() {
     println!(
-        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode simple|current] [--flip-horizontal] [--flip-vertical]\n\nBy default, ATIV uses only its packaged runtime. The --ffmpeg and --ffprobe overrides must be supplied together and are for development/tests.\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
+        "A.T.I.V. shared engine\n\nCommands:\n  build-info  Report application and pinned AVID Core identity\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode simple|current] [--flip-horizontal] [--flip-vertical]\n\nBy default, ATIV uses only its packaged runtime. The --ffmpeg and --ffprobe overrides must be supplied together and are for development/tests.\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
     );
 }
 

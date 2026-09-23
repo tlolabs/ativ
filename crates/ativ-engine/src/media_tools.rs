@@ -1,5 +1,5 @@
 //! ATIV owns runtime identity and layout; the existing Core API executes the selected pair.
-use ativ_core::{AtivError, CancellationToken, MediaTools, ToolDiscovery};
+use ativ_core::{AtivError, CancellationToken, MediaTools};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
@@ -80,6 +80,9 @@ pub fn resolve(
                 || build["target"] != target
                 || signed["target"] != target
                 || provenance["owner"] != "ATIV"
+                || provenance["avid_core"]["version"] != ativ_core::CORE_VERSION
+                || provenance["avid_core"]["revision"] != ativ_core::CORE_REVISION
+                || provenance["avid_core"]["source"] != ativ_core::CORE_SOURCE
                 || provenance["target"] != target
                 || provenance["ffmpeg_version"] != expected["source"]["version"]
                 || manifest["build.json"] != build_hash
@@ -107,15 +110,7 @@ pub fn resolve(
             ));
         }
     };
-    let tools = MediaTools::discover(
-        ToolDiscovery {
-            ffmpeg: Some(ffmpeg),
-            ffprobe: Some(ffprobe),
-            search_path: false,
-            ..Default::default()
-        },
-        token,
-    )?;
+    let tools = MediaTools::from_paths(ffmpeg, ffprobe, token)?;
     if packaged
         && tools.ffmpeg_version().split_whitespace().nth(2)
             != expected["source"]["version"].as_str()

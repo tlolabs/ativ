@@ -83,6 +83,25 @@ def provision(target):
     return build(target)
 
 
+def core_identity():
+    manifest = tomllib.loads((ROOT / 'Cargo.toml').read_text())
+    pin = manifest['workspace']['dependencies']['avid-core']
+    packages = tomllib.loads((ROOT / 'Cargo.lock').read_text())['package']
+    core, = [package for package in packages if package['name'] == 'avid-core']
+    source = f"git+{pin['git']}?rev={pin['rev']}#{pin['rev']}"
+    if core['source'] != source or pin['version'] != '=' + core['version']:
+        raise ValueError('Core lock differs from the approved pin')
+    return dict(version=core['version'], revision=pin['rev'], source=source)
+
+
+def engine_identity(binary, target):
+    engine = binary / ('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
+    identity = json.loads(subprocess.check_output([str(engine.resolve()), 'build-info'], timeout=30))
+    if identity['avid_core'] != core_identity():
+        raise ValueError('Packaged engine differs from pinned AVID Core')
+    return identity
+
+
 def stage(target, runtime, binary):
     target = target_id(target)
     verify(runtime, target)
@@ -97,6 +116,7 @@ def stage(target, runtime, binary):
             shutil.copy2(item, destination)
     version = os.environ.get('ATIV_VERSION') or tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
     write_json(binary / 'ativ-runtime.json', {'schema': 1, 'owner': 'ATIV', 'ativ_version': version,
+               'avid_core': engine_identity(binary, target)['avid_core'],
                'ffmpeg_version': SPEC['source']['version'], 'target': target, 'architecture': target.split('-', 1)[1],
                'recipe_sha256': recipe_digest()})
 
@@ -124,6 +144,9 @@ def validate(target, binary, metadata, runtime=None):
     provenance = json.loads((metadata / 'ativ-runtime.json').read_text())
     if provenance['owner'] != 'ATIV' or provenance['ffmpeg_version'] != SPEC['source']['version'] or provenance['target'] != target or provenance['architecture'] != target.split('-', 1)[1] or provenance['recipe_sha256'] != recipe_digest():
         raise ValueError('Packaged ATIV runtime provenance mismatch')
+    identity = engine_identity(binary, target)
+    if provenance['avid_core'] != identity['avid_core'] or provenance['ativ_version'] != identity['ativ_version']:
+        raise ValueError('Packaged Core/application provenance mismatch')
     if runtime:
         verify(runtime, target)
         for name in checked_files(runtime):

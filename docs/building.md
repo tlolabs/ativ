@@ -2,7 +2,7 @@
 
 ## Checkouts and toolchains
 
-Clone `tlolabs/ativ`. Cargo fetches the existing AVID Core API at the immutable revision recorded in Cargo.toml, Cargo.lock and `runtime/core-revision`. No sibling Core or EnCAP checkout is required or modified.
+Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.0 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
 
 Use a current stable Rust toolchain and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements. macOS builds need full Xcode, Windows needs .NET 8+ and Windows App SDK build tools, and Linux needs GTK 4.10+, libadwaita 1.4+, json-glib, Meson and Ninja. CI installs each platform's requirements.
 

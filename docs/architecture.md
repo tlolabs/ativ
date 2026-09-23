@@ -41,7 +41,7 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 - Source images are limited to 32,768 pixels per axis and 50 megapixels.
 - Output is limited to 8,192 pixels per axis and 33,177,600 pixels.
 - FFmpeg and ffprobe run without a shell and with standard input disabled.
-- Packaged media tools are version-checked by avid-core before use; mismatched version identifiers are rejected. Each platform/architecture uses one approved 9.0.1 pair for all modes. The shared crate supplies no binaries.
+- Packaged media tools are version-checked by avid-core before use; mismatched version identifiers are rejected. Each platform/architecture uses one ATIV source-built 9.0.2 pair for all modes. The shared crate supplies no binaries.
 - Diagnostics remain local; ATIV has no telemetry or automatic diagnostic upload.
 
 ## Platform support
@@ -57,3 +57,5 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 Appearance/preferences remain platform-owned. Source selection, probing, preview generations and render state belong to native stores/clients. An audio probe for an older selection cannot replace the current duration. Native process clients keep pipes drained and pass arguments without a shell. Closing or quitting an active render requests safe engine cancellation.
 
 `assets/icons` owns artwork; `generate_icons.py` converts it into tracked native resources. Distribution identity and versions are generated from the workspace version plus the CI development build number. Stable/development feeds and application identities are separate.
+
+Core 0.3.0 is pinned at `3fb68807bc7c350359e1634b32af477ea3042c16` (tag `v0.3.0`). Production calls `MediaTools::from_paths` after ATIV validates its own bundle. It never invokes Core discovery or runtime acquisition. `ativ-engine build-info` identifies the compiled source dependency; package provenance must match.

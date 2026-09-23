@@ -12,3 +12,6 @@ path = "src/lib.rs"
 
 [dependencies]
 avid-core.workspace = true
+
+[build-dependencies]
+toml = "0.8"

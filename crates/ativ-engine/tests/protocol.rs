@@ -51,3 +51,16 @@ fn invalid_render_mode_is_rejected_before_media_discovery() {
             .contains("--render-mode must be simple or current.")
     );
 }
+
+#[test]
+fn build_info_reports_the_resolved_core() {
+    let result = engine(&["build-info"]);
+    assert!(result.status.success());
+    let info: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(info["avid_core"]["version"], "0.3.0");
+    assert_eq!(
+        info["avid_core"]["revision"],
+        "3fb68807bc7c350359e1634b32af477ea3042c16"
+    );
+    assert_eq!(info["avid_core"]["source"], ativ_core::CORE_SOURCE);
+}

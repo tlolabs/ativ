@@ -1,5 +1,7 @@
 # ATIV FFmpeg 9.0.2 qualification
 
+> Source-build qualification before the Core 0.3.0 migration. Current application/Core evidence is recorded in [core-runtime-migration.md](core-runtime-migration.md).
+
 ATIV owns these builds independently of the historical Core runtime ledger. The official FFmpeg 9.0.2 source archive is verified with its pinned SHA-256 and upstream OpenPGP signature. x264 and zlib are built from checksum-pinned upstream source. No production release was published.
 
 | Target | Native toolchain | Source/build | Package/media/lifecycle/native checks |

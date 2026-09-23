@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import re
 import unittest
+import subprocess
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,8 +17,13 @@ class OwnershipTests(unittest.TestCase):
         self.assertEqual(spec['source']['url'], 'https://ffmpeg.org/releases/ffmpeg-' + spec['source']['version'] + '.tar.xz')
         for record in [spec['source'], *spec['external_libraries'].values()]:
             self.assertRegex(record['sha256'], r'^[0-9a-f]{64}$')
-        revision = (ROOT / 'runtime/core-revision').read_text().strip()
-        self.assertIn('rev = "' + revision + '"', (ROOT / 'Cargo.toml').read_text())
+        pin = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['dependencies']['avid-core']
+        self.assertEqual(pin['version'], '=0.3.0')
+        self.assertEqual(pin['rev'], '3fb68807bc7c350359e1634b32af477ea3042c16')
+        metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--format-version', '1'], cwd=ROOT))
+        core, = [p for p in metadata['packages'] if p['name'] == 'avid-core']
+        self.assertEqual(core['version'], pin['version'][1:])
+        self.assertEqual(core['source'], f"git+{pin['git']}?rev={pin['rev']}#{pin['rev']}")
         self.assertEqual(len(spec['targets']), 6)
 
     def test_production_ownership(self):
@@ -32,9 +39,10 @@ class OwnershipTests(unittest.TestCase):
                 if any(part in {'target', '.build', 'bin', 'obj'} for part in path.parts):
                     continue
                 text = path.read_text()
-                self.assertNotRegex(text, r'BtbN|martin-riedl|evermeet|johnvansickle|ffbinaries|scripts/ffmpeg/acquire|from_managed_layout', str(path))
+                self.assertNotRegex(text, r'BtbN|martin-riedl|evermeet|johnvansickle|ffbinaries|scripts/ffmpeg/acquire|from_managed_layout|acquire_core_runtime|package_core_candidate|core_runtime.py', str(path))
         discovery = (ROOT / 'crates/ativ-engine/src/media_tools.rs').read_text()
-        self.assertIn('search_path: false', discovery)
+        self.assertIn('MediaTools::from_paths(', discovery)
+        self.assertNotIn('MediaTools::discover', discovery)
         self.assertIn('DEPENDENCY.as_bytes()', discovery)
 
 

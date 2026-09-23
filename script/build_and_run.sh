@@ -17,7 +17,7 @@ RUNTIME="$(python3 "$ROOT_DIR/script/ffmpeg_runtime.py" provision "$RUNTIME_TARG
 
 pkill -x "${APP_NAME}" >/dev/null 2>&1 || true
 
-cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" -p ativ-engine
+cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --locked -p ativ-engine
 swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD_DIR}"
 SWIFT_BIN_DIR="$(swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD_DIR}" --show-bin-path)"
 
