@@ -62,4 +62,4 @@ Each native CI job runs the normal ATIV Rust tests, actual staged-engine media t
 4. Dispatch the six-target workflow with `clean_ffmpeg=true`. Require build, package, media and cleanup evidence for every target before accepting the update.
 5. Commit the lock/recipe and qualification results. Ordinary releases use the same build path. Do not publish from a qualification branch.
 
-Current evidence and any outstanding gates are recorded in [ffmpeg-qualification.md](ffmpeg-qualification.md). Earlier Core runtime migration notes are historical and do not describe the current acquisition path.
+Source-build evidence is recorded in [ffmpeg-qualification.md](ffmpeg-qualification.md); current Core integration and native acceptance results are in [core-runtime-migration.md](core-runtime-migration.md).

@@ -18,7 +18,7 @@ The Linux application uses GTK 4 and libadwaita, distributed under the GNU Lesse
 
 ## AVID Core and Rust dependencies
 
-ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in `runtime/core-revision`; Cargo.lock records its version. It contains reconciled ATIV and EnCAP video work and is GPL-3.0-only. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`. The host source retains GPL-3.0-or-later; the linked shared component does not grant a later-version option.
+ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (v0.3.0, `3fb68807bc7c350359e1634b32af477ea3042c16`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and is GPL-3.0-only. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`. The host source retains GPL-3.0-or-later; the linked shared component does not grant a later-version option.
 
 The exact Rust dependency versions and checksums are in Cargo.lock. The following packages retain their upstream notices and licenses (source archives are available from https://crates.io):
 

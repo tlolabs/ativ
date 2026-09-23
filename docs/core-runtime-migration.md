@@ -60,6 +60,53 @@ are rejected with a usable external runtime on PATH; explicit missing overrides
 are rejected with an intact adjacent runtime. Native clients/startup/installers
 and packaged media validation run on every target.
 
-Migration run results will be recorded after the six-platform workflow completes.
+Local macOS Apple Silicon verification passed on September 23, 2026:
+
+- Locked workspace tests (15), check, formatting and clippy; ownership checks (2),
+  source-builder regression tests (8), release-infrastructure tests (7).
+- Clean source build, full packaged-engine media/negative/lifecycle suite,
+  normal `build_and_run.sh --verify`, normal release ZIP/DMG packaging and validation.
+- Both Swift native tests, including probing, preview and export through the actual
+  release engine; release app startup reported `{"startup":true,"presets":27}`.
+- ZIP runtime hashes, all three source archives, Core identity/license, DMG checksum
+  and strict bundle signature verification passed (local ad-hoc signing).
+- Clean FFmpeg/ffprobe hashes matched the previously qualified local source build
+  byte for byte. The Core library and bundle provenance changed; media binaries did not.
+
+Logs are retained under ignored `build/core-030-*.log`.
+
+### Six-platform CI results
+
+All six native pipelines passed against implementation commit
+`bc43ed0fc3c82acc4ea2ffbf0bb65fd2c8ebb91e`. Both manual dispatches forced clean
+FFmpeg source builds and used the normal native application/package workflow.
+No release was published.
+
+| Platform | Native build, pinned Core, media, lifecycle, package and startup/installer |
+| --- | --- |
+| macOS Apple Silicon | Passed — [run 35894450676](https://github.com/tlolabs/ativ/actions/runs/35894450676) |
+| macOS Intel | Passed — same run |
+| Windows ARM64 | Passed — same run |
+| Linux x64 | Passed — same run |
+| Linux ARM64 | Passed — same run |
+| Windows x64 | Passed — [retry run 35895120766](https://github.com/tlolabs/ativ/actions/runs/35895120766) |
+
+The first run rejected a Windows x64 zlib download whose checksum did not match
+before compilation. The same official URL and unchanged pinned checksum were
+independently verified, then the normal Windows workflow passed on a fresh runner.
+No source pin, integrity check, test or compiler setting was relaxed. The first
+run therefore has an overall failure status despite five passing native targets;
+the retry provides the complete passing Windows x64 evidence at the same commit.
+
+Completed job logs confirm compilation of Core 0.3.0, successful full packaged
+media tests and missing/damaged-runtime rejection on every target. Package
+validation checks the full Core source revision against the lock/pin and both
+FFmpeg/ffprobe identifiers against 9.0.2. Windows includes native C# media tests,
+WinUI startup, installed runtime discovery, upgrade and uninstall. Linux includes
+GTK startup, AppImage extraction/launch and deb install/reinstall/uninstall.
+Both macOS targets include Swift media tests and packaged application startup.
+Final follow-up edits are this report and dependency-notice references only.
+
+No integration or Core defect remains, and no Core or EnCAP source was changed.
 Production signing/notarization and exact minimum-OS device execution are separate
 release concerns; they do not prevent the unsigned architecture verification.
