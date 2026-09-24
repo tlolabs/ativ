@@ -8,6 +8,14 @@ on:
         type: choice
         options: [all, macos, windows, linux]
         default: all
+      publish_signed_macos:
+        description: Publish locally signed macOS packages from the matching draft release
+        type: boolean
+        default: false
+      stable_macos:
+        description: Build stable macOS artifacts for local Developer ID signing (no publication)
+        type: boolean
+        default: false
       clean_ffmpeg:
         description: Force a clean FFmpeg source rebuild, bypassing all runtime caches
         type: boolean
@@ -32,12 +40,13 @@ permissions:
 env:
   GH_TOKEN: ${{ github.token }}
   CARGO_TERM_COLOR: always
-  ATIV_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+  ATIV_CHANNEL: ${{ (startsWith(github.ref, 'refs/tags/v') || inputs.stable_macos) && 'stable' || 'development' }}
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
 jobs:
   engine:
+    if: ${{ !inputs.publish_signed_macos }}
     defaults:
       run:
         working-directory: ATIV
@@ -53,7 +62,7 @@ jobs:
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
             echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
           else
@@ -104,7 +113,7 @@ jobs:
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
             echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
           else
@@ -197,7 +206,7 @@ jobs:
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
             echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
           else
@@ -259,7 +268,7 @@ jobs:
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
             echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
           else
@@ -329,3 +338,46 @@ jobs:
           BUILD_RESULTS: ${{ toJSON(needs) }}
         run: |
           python3 -c 'import json,os; jobs=json.loads(os.environ["BUILD_RESULTS"]); failed=[k for k,v in jobs.items() if v["result"]!="success"]; print("Incomplete targets: " + ", ".join(failed)); raise SystemExit(bool(failed))'
+
+  publish_signed_macos:
+    name: Publish locally signed macOS release
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_signed_macos
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify matching draft and download signed packages
+        run: |
+          version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
+          tag="v$version"
+          test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
+          test "$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)" = "$GITHUB_SHA"
+          echo "ATIV_VERSION=$version" >> "$GITHUB_ENV"
+          echo "ATIV_RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+          gh release download "$tag" --dir release-assets
+          python3 - "$version" <<'PYCODE'
+          import sys, hashlib
+          from pathlib import Path
+          root=Path('release-assets'); version=sys.argv[1]
+          expected={f'ATIV-{version}-macos-{arch}.{ext}' for arch in ('arm64','intel') for ext in ('dmg','zip')}
+          assert {p.name for p in root.iterdir()} == expected | {'SHA256SUMS'}
+          checks={}
+          for line in (root/'SHA256SUMS').read_text().splitlines():
+              digest,name=line.split('  ',1); checks[name]=digest
+          assert set(checks)==expected
+          for name,digest in checks.items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest, name
+          PYCODE
+      - name: Generate authenticated update feeds
+        env:
+          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
+        run: |
+          python3 -m venv build/release-tools
+          build/release-tools/bin/pip install -r script/requirements-build.txt
+          build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel stable --tag "$ATIV_RELEASE_TAG"
+          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS release-assets/appcast-macos-arm64.xml release-assets/appcast-macos-intel.xml --clobber
+      - name: Publish complete macOS release
+        run: gh release edit "$ATIV_RELEASE_TAG" --draft=false --latest
