@@ -398,6 +398,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: read
     env:
       WINDOWS_RUN: ${{ inputs.windows_run }}
       LINUX_RUN: ${{ inputs.linux_run }}
@@ -405,6 +406,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Verify tagged source and successful native builds
         run: |
           python3 - <<'PYCODE'
