@@ -8,6 +8,16 @@ on:
         type: choice
         options: [all, macos, windows, linux]
         default: all
+      publish_cross_platform:
+        description: Add validated Windows/Linux runs to the current stable tagged release
+        type: boolean
+        default: false
+      windows_run:
+        description: Successful Windows build run ID for the release tag
+        type: string
+      linux_run:
+        description: Successful Linux build run ID for the release tag
+        type: string
       publish_signed_macos:
         description: Publish locally signed macOS packages from the matching draft release
         type: boolean
@@ -46,7 +56,7 @@ env:
 
 jobs:
   engine:
-    if: ${{ !inputs.publish_signed_macos }}
+    if: ${{ !inputs.publish_signed_macos && !inputs.publish_cross_platform }}
     defaults:
       run:
         working-directory: ATIV
@@ -381,3 +391,67 @@ jobs:
           gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS release-assets/appcast-macos-arm64.xml release-assets/appcast-macos-intel.xml --clobber
       - name: Publish complete macOS release
         run: gh release edit "$ATIV_RELEASE_TAG" --draft=false --latest
+
+  publish_cross_platform:
+    name: Complete tagged cross-platform release
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_cross_platform
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      WINDOWS_RUN: ${{ inputs.windows_run }}
+      LINUX_RUN: ${{ inputs.linux_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify tagged source and successful native builds
+        run: |
+          python3 - <<'PYCODE'
+          import json, os, re, subprocess
+          from pathlib import Path
+          def gh(*args): return json.loads(subprocess.check_output(['gh',*args]))
+          version=re.search(r'^version = "([^"]+)"',Path('Cargo.toml').read_text(),re.M)[1]
+          tag='v'+version
+          release=gh('release','view',tag,'--json','isDraft,targetCommitish,assets')
+          assert not release['isDraft']
+          sha=gh('api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/commits/{tag}')['sha']
+          for name,expected in [('WINDOWS_RUN',{'Windows x64','Windows ARM64'}),('LINUX_RUN',{'Linux x86_64','Linux aarch64'})]:
+              run_id=os.environ[name]; assert run_id.isdigit()
+              run=gh('run','view',run_id,'--json','headSha,status,conclusion,jobs,workflowName')
+              assert run['headSha']==sha and run['status']=='completed' and run['conclusion']=='success'
+              assert run['workflowName']=='Native build, test, and package'
+              assert expected <= {j['name'] for j in run['jobs'] if j['conclusion']=='success'}
+          expected={f'ATIV-{version}-macos-{arch}.{ext}' for arch in ('arm64','intel') for ext in ('dmg','zip')}
+          assert {a['name'] for a in release['assets'] if a['name'].startswith('ATIV-')}==expected
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write(f'ATIV_VERSION={version}\nATIV_RELEASE_TAG={tag}\nRELEASE_SHA={sha}\n')
+          PYCODE
+      - name: Retrieve existing release and native build artifacts
+        run: |
+          gh release download "$ATIV_RELEASE_TAG" --dir release-assets
+          (cd release-assets && sha256sum -c SHA256SUMS)
+          gh run download "$WINDOWS_RUN" --name ATIV-windows-x64 --dir release-assets
+          gh run download "$WINDOWS_RUN" --name ATIV-windows-ARM64 --dir release-assets
+          gh run download "$LINUX_RUN" --name ATIV-linux-x86_64 --dir release-assets
+          gh run download "$LINUX_RUN" --name ATIV-linux-aarch64 --dir release-assets
+          python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          v=os.environ['ATIV_VERSION']
+          expected={f'ATIV-{v}-macos-{a}.{e}' for a in ('arm64','intel') for e in ('dmg','zip')}
+          expected|={f'ATIV-{v}-windows-{a}{e}' for a in ('x64','arm64') for e in ('-setup.exe','.zip')}
+          expected|={f'ATIV-{v}-linux-{a}.{e}' for a in ('x64','arm64') for e in ('AppImage','deb')}
+          assert {p.name for p in Path('release-assets').glob('ATIV-*')}==expected
+          PYCODE
+      - name: Sign combined update metadata using tagged release tooling
+        env:
+          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
+        run: |
+          git show "$RELEASE_SHA:script/release_metadata.py" > /tmp/ativ-release-metadata.py
+          python3 -m venv build/release-tools
+          build/release-tools/bin/pip install -r script/requirements-build.txt
+          build/release-tools/bin/python /tmp/ativ-release-metadata.py --assets release-assets --version "$ATIV_VERSION" --channel stable --tag "$ATIV_RELEASE_TAG"
+      - name: Upload validated packages and authenticated metadata
+        run: |
+          gh release upload "$ATIV_RELEASE_TAG" release-assets/ATIV-*-windows-* release-assets/ATIV-*-linux-*
+          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS release-assets/appcast-macos-arm64.xml release-assets/appcast-macos-intel.xml --clobber
