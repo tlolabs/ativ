@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: Thomas Lothian
+# SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 export MACOSX_DEPLOYMENT_TARGET=13.0

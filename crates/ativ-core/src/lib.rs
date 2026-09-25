@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! ATIV application policy and error presentation over the canonical media engine.
 //! No media execution or validation is implemented in this compatibility adapter.
 mod error;

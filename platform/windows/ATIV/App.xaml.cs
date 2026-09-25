@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 using Microsoft.UI.Xaml;
 using System.Runtime.InteropServices;
 

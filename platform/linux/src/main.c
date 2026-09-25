@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include <adwaita.h>
 #include <json-glib/json-glib.h>
 #include <glib/gstdio.h>

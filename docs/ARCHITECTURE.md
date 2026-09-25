@@ -52,7 +52,7 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 
 ## Application distribution boundary
 
-`ativ-update` is an ATIV-only Rust executable; it has no avid-core dependency and never receives media paths. Windows/GTK call it asynchronously to check signed metadata and download verified installers. macOS loads Sparkle through a small Objective-C bridge. Native UI confirmation and platform installers own the installation step. See [release architecture](releasing.md).
+`ativ-update` is an ATIV-only Rust executable; it has no avid-core dependency and never receives media paths. Windows/GTK call it asynchronously to check signed metadata and download verified installers. macOS loads Sparkle through a small Objective-C bridge. Native UI confirmation and platform installers own the installation step. See [release architecture](RELEASING.md).
 
 Appearance/preferences remain platform-owned. Source selection, probing, preview generations and render state belong to native stores/clients. An audio probe for an older selection cannot replace the current duration. Native process clients keep pipes drained and pass arguments without a shell. Closing or quitting an active render requests safe engine cancellation.
 

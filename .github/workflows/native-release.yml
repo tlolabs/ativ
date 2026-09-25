@@ -50,7 +50,7 @@ permissions:
 env:
   GH_TOKEN: ${{ github.token }}
   CARGO_TERM_COLOR: always
-  ATIV_CHANNEL: ${{ (startsWith(github.ref, 'refs/tags/v') || inputs.stable_macos) && 'stable' || 'development' }}
+  ATIV_CHANNEL: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.stable_macos) && 'stable' || 'development' }}
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
@@ -67,6 +67,13 @@ jobs:
         with:
           persist-credentials: false
           path: ATIV
+          fetch-depth: 0
+      - name: Verify stable release authorization
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        env:
+          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
+          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
+        run: bash script/verify_release_tag.sh
       - name: Configure build identity
         shell: bash
         run: |
@@ -83,6 +90,13 @@ jobs:
           python3 -m venv build/release-tools
           build/release-tools/bin/pip install -r script/requirements-build.txt
           build/release-tools/bin/python script/test_release_infrastructure.py
+          python3 script/dependency_inventory.py --check
+      - name: Verify contributor DCO sign-offs
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 script/check_dco.py "$BASE_SHA" "$HEAD_SHA"
       - name: Validate Rust workspace
         run: |
           rustup component add rustfmt clippy
@@ -102,6 +116,10 @@ jobs:
         working-directory: ATIV
     name: macOS ${{ matrix.arch }}
     needs: engine
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -135,7 +153,7 @@ jobs:
           target: macos-${{ matrix.runtime_arch }}
           clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Configure release signing and notarization
-        if: startsWith(github.ref, 'refs/tags/') || inputs.sign_macos
+        if: (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos
         env:
           CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -167,8 +185,8 @@ jobs:
           ./script/test_engine_integration.sh macos-${{ matrix.runtime_arch }}
       - name: Build and package native application
         env:
-          APPLE_SIGN_IDENTITY: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
-          APPLE_NOTARY_PROFILE: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && 'ativ-notary' || '' }}
+          APPLE_SIGN_IDENTITY: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
+          APPLE_NOTARY_PROFILE: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && 'ativ-notary' || '' }}
         run: ./script/package_macos.sh "${{ matrix.arch }}"
       - name: Native process integration tests
         run: |
@@ -182,11 +200,17 @@ jobs:
           for attempt in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
           test -s "$RUNNER_TEMP/ativ-smoke.json"
           pkill -x ATIV || true
+      - name: Attest stable macOS packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ATIV/packages/*
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-macos-${{ matrix.arch }}
           path: ATIV/packages/*
           if-no-files-found: error
+          retention-days: 30
 
   windows:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows'
@@ -195,6 +219,10 @@ jobs:
         working-directory: ATIV
     name: Windows ${{ matrix.arch }}
     needs: engine
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -238,17 +266,23 @@ jobs:
       - name: Build and package native application
         shell: pwsh
         env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
       - name: Native integration and installer smoke tests
         shell: pwsh
         run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
+      - name: Attest stable Windows packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ATIV/packages/*
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-windows-${{ matrix.arch }}
           path: ATIV/packages/*
           if-no-files-found: error
+          retention-days: 30
 
   linux:
     if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux'
@@ -257,6 +291,10 @@ jobs:
         working-directory: ATIV
     name: Linux ${{ matrix.arch }}
     needs: engine
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -302,14 +340,20 @@ jobs:
         run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
+      - name: Attest stable Linux packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ATIV/packages/*
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-linux-${{ matrix.arch }}
           path: ATIV/packages/*
+          retention-days: 30
 
   release:
     name: Publish passing artifacts
-    if: ${{ always() && !cancelled() && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+    if: ${{ always() && !cancelled() && ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
     needs: [engine, macos, windows, linux]
     runs-on: ubuntu-24.04
     permissions:
@@ -323,6 +367,11 @@ jobs:
           pattern: ATIV-*
           path: release-assets
           merge-multiple: true
+      - name: Keep only macOS ARM64 development packages
+        if: github.ref == 'refs/heads/main'
+        run: find release-assets -maxdepth 1 -type f -name 'ATIV-*' ! -name 'ATIV-*-macos-arm64.*' -delete
+      - name: Generate release SBOM from locked inputs
+        run: python3 script/dependency_inventory.py --check --sbom-dir release-assets
       - name: Publish validated passing packages
         env:
           GH_TOKEN: ${{ github.token }}
@@ -359,6 +408,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Verify matching draft and download signed packages
         run: |
           version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
@@ -381,6 +431,11 @@ jobs:
           for name,digest in checks.items():
               assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest, name
           PYCODE
+      - name: Verify stable release authorization
+        env:
+          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
+          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
+        run: GITHUB_REF_NAME="$ATIV_RELEASE_TAG" bash script/verify_release_tag.sh
       - name: Generate authenticated update feeds
         env:
           ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
@@ -428,6 +483,11 @@ jobs:
           assert {a['name'] for a in release['assets'] if a['name'].startswith('ATIV-')}==expected
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write(f'ATIV_VERSION={version}\nATIV_RELEASE_TAG={tag}\nRELEASE_SHA={sha}\n')
           PYCODE
+      - name: Verify stable release authorization
+        env:
+          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
+          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
+        run: GITHUB_REF_NAME="$ATIV_RELEASE_TAG" bash script/verify_release_tag.sh
       - name: Retrieve existing release and native build artifacts
         run: |
           gh release download "$ATIV_RELEASE_TAG" --dir release-assets
