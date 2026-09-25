@@ -1,5 +1,3 @@
-// SPDX-FileCopyrightText: Thomas Lothian
-// SPDX-License-Identifier: GPL-3.0-or-later
 import AppKit
 import SwiftUI
 import SparkleBridge

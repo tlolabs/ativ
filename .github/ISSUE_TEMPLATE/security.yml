@@ -1,6 +1,0 @@
-name: Security report
-description: Go to private vulnerability reporting
-body:
-  - type: markdown
-    attributes:
-      value: Do not put vulnerability details in a public issue. Use [private GitHub vulnerability reporting](https://github.com/tlolabs/ativ/security/advisories/new). Public security email is TBD.

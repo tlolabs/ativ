@@ -3,7 +3,7 @@
 AppId=com.tlolabs.ativ{#ChannelSuffix}
 AppName={#AppName}
 AppVersion={#Version}
-AppPublisher=Thomas Lothian
+AppPublisher=TLO Labs
 AppPublisherURL=https://github.com/tlolabs/ativ
 DefaultDirName={localappdata}\Programs\{#AppName}
 DefaultGroupName={#AppName}

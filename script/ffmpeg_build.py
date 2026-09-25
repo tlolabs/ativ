@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Thomas Lothian
-# SPDX-License-Identifier: GPL-3.0-or-later
 """Native, verified source builds. See runtime/ffmpeg/dependency.json and docs/ffmpeg-source-runtime.md."""
 import argparse
 import hashlib

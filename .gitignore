@@ -12,6 +12,3 @@
 # Python build-tool bytecode (the application has no Python runtime)
 __pycache__/
 *.py[cod]
-
-# Local qualification notes must never be published.
-/.codex/local-audits/

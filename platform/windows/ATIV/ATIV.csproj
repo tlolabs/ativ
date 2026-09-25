@@ -4,14 +4,6 @@
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>ATIV</RootNamespace>
-    <Authors>Thomas Lothian</Authors>
-    <Company>TLO Labs</Company>
-    <Product>ATIV</Product>
-    <Description>A TLO Labs open-source project for turning artwork and audio into video.</Description>
-    <Copyright>Copyright © Thomas Lothian.</Copyright>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/tlolabs/ativ</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/tlolabs/ativ</PackageProjectUrl>
     <Version>0.2.3</Version>
     <AssemblyVersion>0.2.3.0</AssemblyVersion>
     <FileVersion>0.2.3.0</FileVersion>

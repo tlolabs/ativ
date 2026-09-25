@@ -45,7 +45,7 @@ Version: ${VERSION}
 Section: video
 Priority: optional
 Architecture: ${DEB_ARCH}
-Maintainer: Thomas Lothian
+Maintainer: ATIV maintainers <opensource@tlolabs.com>
 Depends: libgtk-4-1 (>= 4.10), libadwaita-1-0 (>= 1.4), libjson-glib-1.0-0
 Description: Artwork + Tracks Into Video
  Create an H.264/AAC social video from a still image and audio recording.

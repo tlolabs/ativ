@@ -3,10 +3,6 @@ name = "ativ-update"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-authors.workspace = true
-description = "ATIV's GitHub Releases update helper."
 
 [dependencies]
 base64 = "0.22.1"
