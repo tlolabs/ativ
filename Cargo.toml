@@ -11,6 +11,9 @@ version = "0.2.4"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/tlolabs/ativ"
+homepage = "https://github.com/tlolabs/ativ"
+authors = ["Thomas Lothian"]
+description = "A TLO Labs open-source project for turning artwork and audio into video."
 rust-version = "1.85"
 
 [workspace.dependencies]
