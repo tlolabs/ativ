@@ -22,6 +22,7 @@ public sealed partial class MainWindow : Window
     private bool loadingPresets;
     private int previewGeneration;
     private int audioGeneration;
+    private string? lastPreviewKey;
     private readonly Preferences preferences = Preferences.Load();
     private readonly DispatcherTimer updateTimer = new() { Interval = TimeSpan.FromHours(24) };
     private bool updateBusy;
@@ -169,14 +170,19 @@ public sealed partial class MainWindow : Window
     private async Task RefreshPreviewAsync()
     {
         if (string.IsNullOrWhiteSpace(ImagePath.Text) || ResolutionBox.SelectedItem is not Preset preset) return;
-        var generation = ++previewGeneration;
         var ratio = (double)preset.Width / preset.Height;
         var width = ratio >= 1 ? 360 : Math.Max(2, ((int)(360 * ratio)) & ~1);
         var height = ratio >= 1 ? Math.Max(2, ((int)(360 / ratio)) & ~1) : 360;
+        var flipH = FlipHorizontal.IsChecked == true;
+        var flipV = FlipVertical.IsChecked == true;
+        var key = $"{ImagePath.Text}|{width}x{height}|{flipH}|{flipV}";
+        if (key == lastPreviewKey && PreviewImage.Source is not null) return;
+        lastPreviewKey = key;
+        var generation = ++previewGeneration;
         var output = Path.Combine(Path.GetTempPath(), $"ativ-preview-{Guid.NewGuid():N}.png");
         try
         {
-            await engine.PreviewAsync(ImagePath.Text, output, width, height, FlipHorizontal.IsChecked == true, FlipVertical.IsChecked == true);
+            await engine.PreviewAsync(ImagePath.Text, output, width, height, flipH, flipV);
             if (generation != previewGeneration) { File.Delete(output); return; }
             var file = await StorageFile.GetFileFromPathAsync(output);
             var bitmap = new BitmapImage();
@@ -207,6 +213,7 @@ public sealed partial class MainWindow : Window
             return;
         }
         SavePreferences();
+        await engine.CancelPreviewAsync();
         rendering = true;
         RenderButton.Content = "Stop Video Creation";
         RenderButton.IsEnabled = true;
