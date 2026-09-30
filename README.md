@@ -13,7 +13,7 @@ ATIV processes media locally. No accounts, analytics, hosted crash reports, uplo
 
 | CI build/test target | Minimum | Current release packaging |
 | --- | --- | --- |
-| macOS (ARM64/x64) | macOS 13 | DMG and ZIP; Sparkle updates |
+| macOS (ARM64/x64) | macOS 13 | ZIP; Sparkle updates |
 | Windows (x64/ARM64) | Windows 10 1809 | Per-user installer and portable ZIP |
 | Linux (x64/ARM64) | GTK 4.10, libadwaita 1.4; Ubuntu 24.04 package baseline | AppImage and `.deb` |
 

@@ -422,7 +422,7 @@ jobs:
           import sys, hashlib
           from pathlib import Path
           root=Path('release-assets'); version=sys.argv[1]
-          expected={f'ATIV-{version}-macos-{arch}.{ext}' for arch in ('arm64','intel') for ext in ('dmg','zip')}
+          expected={f'ATIV-{version}-macos-{arch}.zip' for arch in ('arm64','intel')}
           assert {p.name for p in root.iterdir()} == expected | {'SHA256SUMS'}
           checks={}
           for line in (root/'SHA256SUMS').read_text().splitlines():
@@ -479,7 +479,7 @@ jobs:
               assert run['headSha']==sha and run['status']=='completed' and run['conclusion']=='success'
               assert run['workflowName']=='Native build, test, and package'
               assert expected <= {j['name'] for j in run['jobs'] if j['conclusion']=='success'}
-          expected={f'ATIV-{version}-macos-{arch}.{ext}' for arch in ('arm64','intel') for ext in ('dmg','zip')}
+          expected={f'ATIV-{version}-macos-{arch}.zip' for arch in ('arm64','intel')}
           assert {a['name'] for a in release['assets'] if a['name'].startswith('ATIV-')}==expected
           with open(os.environ['GITHUB_ENV'],'a') as f: f.write(f'ATIV_VERSION={version}\nATIV_RELEASE_TAG={tag}\nRELEASE_SHA={sha}\n')
           PYCODE
@@ -500,7 +500,7 @@ jobs:
           import os
           from pathlib import Path
           v=os.environ['ATIV_VERSION']
-          expected={f'ATIV-{v}-macos-{a}.{e}' for a in ('arm64','intel') for e in ('dmg','zip')}
+          expected={f'ATIV-{v}-macos-{a}.zip' for a in ('arm64','intel')}
           expected|={f'ATIV-{v}-windows-{a}{e}' for a in ('x64','arm64') for e in ('-setup.exe','.zip')}
           expected|={f'ATIV-{v}-linux-{a}.{e}' for a in ('x64','arm64') for e in ('AppImage','deb')}
           assert {p.name for p in Path('release-assets').glob('ATIV-*')}==expected

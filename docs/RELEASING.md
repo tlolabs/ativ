@@ -2,7 +2,7 @@
 
 ## Current state and next release gates
 
-ATIV's existing pipeline builds and tests six native targets and publishes passing artifacts independently. It currently produces DMG/ZIP on macOS, installer/ZIP on Windows, and AppImage/`.deb` on Linux. The target standard is a lowercase ZIP for macOS and Windows and an AppImage for Linux. The current updater opens the Windows installer and supports the Linux `.deb`; those paths must be migrated and tested together before the extra formats can safely be removed.
+ATIV's pipeline builds and tests six native targets and publishes passing artifacts independently. It produces ZIP on macOS, installer/ZIP on Windows, and AppImage/`.deb` on Linux. The target standard for Windows is a lowercase ZIP and for Linux an AppImage. The current updater opens the Windows installer and supports the Linux `.deb`; those paths must be migrated and tested together before the extra formats can safely be removed.
 
 Stable tags now have a CI signature verification gate. Before the next stable release, Thomas must configure the base64-encoded armored GPG public key as `ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64` and its fingerprint as `ATIV_RELEASE_SIGNING_FINGERPRINT` repository variables, then sign an annotated tag with the matching private key. Existing unsigned tags remain historical records; do not move or rewrite them. `Cargo.toml` and package metadata must agree with the tag.
 
@@ -33,11 +33,11 @@ The initial ATIV update-signing secret and public variable were configured durin
 
 Keep a protected offline backup of the Ed25519 seed. A missing update key fails authenticated feed generation. Never replace a deployed verification key without an explicit rotation/migration plan. The same key may sign separate channel payloads; clients enforce the signed channel. Public keys are not secrets.
 
-Windows unsigned development builds work without a certificate; supplying the certificate enables executable and installer signing with timestamp verification. macOS stable tags require Developer ID/notary credentials. The macOS app is notarized and stapled before final archives are created, and the DMG is separately notarized/stapled. Sparkle nested code is signed inside-out. The ZIP contains the stapled app; the DMG contains the app and Applications shortcut.
+Windows unsigned development builds work without a certificate; supplying the certificate enables executable and installer signing with timestamp verification. macOS stable tags require Developer ID/notary credentials. The macOS app is notarized and stapled before the final ZIP is created. Sparkle nested code is signed inside-out. The ZIP contains the stapled app.
 
 ## Configure macOS signing from a local certificate
 
-Use a **Developer ID Application** identity exported as a password-protected `.p12`, including its private key. Apple Development, Apple Distribution and Developer ID Installer certificates do not replace this identity for ATIV's DMG/ZIP distribution. ENcap's current ad-hoc signature and update-signing key are separate from Apple Developer ID signing.
+Use a **Developer ID Application** identity exported as a password-protected `.p12`, including its private key. Apple Development, Apple Distribution and Developer ID Installer certificates do not replace this identity for ATIV's ZIP distribution. ENcap's current ad-hoc signature and update-signing key are separate from Apple Developer ID signing.
 
 If needed, create the identity through [Apple's Developer ID certificate process](https://developer.apple.com/help/account/certificates/create-developer-id-certificates), then export the identity and private key from Keychain Access. Create a dedicated app-specific password for notarization in your Apple account.
 
@@ -63,7 +63,7 @@ Update the workspace version, validate the branch, merge it, and push the matchi
 
 Publication uses `always()` after all target jobs. Passing artifacts publish even when another target failed. Release notes explicitly identify incomplete jobs; the final reporting step fails so normal GitHub notifications remain effective. Empty or mixed-version artifact collections fail publication. Update feeds contain only artifacts actually present. An absent target cannot be offered for installation.
 
-`release_metadata.py` signs the exact payload bytes in a base64 envelope, avoiding cross-language canonical-JSON ambiguity. The payload binds version, channel, target, filename, length, SHA-256 and repository download URL. macOS appcasts sign the complete DMG with Ed25519. Download clients require HTTPS, a valid signature, matching channel, newer semantic version, correct target and verified size/hash before handing off installation. A failed download is discarded. AppImage replacement is staged on the same filesystem and atomically renamed.
+`release_metadata.py` signs the exact payload bytes in a base64 envelope, avoiding cross-language canonical-JSON ambiguity. The payload binds version, channel, target, filename, length, SHA-256 and repository download URL. macOS appcasts sign the complete ZIP with Ed25519. Download clients require HTTPS, a valid signature, matching channel, newer semantic version, correct target and verified size/hash before handing off installation. A failed download is discarded. AppImage replacement is staged on the same filesystem and atomically renamed.
 
 GitHub-generated notes are the stable changelog convention, matching ENcap. The attached `SHA256SUMS` covers downloadable artifacts and metadata.
 
@@ -75,7 +75,7 @@ Main branch pushes create `<base>-dev.<GitHub run number>` and update the `devel
 
 ## Package formats and limits
 
-macOS: DMG and ZIP. Windows: per-user Inno Setup installer and portable ZIP. Linux: AppImage and `.deb`. ENcap has no proven RPM implementation to adapt, so RPM is not introduced in this pass. Linux ARM64 is retained from ATIV in addition to ENcap's x64 baseline.
+macOS: ZIP. Windows: per-user Inno Setup installer and portable ZIP. Linux: AppImage and `.deb`. ENcap has no proven RPM implementation to adapt, so RPM is not introduced in this pass. Linux ARM64 is retained from ATIV in addition to ENcap's x64 baseline.
 
 Linux `.deb` installation remains owned by the distribution package manager. AppImage self-updates require a writable installation directory and apply after user confirmation; an existing running mapping remains valid until restart. A signed update is not a substitute for testing a real upgrade on every platform.
 

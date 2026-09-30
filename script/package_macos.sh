@@ -66,27 +66,14 @@ python3 "$ROOT_DIR/script/validate_package.py" "$APP" "macos-$LABEL"
 
 LABEL="$ARCH"; [[ "$ARCH" != x86_64 ]] || LABEL=intel
 ZIP="${PACKAGES}/ATIV-${VERSION}-macos-${LABEL}.zip"
-DMG="${PACKAGES}/ATIV-${VERSION}-macos-${LABEL}.dmg"
-rm -f "${ZIP}" "${DMG}"
-# Notarize and staple the app before producing the Sparkle archive or DMG.
+rm -f "${ZIP}" "${ZIP%.zip}.dmg"
+# Submit a ZIP of the signed app, then staple the accepted app and package it.
 if [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
+  [[ "${SIGN_IDENTITY}" != "-" ]] || { echo "Notarization requires a Developer ID signing identity." >&2; exit 2; }
   ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
   xcrun notarytool submit "$ZIP" --keychain-profile "$APPLE_NOTARY_PROFILE" --wait
   xcrun stapler staple "$APP"
   xcrun stapler validate "$APP"
 fi
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
-DMG_STAGE="$ROOT_DIR/build/dmg-$ARCH"
-rm -rf "$DMG_STAGE"; mkdir -p "$DMG_STAGE"
-APP_DISPLAY=ATIV; [[ "${ATIV_CHANNEL:-stable}" != development ]] || APP_DISPLAY="ATIV Development"
-ditto "$APP" "$DMG_STAGE/$APP_DISPLAY.app"
-ln -s /Applications "$DMG_STAGE/Applications"
-hdiutil create -quiet -volname "$APP_DISPLAY $VERSION" -srcfolder "$DMG_STAGE" -ov -format UDZO "$DMG"
-if [[ "$SIGN_IDENTITY" != - ]]; then codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"; fi
-if [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
-  xcrun notarytool submit "$DMG" --keychain-profile "$APPLE_NOTARY_PROFILE" --wait
-  xcrun stapler staple "$DMG"
-  xcrun stapler validate "$DMG"
-fi
-hdiutil verify "$DMG"
-printf '%s\n%s\n' "$ZIP" "$DMG"
+printf '%s\n' "$ZIP"

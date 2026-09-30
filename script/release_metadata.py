@@ -16,7 +16,7 @@ def build(assets, version, channel, tag, seed, public_key):
         raise ValueError('Version/tag/channel mismatch')
     key=Ed25519PrivateKey.from_private_bytes(seed)
     if key.public_key().public_bytes(Encoding.Raw,PublicFormat.Raw)!=public_key: raise ValueError('Update signing keys do not match')
-    specs={**{f'macos-{arch}':f'ATIV-{version}-macos-{arch}.dmg' for arch in ('arm64','intel')},
+    specs={**{f'macos-{arch}':f'ATIV-{version}-macos-{arch}.zip' for arch in ('arm64','intel')},
            **{f'windows-{arch}':f'ATIV-{version}-windows-{arch}-setup.exe' for arch in ('x64','arm64')},
            **{f'linux-{arch}-{kind}':f'ATIV-{version}-linux-{arch}.{ext}' for arch in ('x64','arm64') for kind,ext in [('deb','deb'),('appimage','AppImage')]}}
     payload=dict(schema=1,version=version,channel=channel,assets={})
