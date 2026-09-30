@@ -25,7 +25,7 @@ fn main() -> ExitCode {
             println!(
                 "{{\"event\":\"error\",\"code\":\"{}\",\"message\":\"{}\"}}",
                 error.code(),
-                escape(&error.user_message())
+                escape(error.user_message())
             );
             eprintln!("{}", error.user_message());
             if error.code() == "cancelled" {
@@ -151,8 +151,12 @@ fn run() -> ativ_core::Result<()> {
                 flip_vertical: parsed.flags.contains("flip-vertical"),
             };
             let events = JsonEvents::new();
-            let result =
-                Renderer::new(tools).render_with_mode(&request.shared(), mode, &token, &events);
+            let result = Renderer::new(tools).render_with_mode(
+                &request.into_shared(),
+                mode,
+                &token,
+                &events,
+            );
             let seconds = started.elapsed().as_secs_f64();
             events.log(&format!(
                 "export wall time: {seconds:.6}s; mode: {mode:?}; success: {}",
@@ -364,24 +368,27 @@ fn default_diagnostic_log_path() -> Option<PathBuf> {
 }
 
 fn print_presets() {
-    use std::fmt::Write as _;
-    let mut payload = String::with_capacity(2048);
-    payload.push_str("{\"event\":\"presets\",\"items\":[");
-    for (index, preset) in PRESETS.iter().enumerate() {
-        if index > 0 {
-            payload.push(',');
+    static PRESETS_PAYLOAD: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+        use std::fmt::Write as _;
+        let mut payload = String::with_capacity(2048);
+        payload.push_str("{\"event\":\"presets\",\"items\":[");
+        for (index, preset) in PRESETS.iter().enumerate() {
+            if index > 0 {
+                payload.push(',');
+            }
+            let _ = write!(
+                payload,
+                "{{\"platform\":\"{}\",\"aspect\":\"{}\",\"width\":{},\"height\":{}}}",
+                escape(preset.platform),
+                escape(preset.aspect),
+                preset.width,
+                preset.height
+            );
         }
-        let _ = write!(
-            payload,
-            "{{\"platform\":\"{}\",\"aspect\":\"{}\",\"width\":{},\"height\":{}}}",
-            escape(preset.platform),
-            escape(preset.aspect),
-            preset.width,
-            preset.height
-        );
-    }
-    payload.push_str("]}");
-    println!("{payload}");
+        payload.push_str("]}");
+        payload
+    });
+    println!("{}", *PRESETS_PAYLOAD);
 }
 
 fn number(value: Option<f64>) -> String {
@@ -389,8 +396,15 @@ fn number(value: Option<f64>) -> String {
         .filter(|value| value.is_finite())
         .map_or_else(|| "null".into(), |value| value.to_string())
 }
-fn escape(value: &str) -> String {
-    let mut out = String::with_capacity(value.len());
+
+fn escape(value: &str) -> std::borrow::Cow<'_, str> {
+    if !value
+        .chars()
+        .any(|c| matches!(c, '\\' | '"' | '\n' | '\r' | '\t') || c.is_control())
+    {
+        return std::borrow::Cow::Borrowed(value);
+    }
+    let mut out = String::with_capacity(value.len() + 8);
     for character in value.chars() {
         match character {
             '\\' => out.push_str("\\\\"),
@@ -402,7 +416,7 @@ fn escape(value: &str) -> String {
             value => out.push(value),
         }
     }
-    out
+    std::borrow::Cow::Owned(out)
 }
 
 fn print_help() {
