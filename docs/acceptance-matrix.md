@@ -22,7 +22,7 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 | HiDPI, scaled text and multiple displays | M | M | M | M | M | M |
 | Native icon resources / visible app identity | A + M | A + M | A + M | A + M | A + M | A + M |
 | Version/channel metadata | A | A | A | A | A | A |
-| Installer/package structure and machine type | A | A | A | A | A | A |
+| Package structure and machine type | A | A | A | A | A | A |
 | Clean-machine installation | M | M | M portable ZIP | M portable ZIP | M AppImage | M AppImage |
 | Reinstallation / real version upgrade | M | M | M portable upgrade | M portable upgrade | M AppImage upgrade | M AppImage upgrade |
 | Automatic update / manual update check | M | M | M | M | M | M |

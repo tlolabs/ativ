@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 self_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -x "$self_dir/usr/lib/ativ/ATIV" ]; then
+  exec "$self_dir/usr/lib/ativ/ATIV" "$@"
+fi
 exec "$self_dir/../lib/ativ/ATIV" "$@"

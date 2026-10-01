@@ -15,7 +15,7 @@ ATIV processes media locally. No accounts, analytics, hosted crash reports, uplo
 | --- | --- | --- |
 | macOS (ARM64/x64) | macOS 13 | ZIP; Sparkle updates |
 | Windows (x64/ARM64) | Windows 10 1809 | Portable ZIP |
-| Linux (x64/ARM64) | Avalonia 12.1.3; Ubuntu 24.04 package baseline | AppImage |
+| Linux (x64/ARM64) | Ubuntu 24.04 packaging baseline | AppImage |
 
 Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Check each release's notes for artifacts omitted because a platform job failed. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for its pending qualification gates.
 
@@ -34,8 +34,8 @@ The interfaces use SwiftUI/AppKit on production macOS and one shared Avalonia 12
 - [Packaging, signing and release operations](docs/RELEASING.md)
 - [Accessibility and troubleshooting](docs/accessibility.md)
 - [Cross-platform acceptance matrix](docs/acceptance-matrix.md)
-- [Migration decisions and reference review](docs/native-distribution-plan.md)
-- [Migration validation report and remaining gates](docs/native-distribution-report.md)
+- [Shared Avalonia migration and parity audit](docs/avalonia-migration.md)
+- [Historical native distribution plan and report](docs/native-distribution-plan.md)
 - [Release readiness checklist](docs/release-checklist.md)
 
 ## Project policies
