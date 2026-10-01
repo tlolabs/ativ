@@ -92,6 +92,7 @@ static void ativ_window_free(gpointer data) {
 }
 
 static gboolean close_requested(GtkWindow *window, gpointer user_data) {
+  (void)window;
   AtivWindow *self = user_data;
   if (!self->render_process) return FALSE;
   GOutputStream *input = g_subprocess_get_stdin_pipe(self->render_process);
@@ -332,6 +333,7 @@ static void set_audio(AtivWindow *self,const gchar *path) {
   g_subprocess_communicate_utf8_async(process,NULL,NULL,audio_probe_done,probe);
 }
 static gboolean media_drop(GtkDropTarget *target,const GValue *value,double x,double y,gpointer data) {
+  (void)target; (void)x; (void)y;
   AtivWindow *self=data;if(self->render_process)return FALSE;
   GFile *file=g_value_get_object(value);if(!file)return FALSE;
   g_autofree gchar *path=g_file_get_path(file);if(!path)return FALSE;
@@ -362,6 +364,7 @@ static void output_chosen(GObject *source, GAsyncResult *result, gpointer user_d
 }
 
 static void choose_image(GtkButton *button, gpointer user_data) {
+  (void)button;
   GtkFileDialog *dialog = gtk_file_dialog_new();
   gtk_file_dialog_set_title(dialog, "Choose an image");
   g_autoptr(GtkFileFilter) filter = gtk_file_filter_new();
@@ -376,6 +379,7 @@ static void choose_image(GtkButton *button, gpointer user_data) {
 }
 
 static void choose_audio(GtkButton *button, gpointer user_data) {
+  (void)button;
   GtkFileDialog *dialog = gtk_file_dialog_new();
   gtk_file_dialog_set_title(dialog, "Choose an audio recording");
   g_autoptr(GtkFileFilter) filter = gtk_file_filter_new();
@@ -390,6 +394,7 @@ static void choose_audio(GtkButton *button, gpointer user_data) {
 }
 
 static void choose_output(GtkButton *button, gpointer user_data) {
+  (void)button;
   GtkFileDialog *dialog = gtk_file_dialog_new();
   gtk_file_dialog_set_title(dialog, "Save video");
   gtk_file_dialog_set_initial_name(dialog, "video.mp4");
@@ -531,10 +536,12 @@ static GtkWidget *file_row(const gchar *label, GtkEntry **entry_out, GCallback c
 }
 
 static void drop_changed(GObject *object, GParamSpec *pspec, gpointer user_data) {
+  (void)object; (void)pspec;
   update_aspects(user_data);
 }
 
 static void aspect_changed(GObject *object, GParamSpec *pspec, gpointer user_data) {
+  (void)object; (void)pspec;
   update_resolutions(user_data);
 }
 
@@ -551,7 +558,9 @@ static void save_preferences(AtivWindow *self) {
   g_autofree gchar *path = preferences_path();
   g_key_file_save_to_file(self->preferences, path, NULL);
 }
-static void preference_changed(GObject *object, gpointer data) { save_preferences(data); }
+static void preference_changed(GObject *object, gpointer data) {
+  (void)object;
+  save_preferences(data); }
 static void appearance_action(GSimpleAction *action, GVariant *value, gpointer data) {
   AtivWindow *self = data;
   const gchar *theme = g_variant_get_string(value, NULL);
@@ -560,6 +569,7 @@ static void appearance_action(GSimpleAction *action, GVariant *value, gpointer d
   g_key_file_set_string(self->preferences, "General", "appearance", theme); save_preferences(self);
 }
 static void automatic_action(GSimpleAction *action, GVariant *value, gpointer data) {
+  (void)value;
   AtivWindow *self = data;
   g_autoptr(GVariant) state = g_action_get_state(G_ACTION(action));
   gboolean enabled = !g_variant_get_boolean(state);
@@ -569,6 +579,7 @@ static void automatic_action(GSimpleAction *action, GVariant *value, gpointer da
 typedef struct { AtivWindow *self; gboolean manual; gchar *command; } UpdateRequest;
 static void update_request_free(UpdateRequest *request) { g_object_unref(request->self->window); g_free(request->command); g_free(request); }
 static void update_worker(GTask *task, gpointer source, gpointer data, GCancellable *cancel) {
+  (void)source; (void)cancel;
   UpdateRequest *request = data;
   g_autofree gchar *directory = g_path_get_dirname(request->self->engine);
   g_autofree gchar *helper = g_build_filename(directory,"ativ-update",NULL);
@@ -581,12 +592,14 @@ static void update_worker(GTask *task, gpointer source, gpointer data, GCancella
 }
 static void begin_update(AtivWindow *self, gboolean manual, const gchar *command);
 static void install_response(AdwMessageDialog *dialog, const gchar *response, gpointer data) {
+  (void)dialog;
   AtivWindow *self = data;
   if (!self->render_process && (g_str_equal(response,"install") || g_str_equal(response,"download")))
     begin_update(self,TRUE,g_str_equal(response,"install") ? "install-appimage" : "download");
   g_object_unref(self->window);
 }
 static void update_done(GObject *source, GAsyncResult *result, gpointer data) {
+  (void)source; (void)data;
   UpdateRequest *request = g_task_get_task_data(G_TASK(result));
   AtivWindow *self = request->self;
   self->update_busy = FALSE;
@@ -627,13 +640,16 @@ static void begin_update(AtivWindow *self, gboolean manual, const gchar *command
   g_object_ref(self->window);
   GTask *task=g_task_new(NULL,NULL,update_done,NULL); g_task_set_task_data(task,request,(GDestroyNotify)update_request_free); g_task_run_in_thread(task,update_worker); g_object_unref(task);
 }
-static void update_action(GSimpleAction *action, GVariant *value, gpointer data) { begin_update(data,TRUE,"check"); }
+static void update_action(GSimpleAction *action, GVariant *value, gpointer data) {
+  (void)action; (void)value;
+  begin_update(data,TRUE,"check"); }
 static gboolean periodic_update(gpointer data) {
   AtivWindow *self=data;
   if (g_key_file_get_boolean(self->preferences,"General","automatic_updates",NULL)) begin_update(self,FALSE,"check-auto");
   return G_SOURCE_CONTINUE;
 }
 static void media_action(GSimpleAction *action, GVariant *value, gpointer data) {
+  (void)value;
   const gchar *name=g_action_get_name(G_ACTION(action));
   AtivWindow *self=data;
   if (g_str_equal(name,"render")) start_render(self->render_button,self);
@@ -670,6 +686,7 @@ static void setup_actions(AtivWindow *self, GtkApplication *application, GtkWidg
   g_object_unref(menu);g_object_unref(appearance);g_object_unref(group);
 }
 static void activate(GtkApplication *application, gpointer user_data) {
+  (void)user_data;
   GtkWindow *existing = gtk_application_get_active_window(application);
   if (existing) { gtk_window_present(existing); return; }
   AtivWindow *self = g_new0(AtivWindow, 1);

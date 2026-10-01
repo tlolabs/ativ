@@ -29,6 +29,7 @@ fn state_path(id: &str) -> Result<PathBuf> {
     fs::create_dir_all(&directory)?;
     Ok(directory.join("state.json"))
 }
+#[cfg(not(windows))]
 fn normalized_version(value: &str) -> Result<String> {
     let numbers: Vec<_> = value
         .trim()
@@ -47,6 +48,7 @@ fn normalized_version(value: &str) -> Result<String> {
     }
     Ok(format!("{}.{}.{}", numbers[0], numbers[1], numbers[2]))
 }
+#[cfg(not(windows))]
 fn command_output(program: &str, args: &[&str]) -> Result<String> {
     let result = std::process::Command::new(program).args(args).output()?;
     if !result.status.success() {

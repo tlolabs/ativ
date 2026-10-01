@@ -8,7 +8,7 @@
   "updater/README.md": "35f3f317488fca4d9299478696d03c24f6aa5d3112552616266903d1b34594de",
   "updater/manifest.schema.json": "d38e6b7f4b8d98a921397fe8771fbc5b0aa496b5d3173a24c06ae501e455ada6",
   "updater/src/bin/tlo-qualify.rs": "91bf1fe802ba5fa5541d942c728a463af2ead914618456e48e64b187dd15a162",
-  "updater/src/client.rs": "ff4e849c4e43fd8f11579961e85c203f0cceb81735269f44290aa8089a9b75dd",
+  "updater/src/client.rs": "0e6139adb5b5d4118d36c7dba49cd5e396f1fc15508729c225927de87af38eba",
   "updater/src/lib.rs": "57e4b99f82a167264ea655b3c6e73214e1c50a48d2af9de96b63898519a57511",
   "updater/tests/contract.rs": "9bff7ad6f6139c08a61afede9d62c2995cb4d2b3e6d2548e07a39b36c3724a42"
 }

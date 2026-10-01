@@ -178,6 +178,8 @@ jobs:
         if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
+          rustup component add clippy
+          cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --locked --all-targets
           ./script/test_engine_integration.sh macos-${{ matrix.runtime_arch }}
       - name: Build and package native application
@@ -263,6 +265,8 @@ jobs:
         if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
+          rustup component add clippy
+          cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --locked --all-targets
           ./script/test_engine_integration.sh windows-${{ matrix.runtime_arch }}
       - name: Build and package native application
@@ -341,6 +345,8 @@ jobs:
         if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
+          rustup component add clippy
+          cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --locked --all-targets
           ./script/test_engine_integration.sh linux-${{ matrix.runtime_arch }}
       - name: Build and package native application
