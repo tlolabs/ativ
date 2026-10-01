@@ -2,9 +2,11 @@
 <component type="desktop-application">
   <id>com.tlolabs.ativ</id>
   <name>ATIV</name>
+  <developer_name>Thomas Lothian</developer_name>
   <summary>Create social video from an image and audio recording</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
+  <url type="homepage">https://github.com/tlolabs/ativ</url>
   <description><p>ATIV combines a still image with an audio recording using a native desktop interface and the FFmpeg media engine.</p></description>
   <launchable type="desktop-id">com.tlolabs.ativ.desktop</launchable>
   <provides><binary>ativ</binary></provides>

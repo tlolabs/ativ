@@ -25,26 +25,80 @@ def run(args, **kwargs):
     return subprocess.run([str(x) for x in args], check=True, capture_output=True, **kwargs).stdout
 
 
+def process_tree():
+    if os.name == 'nt':
+        import ctypes
+        from ctypes import wintypes
+        class Entry(ctypes.Structure):
+            _fields_ = [('dwSize',wintypes.DWORD),('cntUsage',wintypes.DWORD),('pid',wintypes.DWORD),
+                        ('heap',ctypes.c_size_t),('module',wintypes.DWORD),('threads',wintypes.DWORD),
+                        ('parent',wintypes.DWORD),('priority',wintypes.LONG),('flags',wintypes.DWORD),
+                        ('name',wintypes.WCHAR*260)]
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.CreateToolhelp32Snapshot.argtypes=[wintypes.DWORD,wintypes.DWORD]
+        kernel.CreateToolhelp32Snapshot.restype=wintypes.HANDLE
+        for name in ('Process32FirstW','Process32NextW'):
+            function=getattr(kernel,name);function.argtypes=[wintypes.HANDLE,ctypes.POINTER(Entry)];function.restype=wintypes.BOOL
+        kernel.CloseHandle.argtypes=[wintypes.HANDLE];kernel.CloseHandle.restype=wintypes.BOOL
+        handle=kernel.CreateToolhelp32Snapshot(2,0)
+        if handle==ctypes.c_void_p(-1).value:raise ctypes.WinError(ctypes.get_last_error())
+        result={}
+        try:
+            entry=Entry();entry.dwSize=ctypes.sizeof(Entry)
+            available=kernel.Process32FirstW(handle,ctypes.byref(entry))
+            while available:
+                result[int(entry.pid)]=(int(entry.parent),entry.name)
+                available=kernel.Process32NextW(handle,ctypes.byref(entry))
+        finally:kernel.CloseHandle(handle)
+        return result
+    rows = run(['ps', '-axo', 'pid=,ppid=,comm=']).decode().splitlines()
+    return {int(parts[0]): (int(parts[1]), parts[2]) for row in rows if len(parts := row.strip().split(None, 2)) == 3}
+
+
+def owned_media_processes(parent):
+    tree = process_tree()
+    owned = {parent}
+    for _ in range(8):
+        owned |= {pid for pid, (ppid, _) in tree.items() if ppid in owned}
+    return {pid for pid in owned - {parent} if 'ffmpeg' in tree[pid][1].lower()}
+
+
+def assert_reaped(pids):
+    deadline = time.monotonic() + 5
+    while pids & process_tree().keys() and time.monotonic() < deadline:
+        time.sleep(.05)
+    assert not pids & process_tree().keys(), 'Cancelled FFmpeg process remained alive'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--engine', type=Path, default=ROOT / 'target/debug/ativ-engine')
     parser.add_argument('--ffmpeg', default=shutil.which('ffmpeg'))
     parser.add_argument('--ffprobe', default=shutil.which('ffprobe'))
     parser.add_argument('--reference', type=Path)
+    parser.add_argument('--managed', action='store_true', help='Exercise default bundled ATIV discovery for the staged managed engine')
     options = parser.parse_args()
     assert options.ffmpeg and options.ffprobe, 'The distribution FFmpeg/ffprobe pair is required'
     engine = options.engine.resolve()
     ffmpeg, ffprobe = Path(options.ffmpeg).resolve(), Path(options.ffprobe).resolve()
     versions = [run([tool, '-version']).decode().splitlines()[0].split()[2] for tool in (ffmpeg, ffprobe)]
-    assert versions[0] == versions[1] and versions[0].lstrip('n').startswith('9.0.1'), versions
+    assert versions == [next(iter(json.loads((ROOT / 'runtime/core-runtime.json').read_text())['targets'].values()))['version']] * 2, versions
+    from ffmpeg_runtime import core_identity
+    assert json.loads(run([engine, 'build-info']))['avid_core'] == core_identity()
     with tempfile.TemporaryDirectory(prefix='ativ contract ü ') as directory:
         root = Path(directory)
         env = dict(os.environ, ATIV_LOG_PATH=str(root / 'private.log'))
-        overrides = ['--ffmpeg', str(ffmpeg), '--ffprobe', str(ffprobe)]
+        overrides = [] if options.managed else ['--ffmpeg', str(ffmpeg), '--ffprobe', str(ffprobe)]
 
         def invoke(command, *args, status=0, tools=None, executable=engine):
             result = subprocess.run([str(executable), command, *(str(x) for x in args), *(overrides if tools is None else tools)],
                                     capture_output=True, env=env, timeout=45)
+            if result.returncode != status:
+                diagnostics = (root / 'private.log').read_text(errors='replace') if (root / 'private.log').exists() else 'No engine diagnostics'
+                (ROOT / 'build').mkdir(exist_ok=True)
+                (ROOT / 'build/ffmpeg-contract-failure.log').write_text(diagnostics)
+                print('Failed fixture operation:', command, args, flush=True)
+                print(diagnostics[-16000:], flush=True)
             assert result.returncode == status, (command, result.returncode, result.stdout, result.stderr)
             events = [json.loads(line) for line in result.stdout.splitlines()]
             if status:
@@ -135,6 +189,12 @@ def main():
                 invoke('render', *args, '--output', reference, executable=options.reference)
                 assert decode(output) == decode(reference), 'Decoded video parity'
                 assert decode(output, 'audio') == decode(reference, 'audio'), 'Decoded audio parity'
+        legacy = root / 'per-frame.mp4'
+        invoke('render', '--image', image, '--audio', audio_paths[0], '--output', legacy,
+               '--width', 90, '--height', 160, '--fps', 60, '--render-mode', 'current')
+        legacy_stream = info(legacy)['streams'][0]
+        assert legacy_stream['codec_name'] == 'h264' and legacy_stream['r_frame_rate'] == '60/1'
+        assert decode(legacy), 'Per-frame render produced no decodable video'
         output = root / 'preserved.mp4'
         output.write_bytes(b'previous output')
         base = ['--image', image, '--audio', audio_paths[0], '--output', output, '--width', 160, '--height', 90]
@@ -154,8 +214,15 @@ def main():
                 time.sleep(.15)
                 break
         assert encoding
+        deadline=time.monotonic()+5
+        child_pids=set()
+        while not child_pids and time.monotonic()<deadline and process.poll() is None:
+            child_pids=owned_media_processes(process.pid)
+            if not child_pids:time.sleep(.02)
+        assert child_pids, 'Cancellation test must observe an actual FFmpeg child'
         stdout, _ = process.communicate(b'cancel\n', timeout=10)
         assert process.returncode == 130 and json.loads(stdout.splitlines()[-1])['code'] == 'cancelled'
+        assert_reaped(child_pids)
         assert output.read_bytes() == b'previous output'
         clean()
         corrupt = root / 'corrupt ü.media'
@@ -252,7 +319,7 @@ exec sleep 60
         for path, digest in sources.items():
             assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'Source media changed'
         clean()
-    print('ATIV contract/media checks passed (27 presets, 20 previews, 3 exports, failures and lifecycle).')
+    print('ATIV contract/media checks passed (27 presets, 20 previews, 4 exports, failures and process cleanup).')
 
 
 if __name__ == '__main__':

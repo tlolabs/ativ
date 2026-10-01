@@ -26,4 +26,4 @@ The application menu exposes appearance, automatic checks and manual update chec
 
 Stable tags are `v<workspace version>`. Main branch pushes produce a rolling `development` prerelease with version `<workspace version>-dev.<run number>`. Development apps have separate identities/preferences and feeds. There is no in-app channel selector. A development build cannot update a stable installation through its feed.
 
-The first release using this infrastructure requires the update-signing secrets described in [releasing](releasing.md). A build without a valid verification key reports that updates are unavailable; it never installs unauthenticated data.
+The first release using this infrastructure requires the update-signing secrets described in [releasing](RELEASING.md). A build without a valid verification key reports that updates are unavailable; it never installs unauthenticated data.

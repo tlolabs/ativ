@@ -8,6 +8,8 @@ pub enum AtivError {
     /// Host-authored CLI guidance only; never put shared diagnostic text here.
     InvalidInput(String),
     Shared(Error),
+    /// The packaged ATIV-owned runtime is incomplete or does not match its manifest.
+    RuntimeUnavailable,
 }
 impl From<Error> for AtivError {
     fn from(error: Error) -> Self {
@@ -19,7 +21,9 @@ impl AtivError {
         match self {
             Self::InvalidInput(_) | Self::Shared(Error::InvalidInput(_)) => "invalid_input",
             Self::Shared(Error::Cancelled) => "cancelled",
-            Self::Shared(Error::ToolUnavailable { .. }) => "media_tools_unavailable",
+            Self::RuntimeUnavailable | Self::Shared(Error::ToolUnavailable { .. }) => {
+                "media_tools_unavailable"
+            }
             Self::Shared(Error::Io { .. }) => "io_error",
             // Preserve the old discovery exit/spawn categories without discarding causes.
             Self::Shared(Error::Process {
@@ -33,24 +37,32 @@ impl AtivError {
             Self::Shared(_) => "media_tool_failed",
         }
     }
-    pub fn user_message(&self) -> String {
+    pub fn user_message(&self) -> &str {
         match self {
-            Self::InvalidInput(message) => message.clone(),
-            Self::Shared(Error::Cancelled) =>
-                "Video creation was stopped. The previous output was preserved.".into(),
-            Self::Shared(Error::InvalidInput(_)) =>
-                "Check the artwork, audio, dimensions, frame rate, bitrate, and output destination. The output must be separate from the source files.".into(),
+            Self::InvalidInput(message) => message.as_str(),
+            Self::Shared(Error::Cancelled) => {
+                "Video creation was stopped. The previous output was preserved."
+            }
+            Self::Shared(Error::InvalidInput(_)) => {
+                "Check the artwork, audio, dimensions, frame rate, bitrate, and output destination. The output must be separate from the source files."
+            }
             _ => match self.code() {
-                "media_tools_unavailable" => "A.T.I.V. could not use its media tools. Restore the matching bundled FFmpeg and ffprobe pair or check the configured tools.",
-                "io_error" => "A.T.I.V. could not access a required file or start a media tool. Check file permissions and the output destination.",
-                _ => "The media tool could not complete this operation. Check the selected media and see the local diagnostics for technical details.",
-            }.into(),
+                "media_tools_unavailable" => {
+                    "A.T.I.V. could not use its media tools. Restore the matching bundled FFmpeg and ffprobe pair or check the configured tools."
+                }
+                "io_error" => {
+                    "A.T.I.V. could not access a required file or start a media tool. Check file permissions and the output destination."
+                }
+                _ => {
+                    "The media tool could not complete this operation. Check the selected media and see the local diagnostics for technical details."
+                }
+            },
         }
     }
 }
 impl fmt::Display for AtivError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.user_message())
+        f.write_str(self.user_message())
     }
 }
 impl std::error::Error for AtivError {

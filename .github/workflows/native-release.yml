@@ -4,10 +4,26 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: Native platform to validate (normal pushes and tags always build all)
+        description: Native platform group to qualify
         type: choice
         options: [all, macos, windows, linux]
         default: all
+      stable_macos:
+        description: Compatibility input; manual builds use the application version without requiring signing
+        type: boolean
+        default: false
+      owner_testing:
+        description: Build packages for owner testing without application acceptance prerequisites
+        type: boolean
+        default: true
+      qualify_core_candidate:
+        description: Use the exact authenticated candidate for unpublished host qualification
+        type: boolean
+        default: false
+      clean_ffmpeg:
+        description: Reserved compatibility input; Core artifacts are acquired, never rebuilt
+        type: boolean
+        default: false
       sign_macos:
         description: Sign and notarize macOS validation artifacts (does not publish a release)
         type: boolean
@@ -18,15 +34,19 @@ on:
     tags: ["v*"]
 
 concurrency:
-  group: native-${{ github.ref }}
+  group: native-${{ github.ref }}-${{ inputs.platform || 'all' }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
+  attestations: read
 
 env:
+  ATIV_BUILD_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.owner_testing && '1' || '0' }}
+  GH_TOKEN: ${{ github.token }}
+  AVID_CORE_QUALIFICATION: ${{ github.event_name == 'workflow_dispatch' && inputs.qualify_core_candidate && '1' || '0' }}
   CARGO_TERM_COLOR: always
-  ATIV_CHANNEL: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'development' }}
+  ATIV_CHANNEL: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || github.event_name == 'workflow_dispatch') && 'stable' || 'development' }}
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
@@ -42,33 +62,36 @@ jobs:
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
-          persist-credentials: false
-          path: AVID Core
+          fetch-depth: 0
+      - name: Verify stable release authorization
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        env:
+          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
+          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
+        run: bash script/verify_release_tag.sh
       - name: Configure build identity
         shell: bash
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Fetch the same approved tools used by Linux packaging
-        run: |
-          ./script/fetch_ffmpeg.sh linux x86_64 build/ffmpeg-linux-x86_64
-          echo "$PWD/build/ffmpeg-linux-x86_64" >> "$GITHUB_PATH"
       - name: Validate release infrastructure
         run: |
           python3 -m venv build/release-tools
           build/release-tools/bin/pip install -r script/requirements-build.txt
           build/release-tools/bin/python script/test_release_infrastructure.py
+          python3 script/dependency_inventory.py --check
+      - name: Verify contributor DCO sign-offs
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 script/check_dco.py "$BASE_SHA" "$HEAD_SHA"
       - name: Validate Rust workspace
         run: |
           rustup component add rustfmt clippy
@@ -76,54 +99,56 @@ jobs:
           cargo check --locked --all-targets
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --workspace --locked --all-targets
-      - name: Verify executable protocol and a real encode
-        run: ./script/test_engine_integration.sh
+      - name: Enforce ATIV runtime ownership
+        run: |
+          python3 script/test_runtime_ownership.py
+          python3 -m unittest discover -s script -p test_application_release.py -v
 
   macos:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos'
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'macos')
     defaults:
       run:
         working-directory: ATIV
     name: macOS ${{ matrix.arch }}
     needs: engine
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: arm64
-            fetch_arch: aarch64
+            runtime_arch: arm64
             runner: macos-15
           - arch: x86_64
-            fetch_arch: x86_64
+            runtime_arch: x86_64
             runner: macos-15-intel
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Fetch verified static FFmpeg 9.0.1
-        run: ./script/fetch_ffmpeg.sh macos "${{ matrix.fetch_arch }}" "build/ffmpeg-macos-${{ matrix.arch }}"
+      - name: Acquire the exact authenticated Core runtime
+        uses: ./ATIV/.github/actions/ffmpeg
+        with:
+          target: macos-${{ matrix.runtime_arch }}
+          clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Configure release signing and notarization
-        if: startsWith(github.ref, 'refs/tags/') || inputs.sign_macos
+        if: (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos
         env:
           CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -148,28 +173,24 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "${CERTIFICATE_PASSWORD}" "${KEYCHAIN}"
           security list-keychains -d user -s "${KEYCHAIN}"
           xcrun notarytool store-credentials ativ-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
-      - name: Verify canonical media and host contract with release tools
+      - name: Verify ATIV tests and packaged media contract
+        if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
-          export PATH="$PWD/build/ffmpeg-macos-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
-          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
-          # Explicit concurrent-render tests still launch and verify their own threads.
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh
-      - name: Native process integration tests
-        run: |
-          python3 script/create_smoke_media.py build/native-fixtures
-          PATH="$PWD/build/ffmpeg-macos-${{ matrix.arch }}:$PATH" ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/target/debug/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
+          ./script/test_engine_integration.sh macos-${{ matrix.runtime_arch }}
       - name: Build and package native application
         env:
-          APPLE_SIGN_IDENTITY: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
-          APPLE_NOTARY_PROFILE: ${{ (startsWith(github.ref, 'refs/tags/') || inputs.sign_macos) && 'ativ-notary' || '' }}
-          FFMPEG_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffmpeg
-          FFPROBE_BIN: ${{ github.workspace }}/ATIV/build/ffmpeg-macos-${{ matrix.arch }}/ffprobe
+          APPLE_SIGN_IDENTITY: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
+          APPLE_NOTARY_PROFILE: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && 'ativ-notary' || '' }}
         run: ./script/package_macos.sh "${{ matrix.arch }}"
+      - name: Native process integration tests
+        if: ${{ !inputs.owner_testing }}
+        run: |
+          python3 script/create_smoke_media.py build/native-fixtures
+          ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
       - name: Validate packaged application and startup
+        if: ${{ !inputs.owner_testing }}
         run: |
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
           python3 script/validate_package.py "build/package-macos-${{ matrix.arch }}/ATIV.app" "macos-$label"
@@ -177,120 +198,132 @@ jobs:
           for attempt in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
           test -s "$RUNNER_TEMP/ativ-smoke.json"
           pkill -x ATIV || true
+      - name: Record exact native host evidence
+        if: ${{ !inputs.owner_testing }}
+        run: |
+          label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
+          python3 script/host_evidence.py --application ativ --target "macos-${{ matrix.arch }}" --pin runtime/core-runtime.json --binary "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS" --metadata "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/Resources/FFmpeg" --packages packages/*.zip --output "packages/host-macos-${{ matrix.arch }}.json"
+      - name: Attest stable macOS packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ATIV/packages/*
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-macos-${{ matrix.arch }}
           path: ATIV/packages/*
           if-no-files-found: error
+          retention-days: 30
 
   windows:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows'
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'windows')
     defaults:
       run:
         working-directory: ATIV
     name: Windows ${{ matrix.arch }}
     needs: engine
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: x64
-            fetch_arch: x86_64
+            runtime_arch: x86_64
             runner: windows-2025
           - arch: ARM64
-            fetch_arch: aarch64
+            runtime_arch: arm64
             runner: windows-11-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Fetch verified FFmpeg 9.0.1
-        shell: bash
-        run: ./script/fetch_ffmpeg.sh windows "${{ matrix.fetch_arch }}" "build/ffmpeg-windows-${{ matrix.arch }}"
-      - name: Install Inno Setup
-        shell: pwsh
-        run: choco install innosetup --version=6.7.1 --yes --no-progress
-      - name: Verify canonical media and host contract with release tools
+      - name: Acquire the exact authenticated Core runtime
+        uses: ./ATIV/.github/actions/ffmpeg
+        with:
+          target: windows-${{ matrix.runtime_arch }}
+          clean: ${{ inputs.clean_ffmpeg || false }}
+      - name: Verify ATIV tests and packaged media contract
+        if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
-          export PATH="$PWD/build/ffmpeg-windows-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
-          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
-          # Explicit concurrent-render tests still launch and verify their own threads.
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh
+          ./script/test_engine_integration.sh windows-${{ matrix.runtime_arch }}
       - name: Build and package native application
         shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ startsWith(github.ref, 'refs/tags/') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
-        run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}" -FfmpegDirectory "build/ffmpeg-windows-${{ matrix.arch }}"
-      - name: Native integration and installer smoke tests
+        run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
+      - name: Native integration and extracted portable ZIP smoke tests
+        if: ${{ !inputs.owner_testing }}
         shell: pwsh
         run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
+      - name: Record exact native host evidence
+        if: ${{ !inputs.owner_testing }}
+        shell: pwsh
+        run: |
+          $packages = (Get-ChildItem packages -Filter '*.zip').FullName
+          python script/host_evidence.py --application ativ --target 'windows-${{ matrix.runtime_arch }}' --pin runtime/core-runtime.json --binary 'build/windows-${{ matrix.arch }}/publish' --metadata 'build/windows-${{ matrix.arch }}/publish/ffmpeg-runtime' --packages $packages --output 'packages/host-windows-${{ matrix.runtime_arch }}.json'
+      - name: Attest stable Windows packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ATIV/packages/*
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-windows-${{ matrix.arch }}
           path: ATIV/packages/*
           if-no-files-found: error
+          retention-days: 30
 
   linux:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux'
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'linux')
     defaults:
       run:
         working-directory: ATIV
     name: Linux ${{ matrix.arch }}
     needs: engine
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: x86_64
+            runtime_arch: x86_64
             runner: ubuntu-24.04
           - arch: aarch64
+            runtime_arch: arm64
             runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: ATIV
-      - name: Check out the tested canonical media core
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: tlolabs/avid-core
-          ref: 4bcbabbb9c9519c07ae4a3228bc09cf5a5b5c03b
-          persist-credentials: false
-          path: AVID Core
       - name: Configure build identity
         shell: bash
         run: |
           base="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
           if [[ "$ATIV_CHANNEL" == stable ]]; then
-            test "$GITHUB_REF_NAME" = "v$base"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
@@ -298,65 +331,33 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64
-      - name: Fetch verified FFmpeg 9.0.1
-        run: ./script/fetch_ffmpeg.sh linux "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
-      - name: Verify canonical media and host contract with release tools
+      - name: Acquire the exact authenticated Core runtime
+        uses: ./ATIV/.github/actions/ffmpeg
+        with:
+          target: linux-${{ matrix.runtime_arch }}
+          clean: ${{ inputs.clean_ffmpeg || false }}
+      - name: Verify ATIV tests and packaged media contract
+        if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
-          export PATH="$PWD/build/ffmpeg-linux-${{ matrix.arch }}:$PATH"
           cargo test --locked --all-targets
-          # Serialize fixture creation in the shared harness to avoid Linux ETXTBSY.
-          # Explicit concurrent-render tests still launch and verify their own threads.
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --all-targets -- --test-threads=1
-          cargo test --manifest-path "../AVID Core/Cargo.toml" --locked --test ffmpeg -- --ignored
-          ./script/test_engine_integration.sh
+          ./script/test_engine_integration.sh linux-${{ matrix.runtime_arch }}
       - name: Build and package native application
-        run: ./script/package_linux.sh "${{ matrix.arch }}" "build/ffmpeg-linux-${{ matrix.arch }}"
+        run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests
+        if: ${{ !inputs.owner_testing }}
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
+      - name: Record exact native host evidence
+        if: ${{ !inputs.owner_testing }}
+        run: |
+          python3 script/host_evidence.py --application ativ --target "linux-${{ matrix.runtime_arch }}" --pin runtime/core-runtime.json --binary "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ" --metadata "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ/ffmpeg-runtime" --packages packages/*.AppImage --output "packages/host-linux-${{ matrix.runtime_arch }}.json"
+      - name: Attest stable Linux packages
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ATIV/packages/*
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-linux-${{ matrix.arch }}
           path: ATIV/packages/*
-
-  release:
-    name: Publish passing artifacts
-    if: ${{ always() && !cancelled() && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
-    needs: [engine, macos, windows, linux]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          pattern: ATIV-*
-          path: release-assets
-          merge-multiple: true
-      - name: Publish validated passing packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUILD_RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 script/publish_release.py
-      - name: Generate and upload authenticated update feeds
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
-        run: |
-          python3 -m venv build/release-tools
-          build/release-tools/bin/pip install -r script/requirements-build.txt
-          build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel "$ATIV_CHANNEL" --tag "$ATIV_RELEASE_TAG"
-          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS --clobber
-          for feed in release-assets/appcast-*.xml; do
-            [[ -f "$feed" ]] || continue
-            gh release upload "$ATIV_RELEASE_TAG" "$feed" --clobber
-          done
-      - name: Report partial failures
-        if: always()
-        env:
-          BUILD_RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 -c 'import json,os; jobs=json.loads(os.environ["BUILD_RESULTS"]); failed=[k for k,v in jobs.items() if v["result"]!="success"]; print("Incomplete targets: " + ", ".join(failed)); raise SystemExit(bool(failed))'
+          retention-days: 30

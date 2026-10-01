@@ -1,6 +1,10 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
+mod media_tools;
+
 use ativ_core::{
     AtivError, CancellationToken, Composition, EventSink, MediaTools, PRESETS, PreviewRequest,
-    RenderMode, RenderProgress, RenderRequest, RenderSettings, Renderer, Stage, ToolDiscovery,
+    RenderMode, RenderProgress, RenderRequest, RenderSettings, Renderer, Stage,
 };
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -21,7 +25,7 @@ fn main() -> ExitCode {
             println!(
                 "{{\"event\":\"error\",\"code\":\"{}\",\"message\":\"{}\"}}",
                 error.code(),
-                escape(&error.user_message())
+                escape(error.user_message())
             );
             eprintln!("{}", error.user_message());
             if error.code() == "cancelled" {
@@ -49,6 +53,28 @@ fn run() -> ativ_core::Result<()> {
         }
         "version" | "--version" | "-V" => {
             println!("ativ-engine {}", ativ_core::VERSION);
+            Ok(())
+        }
+        "build-info" => {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "ativ_version": ativ_core::VERSION,
+                    "avid_core": {
+                        "version": ativ_core::CORE_VERSION,
+                        "revision": ativ_core::CORE_REVISION,
+                        "source": ativ_core::CORE_SOURCE,
+                    }
+                })
+            );
+            Ok(())
+        }
+        "validate-core-runtime" => {
+            let tools = MediaTools::from_core_directory(&parsed.required_path("runtime")?, &token)?;
+            println!(
+                "{}",
+                serde_json::json!({"validated": true, "ffmpeg": tools.ffmpeg_version(), "ffprobe": tools.ffprobe_version()})
+            );
             Ok(())
         }
         "presets" => {
@@ -133,8 +159,12 @@ fn run() -> ativ_core::Result<()> {
                 flip_vertical: parsed.flags.contains("flip-vertical"),
             };
             let events = JsonEvents::new();
-            let result =
-                Renderer::new(tools).render_with_mode(&request.shared(), mode, &token, &events);
+            let result = Renderer::new(tools).render_with_mode(
+                &request.into_shared(),
+                mode,
+                &token,
+                &events,
+            );
             let seconds = started.elapsed().as_secs_f64();
             events.log(&format!(
                 "export wall time: {seconds:.6}s; mode: {mode:?}; success: {}",
@@ -173,14 +203,11 @@ fn stdin_cancellation() -> CancellationToken {
 }
 
 fn tools(arguments: &Arguments, token: &CancellationToken) -> ativ_core::Result<MediaTools> {
-    Ok(MediaTools::discover(
-        ToolDiscovery {
-            ffmpeg: arguments.values.get("ffmpeg").map(PathBuf::from),
-            ffprobe: arguments.values.get("ffprobe").map(PathBuf::from),
-            ..Default::default()
-        },
+    media_tools::resolve(
+        arguments.values.get("ffmpeg").map(PathBuf::from),
+        arguments.values.get("ffprobe").map(PathBuf::from),
         token,
-    )?)
+    )
 }
 
 #[derive(Default)]
@@ -349,24 +376,27 @@ fn default_diagnostic_log_path() -> Option<PathBuf> {
 }
 
 fn print_presets() {
-    use std::fmt::Write as _;
-    let mut payload = String::with_capacity(2048);
-    payload.push_str("{\"event\":\"presets\",\"items\":[");
-    for (index, preset) in PRESETS.iter().enumerate() {
-        if index > 0 {
-            payload.push(',');
+    static PRESETS_PAYLOAD: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+        use std::fmt::Write as _;
+        let mut payload = String::with_capacity(2048);
+        payload.push_str("{\"event\":\"presets\",\"items\":[");
+        for (index, preset) in PRESETS.iter().enumerate() {
+            if index > 0 {
+                payload.push(',');
+            }
+            let _ = write!(
+                payload,
+                "{{\"platform\":\"{}\",\"aspect\":\"{}\",\"width\":{},\"height\":{}}}",
+                escape(preset.platform),
+                escape(preset.aspect),
+                preset.width,
+                preset.height
+            );
         }
-        let _ = write!(
-            payload,
-            "{{\"platform\":\"{}\",\"aspect\":\"{}\",\"width\":{},\"height\":{}}}",
-            escape(preset.platform),
-            escape(preset.aspect),
-            preset.width,
-            preset.height
-        );
-    }
-    payload.push_str("]}");
-    println!("{payload}");
+        payload.push_str("]}");
+        payload
+    });
+    println!("{}", *PRESETS_PAYLOAD);
 }
 
 fn number(value: Option<f64>) -> String {
@@ -374,8 +404,15 @@ fn number(value: Option<f64>) -> String {
         .filter(|value| value.is_finite())
         .map_or_else(|| "null".into(), |value| value.to_string())
 }
-fn escape(value: &str) -> String {
-    let mut out = String::with_capacity(value.len());
+
+fn escape(value: &str) -> std::borrow::Cow<'_, str> {
+    if !value
+        .chars()
+        .any(|c| matches!(c, '\\' | '"' | '\n' | '\r' | '\t') || c.is_control())
+    {
+        return std::borrow::Cow::Borrowed(value);
+    }
+    let mut out = String::with_capacity(value.len() + 8);
     for character in value.chars() {
         match character {
             '\\' => out.push_str("\\\\"),
@@ -387,12 +424,12 @@ fn escape(value: &str) -> String {
             value => out.push(value),
         }
     }
-    out
+    std::borrow::Cow::Owned(out)
 }
 
 fn print_help() {
     println!(
-        "A.T.I.V. shared engine\n\nCommands:\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode simple|current] [--flip-horizontal] [--flip-vertical]\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
+        "A.T.I.V. shared engine\n\nCommands:\n  build-info  Report application and pinned AVID Core identity\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode simple|current] [--flip-horizontal] [--flip-vertical]\n\nBy default, ATIV uses only its packaged runtime. The --ffmpeg and --ffprobe overrides must be supplied together and are for development/tests.\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
     );
 }
 
