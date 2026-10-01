@@ -101,6 +101,16 @@ def compare_signed_build(original, final):
         return {str(p.relative_to(app)):p for p in app.rglob('*')
                 if (p.is_symlink() or not p.is_dir()) and '_CodeSignature' not in p.parts}
     before, after = entries(original), entries(final)
+    # stapler adds this reserved Apple ticket outside _CodeSignature. It is
+    # signing metadata only after Apple's tool authenticates it for this app.
+    ticket = 'Contents/CodeResources'
+    if ticket in after:
+        require(not after[ticket].is_symlink() and after[ticket].is_file(),
+                'Notarization ticket must be a regular file')
+        subprocess.run(['xcrun', 'stapler', 'validate', str(final)], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        after.pop(ticket)
+        before.pop(ticket, None)
     require(before.keys() == after.keys(), 'Signing added or removed application payload files')
     with tempfile.TemporaryDirectory() as directory:
         temporary = Path(directory)
