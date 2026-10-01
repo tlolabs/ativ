@@ -8,17 +8,17 @@
     {
       "license": "GPL-3.0-or-later",
       "name": "ativ-core",
-      "version": "0.2.5"
+      "version": "0.2.6"
     },
     {
       "license": "GPL-3.0-or-later",
       "name": "ativ-engine",
-      "version": "0.2.5"
+      "version": "0.2.6"
     },
     {
       "license": "GPL-3.0-or-later",
       "name": "ativ-update",
-      "version": "0.2.5"
+      "version": "0.2.6"
     },
     {
       "checksum": "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0",
@@ -1227,7 +1227,7 @@
     }
   ],
   "project": "ATIV",
-  "projectVersion": "0.2.5",
+  "projectVersion": "0.2.6",
   "schema": 1,
   "source": {
     "cargo": "Cargo.lock",

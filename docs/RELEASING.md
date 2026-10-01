@@ -1,6 +1,6 @@
 # Release operations
 
-The next application version is 0.2.5. Existing tags and assets remain historical and must never be moved or overwritten. AVID Core owns the matched FFmpeg/FFprobe runtime; ATIV owns its native application, packaging, signing and update behavior.
+The next application version is 0.2.6. The locally signed/notarized 0.2.5 bridge includes the corrected Sparkle manual action; the published 0.2.4 implementation sends that action to the wrong receiver. Existing tags and assets remain historical and must never be moved or overwritten. AVID Core owns the matched FFmpeg/FFprobe runtime; ATIV owns its native application, packaging, signing and update behavior.
 
 Distribution formats are signed/notarized macOS ZIP, Azure Authenticode Windows portable ZIP, and GPG-signed Linux AppImage. The full native build matrix remains macOS, Windows and Linux on arm64/x86_64. ATIV may publish passing targets independently only when every applicable requirement for that target passes. A passing build alone cannot authorize publication.
 

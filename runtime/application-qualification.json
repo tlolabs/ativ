@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "repository": "tlolabs/ativ",
-  "version": "0.2.5",
-  "tag": "v0.2.5",
+  "version": "0.2.6",
+  "tag": "v0.2.6",
   "application_revision": null,
   "publication_policy": "independent_qualified_targets",
   "targets": {
