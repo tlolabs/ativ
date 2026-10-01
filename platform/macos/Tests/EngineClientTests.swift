@@ -1,5 +1,6 @@
 import AppKit
 import XCTest
+import SparkleBridge
 @testable import ATIV
 
 final class EngineClientTests: XCTestCase {
@@ -82,5 +83,25 @@ final class UpdateWorkCoordinationTests: XCTestCase {
         XCTAssertFalse(store.canRender)
         // Reset the bridge's shared work state for subsequent tests.
         store.isRendering = false
+    }
+}
+
+private final class UpdateControllerDouble: NSObject {
+    var manualChecks = 0
+    @objc func checkForUpdates(_ sender: Any?) { manualChecks += 1 }
+    // Accessing an updater object is deliberately unsupported: the menu action
+    // belongs to the controller, as declared in Sparkle's pinned public header.
+}
+
+final class ManualUpdateActionTests: XCTestCase {
+    func testManualActionReachesController() {
+        let controller = UpdateControllerDouble()
+        XCTAssertTrue(ATIVCheckForUpdatesWithController(Unmanaged.passUnretained(controller).toOpaque()))
+        XCTAssertEqual(controller.manualChecks, 1)
+    }
+    func testMissingControllerActionFailsGracefully() {
+        let unsupported = NSObject()
+        XCTAssertFalse(ATIVCheckForUpdatesWithController(Unmanaged.passUnretained(unsupported).toOpaque()))
+        XCTAssertFalse(ATIVCheckForUpdatesWithController(nil))
     }
 }

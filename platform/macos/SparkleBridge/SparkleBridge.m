@@ -70,12 +70,15 @@ bool ATIVCheckForUpdates(void) {
         return false;
     }
 
-    SEL updaterSelector = NSSelectorFromString(@"updater");
-    id updater = ((id (*)(id, SEL))objc_msgSend)(ATIVUpdaterController, updaterSelector);
-    SEL checkSelector = NSSelectorFromString(@"checkForUpdates:");
-    if (updater == nil || ![updater respondsToSelector:checkSelector]) {
-        return false;
-    }
-    ((void (*)(id, SEL, id))objc_msgSend)(updater, checkSelector, nil);
+    return ATIVCheckForUpdatesWithController((__bridge void *)ATIVUpdaterController);
+}
+
+bool ATIVCheckForUpdatesWithController(void *controller) {
+    // checkForUpdates: is the controller's IBAction. SPUUpdater instead exposes
+    // checkForUpdates (without a sender); do not send the controller action to it.
+    id object = (__bridge id)controller;
+    SEL action = NSSelectorFromString(@"checkForUpdates:");
+    if (object == nil || ![object respondsToSelector:action]) return false;
+    ((void (*)(id, SEL, id))objc_msgSend)(object, action, nil);
     return true;
 }
