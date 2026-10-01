@@ -69,6 +69,14 @@ fn run() -> ativ_core::Result<()> {
             );
             Ok(())
         }
+        "validate-core-runtime" => {
+            let tools = MediaTools::from_core_directory(&parsed.required_path("runtime")?, &token)?;
+            println!(
+                "{}",
+                serde_json::json!({"validated": true, "ffmpeg": tools.ffmpeg_version(), "ffprobe": tools.ffprobe_version()})
+            );
+            Ok(())
+        }
         "presets" => {
             print_presets();
             Ok(())

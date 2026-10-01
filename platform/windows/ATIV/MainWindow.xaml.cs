@@ -306,8 +306,8 @@ public sealed partial class MainWindow : Window
             if (await dialog.ShowAsync() != ContentDialogResult.Primary || rendering) return;
             var download = await UpdateClient.RunAsync("download");
             if (rendering) { ShowError("Update downloaded. Finish your export before installing."); return; }
-            var installer = download.GetProperty("path").GetString()!;
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installer) { UseShellExecute = true });
+            SavePreferences();
+            UpdateClient.InstallPortable(download);
             Close();
         } catch (Exception error) { if (manual) ShowError(error.Message); }
         finally { updateBusy = false; }

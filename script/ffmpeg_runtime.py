@@ -1,15 +1,34 @@
 #!/usr/bin/env python3
-"""ATIV-owned source runtime provisioning, packaging and verification; no Core runtime assets."""
+"""Acquire and package checksum-pinned AVID Core runtimes; never compile FFmpeg."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
 import struct
 import subprocess
-import sys
+import tarfile
 import tomllib
-from ffmpeg_build import ROOT, SPEC, SPEC_PATH, build, digest, recipe_digest, target_id, write_json
+
+ROOT = Path(__file__).resolve().parents[1]
+PIN = json.loads((ROOT / 'runtime/core-runtime.json').read_text())
+
+
+def digest(path):
+    with path.open('rb') as file:
+        return hashlib.file_digest(file, 'sha256').hexdigest()
+
+
+def write_json(path, value):
+    path.write_text(json.dumps(value, indent=2) + '\n')
+
+
+def target_id(target):
+    target = target.replace('aarch64', 'arm64')
+    if target not in PIN['targets']:
+        raise ValueError('Unsupported Core target: ' + target)
+    return target
 
 
 def pair(target):
@@ -17,80 +36,74 @@ def pair(target):
 
 
 def machine(path, target):
-    data = path.read_bytes()[:4096]
+    with path.open('rb') as file:
+        data = file.read(4096)
     arm = target.endswith('arm64')
     if target.startswith('macos'):
-        valid = data[:4] == b'\xcf\xfa\xed\xfe' and struct.unpack_from('<I', data, 4)[0] == (0x100000c if arm else 0x1000007)
+        valid = len(data) >= 8 and data[:4] == b'\xcf\xfa\xed\xfe' and struct.unpack_from('<I', data, 4)[0] == (0x100000c if arm else 0x1000007)
     elif target.startswith('linux'):
-        valid = data[:6] == b'\x7fELF\x02\x01' and struct.unpack_from('<H', data, 18)[0] == (183 if arm else 62)
+        valid = len(data) >= 20 and data[:6] == b'\x7fELF\x02\x01' and struct.unpack_from('<H', data, 18)[0] == (183 if arm else 62)
     else:
         offset = struct.unpack_from('<I', data, 60)[0] if len(data) >= 64 else 0
-        valid = data[:2] == b'MZ' and data[offset:offset+4] == b'PE\0\0' and struct.unpack_from('<H', data, offset+4)[0] == (0xaa64 if arm else 0x8664)
+        valid = offset >= 64 and offset + 6 <= len(data) and data[:2] == b'MZ' and data[offset:offset+4] == b'PE\0\0' and struct.unpack_from('<H', data, offset+4)[0] == (0xaa64 if arm else 0x8664)
     if not valid:
         raise ValueError('Wrong runtime architecture: ' + str(path))
 
 
-def checked_files(metadata):
-    files = json.loads((metadata / 'payload.json').read_text())
-    for name in files:
-        if Path(name).is_absolute() or '..' in Path(name).parts or '\\' in name:
-            raise ValueError('Invalid runtime manifest path')
+def checked_files(metadata, target):
+    path = metadata / 'SHA256SUMS'
+    if digest(path) != PIN['targets'][target]['checksums_sha256']:
+        raise ValueError('Core checksum manifest differs from pinned artifact')
+    files = {}
+    for line in path.read_text().splitlines():
+        expected, name = line.split('  ', 1)
+        if name in files or Path(name).is_absolute() or any(p in ('', '.', '..') for p in name.split('/')) or '\\' in name or len(expected) != 64:
+            raise ValueError('Invalid Core checksum path')
+        files[name] = expected
     return files
 
 
 def verify(runtime, target, binary=None, signed=False):
-    binary = binary or runtime
-    if (runtime / 'dependency.json').read_bytes() != SPEC_PATH.read_bytes():
-        raise ValueError('Runtime dependency pin differs from ATIV')
-    info = json.loads((runtime / 'build.json').read_text())
-    if info['owner'] != 'ATIV' or info['target'] != target or info['recipe_sha256'] != recipe_digest():
-        raise ValueError('Runtime recipe/owner/target mismatch')
-    files = checked_files(runtime)
-    required = {'dependency.json', 'build.json', 'config.log', 'config.h', *pair(target)}
-    if not required <= files.keys():
-        raise ValueError('Incomplete source runtime manifest')
-    for name, expected in files.items():
-        if name in pair(target):
-            continue
-        if digest(runtime / name) != expected:
-            raise ValueError('Runtime metadata/source checksum mismatch: ' + name)
-    for record in [SPEC['source'], *SPEC['external_libraries'].values()]:
-        if digest(runtime / 'sources' / record['url'].split('/')[-1]) != record['sha256']:
-            raise ValueError('Packaged corresponding source mismatch')
-    hashes = info['binary_sha256']
-    if any(files[name] != hashes[name] for name in pair(target)):
-        raise ValueError('Original runtime hashes disagree')
-    if signed:
-        signature = json.loads((runtime / 'signed-payload.json').read_text())
-        if signature['target'] != target or signature['original_binary_sha256'] != hashes:
-            raise ValueError('Signed runtime identity mismatch')
-        hashes = signature['signed_binary_sha256']
-    for name in pair(target):
-        machine(binary / name, target)
-        if digest(binary / name) != hashes[name]:
-            raise ValueError('Runtime executable checksum mismatch: ' + name)
+    from core_runtime import verify_directory
+    target = target_id(target)
+    derivative=json.loads((runtime / 'signed-payload.json').read_text()) if signed else None
+    info=verify_directory(PIN, target, runtime, binary=binary, signed=derivative)
+    source=runtime / 'corresponding-source.tar.gz' if signed else runtime.parent / PIN['targets'][target]['source_archive']
+    if digest(source) != PIN['targets'][target]['source_sha256']:
+        raise ValueError('Core corresponding source mismatch')
     return info
 
 
 def provision(target):
+    from core_runtime import candidate, release, require, verify_receipt, digest as core_digest
     target = target_id(target)
-    # CI can provide only an ATIV-verified source payload. This is not an arbitrary tool override.
+    verifier = json.loads((ROOT / 'runtime/core-acquirer.json').read_text())
+    require(core_digest(ROOT / 'script/core_runtime.py') == verifier['sha256'], 'Shared Core verifier differs from its pin')
+    qualification = os.environ.get('AVID_CORE_QUALIFICATION') == '1'
+    if qualification and os.environ.get('GITHUB_EVENT_NAME') in ('push', 'pull_request', 'pull_request_target'):
+        raise ValueError('Candidate qualification is limited to deliberate local/manual qualification; never releases or PR artifacts')
+    plan = json.loads((ROOT / 'runtime/core-candidate.json').read_text()) if qualification else PIN
+    if not qualification and PIN.get('qualification_only'):
+        raise ValueError('Core production release is not published/pinned yet; complete its release gates first')
     selected = os.environ.get('ATIV_FFMPEG_RUNTIME')
     if selected:
-        runtime = Path(selected)
+        runtime = Path(selected).resolve()
         verify(runtime, target)
-        return runtime.resolve()
-    return build(target)
+        return verify_receipt(plan,target,runtime,qualification)
+    destination = ROOT / 'build/core-acquisition' / ('qualification' if qualification else PIN['release_tag']) / target
+    if destination.exists():
+        runtime = destination / plan['targets'][target]['archive'].removesuffix('.tar.gz')
+        return verify_receipt(plan,target,runtime,qualification)
+    return candidate(plan, target, destination, qualification=True) if qualification else release(PIN, target, destination)
 
 
 def core_identity():
-    manifest = tomllib.loads((ROOT / 'Cargo.toml').read_text())
-    pin = manifest['workspace']['dependencies']['avid-core']
+    pin = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['dependencies']['avid-core']
     packages = tomllib.loads((ROOT / 'Cargo.lock').read_text())['package']
     core, = [package for package in packages if package['name'] == 'avid-core']
     source = f"git+{pin['git']}?rev={pin['rev']}#{pin['rev']}"
-    if core['source'] != source or pin['version'] != '=' + core['version']:
-        raise ValueError('Core lock differs from the approved pin')
+    if core['source'] != source or pin['version'] != '=' + core['version'] or pin['rev'] != PIN['revision']:
+        raise ValueError('Core lock differs from the runtime pin')
     return dict(version=core['version'], revision=pin['rev'], source=source)
 
 
@@ -105,6 +118,8 @@ def engine_identity(binary, target):
 def stage(target, runtime, binary):
     target = target_id(target)
     verify(runtime, target)
+    engine = binary / ('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
+    subprocess.run([str(engine.resolve()), 'validate-core-runtime', '--runtime', str(runtime.resolve())], check=True, timeout=60)
     binary.mkdir(parents=True, exist_ok=True)
     for item in runtime.iterdir():
         destination = binary / item.name
@@ -114,54 +129,49 @@ def stage(target, runtime, binary):
             shutil.copytree(item, destination)
         else:
             shutil.copy2(item, destination)
-    version = os.environ.get('ATIV_VERSION') or tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
-    write_json(binary / 'ativ-runtime.json', {'schema': 1, 'owner': 'ATIV', 'ativ_version': version,
-               'avid_core': engine_identity(binary, target)['avid_core'],
-               'ffmpeg_version': SPEC['source']['version'], 'target': target, 'architecture': target.split('-', 1)[1],
-               'recipe_sha256': recipe_digest()})
+    shutil.copy2(runtime.parent / PIN['targets'][target]['source_archive'], binary / 'corresponding-source.tar.gz')
+    identity = engine_identity(binary, target)
+    write_json(binary / 'ativ-runtime.json', {'schema': 1, 'owner': 'AVID Core', **identity, 'target': target})
 
 
 def finish(target, binary, metadata):
     target = target_id(target)
-    info = json.loads((binary / 'build.json').read_text())
-    # stage() verifies original hashes before platform signing; signing may alter executable bytes.
-    write_json(binary / 'signed-payload.json', {'schema': 1, 'target': target,
-               'original_binary_sha256': info['binary_sha256'],
-               'signed_binary_sha256': {name: digest(binary / name) for name in pair(target)}})
-    if binary.resolve() != metadata.resolve():
+    original = binary if (binary / 'SHA256SUMS').exists() else metadata
+    files = checked_files(original, target)
+    write_json(original / 'signed-payload.json', {'schema': 1, 'target': target,
+               'original_binary_sha256': {name: files[name] for name in pair(target)},
+               'signed_binary_sha256': {name: digest(binary / name) for name in pair(target)},
+               'transformation': 'platform code signing or identity-preserving staging',
+               'signing_identity': os.environ.get('APPLE_SIGN_IDENTITY') or os.environ.get('ENCAP_SIGN_IDENTITY') or os.environ.get('AZURE_SIGNING_ACCOUNT') or 'unconfigured',
+               'original_runtime_archive_sha256': PIN['targets'][target]['sha256']})
+    if original.resolve() != metadata.resolve():
         metadata.mkdir(parents=True, exist_ok=True)
-        names = {Path(name).parts[0] for name in checked_files(binary)} - set(pair(target))
-        names |= {'payload.json', 'ativ-runtime.json', 'signed-payload.json'}
+        names = {Path(name).parts[0] for name in files} - set(pair(target))
+        names |= {'SHA256SUMS', 'ativ-runtime.json', 'signed-payload.json', 'corresponding-source.tar.gz'}
         for name in sorted(names):
             if (metadata / name).exists():
                 raise ValueError('Metadata destination already exists: ' + name)
-            shutil.move(str(binary / name), metadata / name)
+            shutil.move(str(original / name), metadata / name)
 
 
 def validate(target, binary, metadata, runtime=None):
     target = target_id(target)
     verify(metadata, target, binary, signed=True)
     provenance = json.loads((metadata / 'ativ-runtime.json').read_text())
-    if provenance['owner'] != 'ATIV' or provenance['ffmpeg_version'] != SPEC['source']['version'] or provenance['target'] != target or provenance['architecture'] != target.split('-', 1)[1] or provenance['recipe_sha256'] != recipe_digest():
-        raise ValueError('Packaged ATIV runtime provenance mismatch')
     identity = engine_identity(binary, target)
-    if provenance['avid_core'] != identity['avid_core'] or provenance['ativ_version'] != identity['ativ_version']:
+    if provenance != {'schema': 1, 'owner': 'AVID Core', **identity, 'target': target}:
         raise ValueError('Packaged Core/application provenance mismatch')
     if runtime:
         verify(runtime, target)
-        for name in checked_files(runtime):
-            if name not in pair(target) and (metadata / name).read_bytes() != (runtime / name).read_bytes():
-                raise ValueError('Packaged metadata differs from source build')
     engine = binary / ('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
     subprocess.run([str(engine.resolve()), 'check'], env=dict(os.environ, PATH=''), check=True, timeout=60)
-    subprocess.run([sys.executable, str(ROOT / 'script/test_engine_contract.py'), '--engine', str(engine),
-                    '--ffmpeg', str(binary / pair(target)[0]), '--ffprobe', str(binary / pair(target)[1]), '--managed'], check=True)
+    subprocess.run([__import__('sys').executable, str(ROOT / 'script/test_engine_contract.py'), '--engine', str(engine), '--ffmpeg', str(binary / pair(target)[0]), '--ffprobe', str(binary / pair(target)[1]), '--managed'], check=True)
     return provenance
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=['provision', 'stage', 'finish', 'validate'])
+    parser.add_argument('mode', choices=['provision', 'key', 'stage', 'finish', 'validate'])
     parser.add_argument('target')
     parser.add_argument('--runtime', type=Path)
     parser.add_argument('--binary', type=Path)
@@ -169,6 +179,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.mode == 'provision':
         print(provision(args.target))
+    elif args.mode == 'key':
+        print(PIN['targets'][target_id(args.target)]['sha256'])
     elif args.binary is None:
         parser.error('--binary is required')
     elif args.mode == 'stage':

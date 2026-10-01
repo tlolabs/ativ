@@ -34,26 +34,20 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):build(self.root,'0.3.0','stable','v0.3.0',self.seed,self.public)
 
 class PublishTests(unittest.TestCase):
-    def test_partial_release_publishes_available_artifacts(self):
+    def test_legacy_publisher_cannot_move_tags_or_replace_assets(self):
         script=Path(__file__).with_name('publish_release.py').resolve()
-        with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); (root/'Cargo.toml').write_text('version = "0.3.0"\n')
-            assets=root/'release-assets';assets.mkdir();(assets/'ATIV-0.3.0-windows-x64-setup.exe').write_bytes(b'validated installer')
-            env={'ATIV_CHANNEL':'stable','GITHUB_REF_NAME':'v0.3.0','GITHUB_SHA':'a'*40,'GITHUB_REPOSITORY':'tlolabs/ativ','GITHUB_ENV':str(root/'env'),'BUILD_RESULTS':json.dumps({'windows':{'result':'success'},'macos':{'result':'failure'}})}
-            calls=[]
-            def fake_run(args,**kwargs):
-                calls.append(args)
-                return SimpleNamespace(returncode=1 if args[1:3]==['release','view'] else 0)
-            previous=Path.cwd()
-            try:
-                os.chdir(root)
-                with patch.dict(os.environ,env),patch('subprocess.run',fake_run):runpy.run_path(str(script),run_name='__main__')
-            finally:os.chdir(previous)
-            uploads=[call for call in calls if call[1:3]==['release','upload']]
-            self.assertEqual(len(uploads),1)
-            self.assertTrue(any(str(arg).endswith('windows-x64-setup.exe') for arg in uploads[0]))
-            self.assertIn('Incomplete build: macos',(root/'build-release-notes.md').read_text())
-            self.assertIn('ATIV_RELEASE_TAG=v0.3.0',(root/'env').read_text())
+        with patch('subprocess.run') as process:
+            with self.assertRaisesRegex(SystemExit,'qualified final packages'):
+                runpy.run_path(str(script),run_name='__main__')
+            process.assert_not_called()
+
+    def test_release_cannot_use_unpublished_core_candidate(self):
+        from application_release import validate, ROOT
+        import tomllib
+        version=tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
+        plan={'schema':1,'repository':'tlolabs/ativ','version':version,'tag':'v'+version,'application_revision':'a'*40}
+        with self.assertRaisesRegex(ValueError,'unpublished Core'):
+            validate(plan,{'qualification_only':True},'a'*40)
 
 class SigningSetupTests(unittest.TestCase):
     def test_only_a_single_developer_id_application_identity_is_accepted(self):

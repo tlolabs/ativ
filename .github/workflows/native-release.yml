@@ -4,30 +4,20 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: Native platform to validate (normal pushes and tags always build all)
+        description: Native platform group to qualify
         type: choice
         options: [all, macos, windows, linux]
         default: all
-      publish_cross_platform:
-        description: Add validated Windows/Linux runs to the current stable tagged release
-        type: boolean
-        default: false
-      windows_run:
-        description: Successful Windows build run ID for the release tag
-        type: string
-      linux_run:
-        description: Successful Linux build run ID for the release tag
-        type: string
-      publish_signed_macos:
-        description: Publish locally signed macOS packages from the matching draft release
-        type: boolean
-        default: false
       stable_macos:
         description: Build stable macOS artifacts for local Developer ID signing (no publication)
         type: boolean
         default: false
+      qualify_core_candidate:
+        description: Use the exact authenticated candidate for unpublished host qualification
+        type: boolean
+        default: false
       clean_ffmpeg:
-        description: Force a clean FFmpeg source rebuild, bypassing all runtime caches
+        description: Reserved compatibility input; Core artifacts are acquired, never rebuilt
         type: boolean
         default: false
       sign_macos:
@@ -49,6 +39,7 @@ permissions:
 
 env:
   GH_TOKEN: ${{ github.token }}
+  AVID_CORE_QUALIFICATION: ${{ github.event_name == 'workflow_dispatch' && inputs.qualify_core_candidate && '1' || '0' }}
   CARGO_TERM_COLOR: always
   ATIV_CHANNEL: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.stable_macos) && 'stable' || 'development' }}
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
@@ -56,7 +47,6 @@ env:
 
 jobs:
   engine:
-    if: ${{ !inputs.publish_signed_macos && !inputs.publish_cross_platform }}
     defaults:
       run:
         working-directory: ATIV
@@ -107,10 +97,10 @@ jobs:
       - name: Enforce ATIV runtime ownership
         run: |
           python3 script/test_runtime_ownership.py
-          python3 script/test_ffmpeg_build.py
+          python3 -m unittest discover -s script -p test_application_release.py -v
 
   macos:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'macos'
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'macos')
     defaults:
       run:
         working-directory: ATIV
@@ -147,7 +137,7 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Build ATIV FFmpeg from verified sources
+      - name: Acquire the exact authenticated Core runtime
         uses: ./ATIV/.github/actions/ffmpeg
         with:
           target: macos-${{ matrix.runtime_arch }}
@@ -200,6 +190,10 @@ jobs:
           for attempt in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
           test -s "$RUNNER_TEMP/ativ-smoke.json"
           pkill -x ATIV || true
+      - name: Record exact native host evidence
+        run: |
+          label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
+          python3 script/host_evidence.py --application ativ --target "macos-${{ matrix.arch }}" --pin runtime/core-runtime.json --binary "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS" --metadata "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/Resources/FFmpeg" --packages packages/*.zip --output "packages/host-macos-${{ matrix.arch }}.json"
       - name: Attest stable macOS packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -213,7 +207,7 @@ jobs:
           retention-days: 30
 
   windows:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'windows'
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'windows')
     defaults:
       run:
         working-directory: ATIV
@@ -250,14 +244,11 @@ jobs:
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
-      - name: Build ATIV FFmpeg from verified sources
+      - name: Acquire the exact authenticated Core runtime
         uses: ./ATIV/.github/actions/ffmpeg
         with:
           target: windows-${{ matrix.runtime_arch }}
           clean: ${{ inputs.clean_ffmpeg || false }}
-      - name: Install Inno Setup
-        shell: pwsh
-        run: choco install innosetup --version=6.7.1 --yes --no-progress
       - name: Verify ATIV tests and packaged media contract
         shell: bash
         run: |
@@ -265,13 +256,15 @@ jobs:
           ./script/test_engine_integration.sh windows-${{ matrix.runtime_arch }}
       - name: Build and package native application
         shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) && secrets.WINDOWS_CERTIFICATE_BASE64 || '' }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
-      - name: Native integration and installer smoke tests
+      - name: Native integration and extracted portable ZIP smoke tests
         shell: pwsh
         run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
+      - name: Record exact native host evidence
+        shell: pwsh
+        run: |
+          $packages = (Get-ChildItem packages -Filter '*.zip').FullName
+          python script/host_evidence.py --application ativ --target 'windows-${{ matrix.runtime_arch }}' --pin runtime/core-runtime.json --binary 'build/windows-${{ matrix.arch }}/publish' --metadata 'build/windows-${{ matrix.arch }}/publish/ffmpeg-runtime' --packages $packages --output 'packages/host-windows-${{ matrix.runtime_arch }}.json'
       - name: Attest stable Windows packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -285,7 +278,7 @@ jobs:
           retention-days: 30
 
   linux:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'linux'
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'linux')
     defaults:
       run:
         working-directory: ATIV
@@ -326,7 +319,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libjson-glib-dev meson ninja-build xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64
-      - name: Build ATIV FFmpeg from verified sources
+      - name: Acquire the exact authenticated Core runtime
         uses: ./ATIV/.github/actions/ffmpeg
         with:
           target: linux-${{ matrix.runtime_arch }}
@@ -340,6 +333,9 @@ jobs:
         run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
+      - name: Record exact native host evidence
+        run: |
+          python3 script/host_evidence.py --application ativ --target "linux-${{ matrix.runtime_arch }}" --pin runtime/core-runtime.json --binary "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ" --metadata "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ/ffmpeg-runtime" --packages packages/*.AppImage --output "packages/host-linux-${{ matrix.runtime_arch }}.json"
       - name: Attest stable Linux packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -350,170 +346,3 @@ jobs:
           name: ATIV-linux-${{ matrix.arch }}
           path: ATIV/packages/*
           retention-days: 30
-
-  release:
-    name: Publish passing artifacts
-    if: ${{ always() && !cancelled() && ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
-    needs: [engine, macos, windows, linux]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          pattern: ATIV-*
-          path: release-assets
-          merge-multiple: true
-      - name: Keep only macOS ARM64 development packages
-        if: github.ref == 'refs/heads/main'
-        run: find release-assets -maxdepth 1 -type f -name 'ATIV-*' ! -name 'ATIV-*-macos-arm64.*' -delete
-      - name: Generate release SBOM from locked inputs
-        run: python3 script/dependency_inventory.py --check --sbom-dir release-assets
-      - name: Publish validated passing packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BUILD_RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 script/publish_release.py
-      - name: Generate and upload authenticated update feeds
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
-        run: |
-          python3 -m venv build/release-tools
-          build/release-tools/bin/pip install -r script/requirements-build.txt
-          build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel "$ATIV_CHANNEL" --tag "$ATIV_RELEASE_TAG"
-          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS --clobber
-          for feed in release-assets/appcast-*.xml; do
-            [[ -f "$feed" ]] || continue
-            gh release upload "$ATIV_RELEASE_TAG" "$feed" --clobber
-          done
-      - name: Report partial failures
-        if: always()
-        env:
-          BUILD_RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 -c 'import json,os; jobs=json.loads(os.environ["BUILD_RESULTS"]); failed=[k for k,v in jobs.items() if v["result"]!="success"]; print("Incomplete targets: " + ", ".join(failed)); raise SystemExit(bool(failed))'
-
-  publish_signed_macos:
-    name: Publish locally signed macOS release
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_signed_macos
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Verify matching draft and download signed packages
-        run: |
-          version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)"
-          tag="v$version"
-          test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
-          test "$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)" = "$GITHUB_SHA"
-          echo "ATIV_VERSION=$version" >> "$GITHUB_ENV"
-          echo "ATIV_RELEASE_TAG=$tag" >> "$GITHUB_ENV"
-          gh release download "$tag" --dir release-assets
-          python3 - "$version" <<'PYCODE'
-          import sys, hashlib
-          from pathlib import Path
-          root=Path('release-assets'); version=sys.argv[1]
-          expected={f'ATIV-{version}-macos-{arch}.zip' for arch in ('arm64','intel')}
-          assert {p.name for p in root.iterdir()} == expected | {'SHA256SUMS'}
-          checks={}
-          for line in (root/'SHA256SUMS').read_text().splitlines():
-              digest,name=line.split('  ',1); checks[name]=digest
-          assert set(checks)==expected
-          for name,digest in checks.items():
-              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest, name
-          PYCODE
-      - name: Verify stable release authorization
-        env:
-          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
-          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
-        run: GITHUB_REF_NAME="$ATIV_RELEASE_TAG" bash script/verify_release_tag.sh
-      - name: Generate authenticated update feeds
-        env:
-          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
-        run: |
-          python3 -m venv build/release-tools
-          build/release-tools/bin/pip install -r script/requirements-build.txt
-          build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$ATIV_VERSION" --channel stable --tag "$ATIV_RELEASE_TAG"
-          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS release-assets/appcast-macos-arm64.xml release-assets/appcast-macos-intel.xml --clobber
-      - name: Publish complete macOS release
-        run: gh release edit "$ATIV_RELEASE_TAG" --draft=false --latest
-
-  publish_cross_platform:
-    name: Complete tagged cross-platform release
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_cross_platform
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-      actions: read
-    env:
-      WINDOWS_RUN: ${{ inputs.windows_run }}
-      LINUX_RUN: ${{ inputs.linux_run }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Verify tagged source and successful native builds
-        run: |
-          python3 - <<'PYCODE'
-          import json, os, re, subprocess
-          from pathlib import Path
-          def gh(*args): return json.loads(subprocess.check_output(['gh',*args]))
-          version=re.search(r'^version = "([^"]+)"',Path('Cargo.toml').read_text(),re.M)[1]
-          tag='v'+version
-          release=gh('release','view',tag,'--json','isDraft,targetCommitish,assets')
-          assert not release['isDraft']
-          sha=gh('api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/commits/{tag}')['sha']
-          for name,expected in [('WINDOWS_RUN',{'Windows x64','Windows ARM64'}),('LINUX_RUN',{'Linux x86_64','Linux aarch64'})]:
-              run_id=os.environ[name]; assert run_id.isdigit()
-              run=gh('run','view',run_id,'--json','headSha,status,conclusion,jobs,workflowName')
-              assert run['headSha']==sha and run['status']=='completed' and run['conclusion']=='success'
-              assert run['workflowName']=='Native build, test, and package'
-              assert expected <= {j['name'] for j in run['jobs'] if j['conclusion']=='success'}
-          expected={f'ATIV-{version}-macos-{arch}.zip' for arch in ('arm64','intel')}
-          assert {a['name'] for a in release['assets'] if a['name'].startswith('ATIV-')}==expected
-          with open(os.environ['GITHUB_ENV'],'a') as f: f.write(f'ATIV_VERSION={version}\nATIV_RELEASE_TAG={tag}\nRELEASE_SHA={sha}\n')
-          PYCODE
-      - name: Verify stable release authorization
-        env:
-          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
-          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
-        run: GITHUB_REF_NAME="$ATIV_RELEASE_TAG" bash script/verify_release_tag.sh
-      - name: Retrieve existing release and native build artifacts
-        run: |
-          gh release download "$ATIV_RELEASE_TAG" --dir release-assets
-          (cd release-assets && sha256sum -c SHA256SUMS)
-          gh run download "$WINDOWS_RUN" --name ATIV-windows-x64 --dir release-assets
-          gh run download "$WINDOWS_RUN" --name ATIV-windows-ARM64 --dir release-assets
-          gh run download "$LINUX_RUN" --name ATIV-linux-x86_64 --dir release-assets
-          gh run download "$LINUX_RUN" --name ATIV-linux-aarch64 --dir release-assets
-          python3 - <<'PYCODE'
-          import os
-          from pathlib import Path
-          v=os.environ['ATIV_VERSION']
-          expected={f'ATIV-{v}-macos-{a}.zip' for a in ('arm64','intel')}
-          expected|={f'ATIV-{v}-windows-{a}{e}' for a in ('x64','arm64') for e in ('-setup.exe','.zip')}
-          expected|={f'ATIV-{v}-linux-{a}.{e}' for a in ('x64','arm64') for e in ('AppImage','deb')}
-          assert {p.name for p in Path('release-assets').glob('ATIV-*')}==expected
-          PYCODE
-      - name: Sign combined update metadata using tagged release tooling
-        env:
-          ATIV_UPDATE_PRIVATE_KEY: ${{ secrets.ATIV_UPDATE_PRIVATE_KEY }}
-        run: |
-          git show "$RELEASE_SHA:script/release_metadata.py" > /tmp/ativ-release-metadata.py
-          python3 -m venv build/release-tools
-          build/release-tools/bin/pip install -r script/requirements-build.txt
-          build/release-tools/bin/python /tmp/ativ-release-metadata.py --assets release-assets --version "$ATIV_VERSION" --channel stable --tag "$ATIV_RELEASE_TAG"
-      - name: Upload validated packages and authenticated metadata
-        run: |
-          gh release upload "$ATIV_RELEASE_TAG" release-assets/ATIV-*-windows-* release-assets/ATIV-*-linux-*
-          gh release upload "$ATIV_RELEASE_TAG" release-assets/latest.json release-assets/SHA256SUMS release-assets/appcast-macos-arm64.xml release-assets/appcast-macos-intel.xml --clobber

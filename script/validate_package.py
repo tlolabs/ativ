@@ -51,7 +51,7 @@ def validate(root,target):
     assert '"event":"tools"' in result.stdout
     presets=subprocess.run([str(engine.resolve()),'presets'],capture_output=True,text=True,check=True,timeout=20)
     assert len(json.loads(presets.stdout)['items'])==27
-    metadata = contents/'Resources/FFmpeg' if target.startswith('macos') else binary
+    metadata = contents/'Resources/FFmpeg' if target.startswith('macos') else binary/'ffmpeg-runtime'
     provenance = validate_runtime(target, binary, metadata)
     assert provenance['ativ_version'] == config['version'], 'ATIV/runtime provenance version mismatch'
     print(f'Validated {target}: machine types, resources, identity, updater and bundled media discovery')

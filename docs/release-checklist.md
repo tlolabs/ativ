@@ -4,11 +4,11 @@
 - Pass Rust formatting, strict clippy, workspace tests, real-media contract tests, release metadata tests and all native package/startup jobs.
 - Verify each distributed package's architecture, version, native icons, licenses, engine, FFmpeg and ffprobe. Run bundled discovery without PATH.
 - Complete the manual [acceptance matrix](acceptance-matrix.md), including screen readers, focus, appearance, scaling, cancellation, quit, clean install, upgrades and uninstall.
-- Configure the update public variable/private secret and Apple Developer ID/notary secrets listed in [releasing](RELEASING.md). Optionally configure Windows Authenticode signing.
+- Configure the update public variable/private secret and Apple Developer ID/notary secrets listed in [releasing](RELEASING.md). Configure required Azure Authenticode signing and Linux GPG signing.
 - Test a real older-to-newer update using the installed verification key. Reject corrupted downloads, wrong-channel feeds and lower versions; preserve the working installation on failure.
-- Verify Developer ID, Hardened Runtime, nested Sparkle signatures, app notarization, stapling and Gatekeeper on macOS. Verify Authenticode/timestamps when Windows signing is configured.
+- Verify Developer ID, Hardened Runtime, nested Sparkle signatures, app notarization, stapling and Gatekeeper on macOS. Require valid Authenticode signatures and timestamps on every packaged Windows executable.
 - Verify separate development identity, package IDs, preferences and feed URLs. Existing legacy releases without an updater require one manual installation of the new version.
-- Change the workspace version and push its matching `vX.Y.Z` tag only when intentionally releasing. Tagged publication is automatic, with no approval job. Review generated release notes and partial-platform status.
+- Change the workspace version and push its matching `vX.Y.Z` tag only when intentionally releasing. Publication requires authenticated runtime consumption and the applicable executable release gates. Review generated release notes and partial-platform status.
 - Confirm passing artifacts remain downloadable after an unrelated target fails, feeds list only available verified artifacts, and CI reports incomplete targets.
 
 ## Withdrawal/recovery

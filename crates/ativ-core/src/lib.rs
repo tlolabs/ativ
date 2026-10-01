@@ -6,8 +6,9 @@ mod error;
 mod model;
 
 pub use avid_core::{
-    CancellationToken, Composition, EventSink, MediaTools, PRESETS, Preset, PreviewRequest,
-    Progress as RenderProgress, RenderMode, RenderSettings, Renderer, Stage,
+    CancellationToken, Composition, EventSink, FFMPEG_RUNTIME_SPECIFICATION, MediaTools, PRESETS,
+    Preset, PreviewRequest, Progress as RenderProgress, RenderMode, RenderSettings, Renderer,
+    Stage,
 };
 pub use error::{AtivError, Result};
 pub use model::RenderRequest;

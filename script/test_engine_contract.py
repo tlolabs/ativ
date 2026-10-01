@@ -62,7 +62,7 @@ def main():
     engine = options.engine.resolve()
     ffmpeg, ffprobe = Path(options.ffmpeg).resolve(), Path(options.ffprobe).resolve()
     versions = [run([tool, '-version']).decode().splitlines()[0].split()[2] for tool in (ffmpeg, ffprobe)]
-    assert versions == [json.loads((ROOT / 'runtime/ffmpeg/dependency.json').read_text())['source']['version']] * 2, versions
+    assert versions == [next(iter(json.loads((ROOT / 'runtime/core-runtime.json').read_text())['targets'].values()))['version']] * 2, versions
     from ffmpeg_runtime import core_identity
     assert json.loads(run([engine, 'build-info']))['avid_core'] == core_identity()
     with tempfile.TemporaryDirectory(prefix='ativ contract ü ') as directory:

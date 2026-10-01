@@ -8,17 +8,17 @@
     {
       "license": "GPL-3.0-or-later",
       "name": "ativ-core",
-      "version": "0.2.4"
+      "version": "0.2.5"
     },
     {
       "license": "GPL-3.0-or-later",
       "name": "ativ-engine",
-      "version": "0.2.4"
+      "version": "0.2.5"
     },
     {
       "license": "GPL-3.0-or-later",
       "name": "ativ-update",
-      "version": "0.2.4"
+      "version": "0.2.5"
     },
     {
       "checksum": "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0",
@@ -28,9 +28,9 @@
       "version": "1.1.2"
     },
     {
-      "license": "GPL-3.0-only",
+      "license": "GPL-3.0-or-later",
       "name": "avid-core",
-      "source": "git+https://github.com/tlolabs/avid-core?rev=3fb68807bc7c350359e1634b32af477ea3042c16#3fb68807bc7c350359e1634b32af477ea3042c16",
+      "source": "git+https://github.com/tlolabs/avid-core?rev=25d19098a22936638b0e2a70616083d929fe409c#25d19098a22936638b0e2a70616083d929fe409c",
       "version": "0.3.0"
     },
     {
@@ -1122,21 +1122,45 @@
   "nativeInputs": [
     {
       "license": "GPL-2.0-or-later",
-      "name": "FFmpeg",
-      "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
-      "version": "9.0.2"
+      "name": "AVID Core FFmpeg runtime",
+      "source": "tlolabs/avid-core@25d19098a22936638b0e2a70616083d929fe409c",
+      "version": "9.0.1-r7"
     },
     {
       "license": "GPL-2.0-or-later",
-      "name": "x264",
-      "sha256": "cd71a7515b0e9a012e1ac9b1f8415bebcaf6fc97d4db32286642ac4c0fbe24f9",
-      "version": "stable-b35605a"
+      "name": "Core runtime linux-arm64",
+      "sha256": "e82a07489af1f3849ea11afb60d4f26a4e614fe6b7db060bc8ebee1a3ef712b7",
+      "version": "9.0.1"
     },
     {
-      "license": "Zlib",
-      "name": "zlib",
-      "sha256": "9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23",
-      "version": "1.3.1"
+      "license": "GPL-2.0-or-later",
+      "name": "Core runtime linux-x86_64",
+      "sha256": "b340eafb68bc36dd77564eeb55c444a1ca5ee257d8d21b36a01f43042211d5dd",
+      "version": "9.0.1"
+    },
+    {
+      "license": "GPL-2.0-or-later",
+      "name": "Core runtime macos-arm64",
+      "sha256": "aa0d10d2cc6b2f352e6f8448baadc6d03fd96f012d578cf37e331da5bfc70a39",
+      "version": "9.0.1"
+    },
+    {
+      "license": "GPL-2.0-or-later",
+      "name": "Core runtime macos-x86_64",
+      "sha256": "cad5247e34590c58458b767cf62cdf21e96ed9a3ece71f037aafb19142993da8",
+      "version": "9.0.1"
+    },
+    {
+      "license": "GPL-2.0-or-later",
+      "name": "Core runtime windows-arm64",
+      "sha256": "076aa6ea97ae2c9ae985788ecc70edaaba8f50dfca5fcc9c533e1ef00063ab23",
+      "version": "9.0.1"
+    },
+    {
+      "license": "GPL-2.0-or-later",
+      "name": "Core runtime windows-x86_64",
+      "sha256": "98ef0465f7ed15c723b6ddda6b10dac0587a1b21404598cee64c7011fbc2cecd",
+      "version": "9.0.1"
     },
     {
       "license": "upstream permissive license",
@@ -1170,10 +1194,10 @@
     }
   ],
   "project": "ATIV",
-  "projectVersion": "0.2.4",
+  "projectVersion": "0.2.5",
   "schema": 1,
   "source": {
     "cargo": "Cargo.lock",
-    "ffmpeg": "runtime/ffmpeg/dependency.json"
+    "ffmpeg": "runtime/core-runtime.json"
   }
 }

@@ -60,7 +60,7 @@ fn build_info_reports_the_resolved_core() {
     assert_eq!(info["avid_core"]["version"], "0.3.0");
     assert_eq!(
         info["avid_core"]["revision"],
-        "3fb68807bc7c350359e1634b32af477ea3042c16"
+        "25d19098a22936638b0e2a70616083d929fe409c"
     );
     assert_eq!(info["avid_core"]["source"], ativ_core::CORE_SOURCE);
 }

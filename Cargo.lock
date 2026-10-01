@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ativ-core"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "avid-core",
  "toml",
@@ -12,7 +12,7 @@ dependencies = [
 
 [[package]]
 name = "ativ-engine"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "ativ-core",
  "serde_json",
@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "ativ-update"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "base64",
  "reqwest",
@@ -42,11 +42,12 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 [[package]]
 name = "avid-core"
 version = "0.3.0"
-source = "git+https://github.com/tlolabs/avid-core?rev=3fb68807bc7c350359e1634b32af477ea3042c16#3fb68807bc7c350359e1634b32af477ea3042c16"
+source = "git+https://github.com/tlolabs/avid-core?rev=25d19098a22936638b0e2a70616083d929fe409c#25d19098a22936638b0e2a70616083d929fe409c"
 dependencies = [
  "same-file",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
 ]
 

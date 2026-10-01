@@ -14,7 +14,9 @@ INVENTORY = ROOT / "docs/dependency-inventory.json"
 def inventory():
     cargo = tomllib.loads((ROOT / "Cargo.lock").read_text())
     workspace = tomllib.loads((ROOT / "Cargo.toml").read_text())
-    ffmpeg = json.loads((ROOT / "runtime/ffmpeg/dependency.json").read_text())
+    ffmpeg = json.loads((ROOT / "runtime/core-runtime.json").read_text())
+    candidate = json.loads((ROOT / "runtime/core-candidate.json").read_text())
+    sample = candidate["targets"]["macos-arm64"]
     prior = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else {}
     license_by_key = {(p["name"], p["version"]): p.get("license") for p in prior.get("lockedRustPackages", [])}
     try:
@@ -38,11 +40,11 @@ def inventory():
         "schema": 1,
         "project": "ATIV",
         "projectVersion": workspace["workspace"]["package"]["version"],
-        "source": {"cargo": "Cargo.lock", "ffmpeg": "runtime/ffmpeg/dependency.json"},
+        "source": {"cargo": "Cargo.lock", "ffmpeg": "runtime/core-runtime.json"},
         "lockedRustPackages": packages,
         "nativeInputs": [
-            {"name": "FFmpeg", "version": ffmpeg["source"]["version"], "license": "GPL-2.0-or-later", "sha256": ffmpeg["source"]["sha256"]},
-            *({"name": name, "version": spec["version"], "license": spec["license"], "sha256": spec["sha256"]} for name, spec in ffmpeg["external_libraries"].items()),
+            {"name": "AVID Core FFmpeg runtime", "version": sample["version"] + "-r" + str(sample["recipe"]), "license": "GPL-2.0-or-later", "source": ffmpeg["repository"] + "@" + ffmpeg["build_revision"]},
+            *({"name": "Core runtime " + target, "version": record["version"], "license": "GPL-2.0-or-later", "sha256": record["sha256"]} for target, record in candidate["targets"].items()),
             {"name": "Sparkle", "version": "2.9.6", "license": "upstream permissive license", "source": "script/prepare_sparkle.sh"},
             {"name": "Microsoft.WindowsAppSDK", "version": "2.4.0", "license": "Microsoft package terms; review required", "source": "platform/windows/ATIV/ATIV.csproj"},
             {"name": "GTK", "version": ">=4.10", "license": "LGPL-family", "source": "platform/linux/meson.build"},
