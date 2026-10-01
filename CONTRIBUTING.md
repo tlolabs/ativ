@@ -20,4 +20,6 @@ Create contributions with `git commit --no-gpg-sign -s`. The `Signed-off-by` tra
 
 When replacing historical signed commits, preserve the complete message (including DCO trailers), author and committer identities and timestamps, file trees, and merge topology. Removing a signature changes that commit's ID and the IDs of its descendants. Preserve the original history in a verified Git bundle and retain an old-to-new commit map before updating branch references. Coordinate published-history rewrites and use explicit `--force-with-lease` expectations; existing clones must reconcile with the replacement history.
 
+GitHub-created merge commits and bot commits can carry GitHub-managed signatures even when local automatic signing is disabled. Maintainers should create and push merges locally with `git -c commit.gpgsign=false merge` when an unsigned merge is needed. Existing GitHub signatures do not require contributors to obtain or manage a signing key.
+
 Commit signing is separate from release-tag, application, artifact, and update-feed signing. Those requirements remain governed by [the code signing policy](CODE_SIGNING_POLICY.md).
