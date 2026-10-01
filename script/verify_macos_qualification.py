@@ -130,11 +130,24 @@ def compare_signed_build(original, final):
                 require(digest(old) == digest(new), 'Signing changed application resource: '+name)
 
 
+
+def qualification_draft(repo, release_id, tag, revision):
+    # The release-by-tag endpoint serves published releases. Drafts must be
+    # read by immutable release ID, then independently bound to tag and source.
+    require(release_id > 0, 'Invalid qualification draft ID')
+    release = gh_json(f'repos/{repo}/releases/{release_id}')
+    require(release['id'] == release_id and release['tag_name'] == tag and
+            release['draft'] is True and release['target_commitish'] == revision,
+            'Qualification draft has wrong identity or build revision')
+    return release
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=['ativ', 'encap'], required=True)
     parser.add_argument('--target', choices=['macos-arm64', 'macos-x86_64'], required=True)
     parser.add_argument('--tag', required=True)
+    parser.add_argument('--release-id', type=int, required=True)
     parser.add_argument('--sha256', required=True)
     parser.add_argument('--original-zip', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
@@ -143,8 +156,7 @@ def main():
     require(repo == 'tlolabs/'+args.application and os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch', 'Maintainer dispatch required')
     version = tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
     require(args.tag == 'qualification-'+version+'-'+revision[:12] and re.fullmatch('[0-9a-f]{64}', args.sha256), 'Exact draft qualification identity required')
-    release = gh_json(f'repos/{repo}/releases/tags/{args.tag}')
-    require(release['draft'] is True and release['target_commitish'] == revision, 'Qualification draft has wrong build revision')
+    release = qualification_draft(repo, args.release_id, args.tag, revision)
     prefix, appname = ('ATIV', 'ATIV.app') if args.application == 'ativ' else ('EnCap', 'EnCap.app')
     label = 'arm64' if args.target.endswith('arm64') else 'intel'
     filename = f'{prefix}-{version}-macos-{label}.zip'

@@ -10,6 +10,10 @@ on:
         description: Same-commit draft qualification release tag
         type: string
         required: true
+      qualification_release_id:
+        description: Immutable GitHub ID of the same-commit qualification draft
+        type: string
+        required: true
       arm64_sha256:
         description: Final stapled arm64 ZIP SHA-256
         type: string
@@ -61,12 +65,13 @@ jobs:
       - name: Verify signed archive against original code and Apple identity
         env:
           QUALIFICATION_TAG: ${{ inputs.qualification_tag }}
+          QUALIFICATION_RELEASE_ID: ${{ inputs.qualification_release_id }}
           FINAL_SHA: ${{ matrix.label == 'arm64' && inputs.arm64_sha256 || inputs.intel_sha256 }}
         run: |
           set -euo pipefail
           originals=(original-native/ATIV-macos-${{ matrix.artifact_label }}/ATIV-*-macos-${{ matrix.label }}.zip)
           test "${#originals[@]}" = 1
-          python3 script/verify_macos_qualification.py --application ativ --target '${{ matrix.target }}' --tag "$QUALIFICATION_TAG" --sha256 "$FINAL_SHA" --original-zip "${originals[0]}" --output final-native > signing.json
+          python3 script/verify_macos_qualification.py --application ativ --target '${{ matrix.target }}' --tag "$QUALIFICATION_TAG" --release-id "$QUALIFICATION_RELEASE_ID" --sha256 "$FINAL_SHA" --original-zip "${originals[0]}" --output final-native > signing.json
       - name: Final native package, launch, media and lifecycle checks
         run: |
           set -euo pipefail

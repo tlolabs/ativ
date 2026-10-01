@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import zipfile
-from verify_macos_qualification import preflight_zip, compare_signed_build
+from verify_macos_qualification import preflight_zip, compare_signed_build, qualification_draft
 
 class MacQualificationControls(unittest.TestCase):
     def test_traversal_and_link_writes_rejected(self):
@@ -59,5 +59,15 @@ class MacQualificationControls(unittest.TestCase):
             root=Path(d);old=root/'original';new=root/'signed';old.mkdir();(new/'Contents').mkdir(parents=True)
             (new/'Contents/CodeResources').symlink_to('elsewhere')
             with self.assertRaisesRegex(ValueError,'regular file'):compare_signed_build(old,new)
+
+    def test_draft_lookup_uses_immutable_id_and_binds_identity(self):
+        record=dict(id=42,tag_name='qualification-0.2.6-source',draft=True,target_commitish='a'*40)
+        with patch('verify_macos_qualification.gh_json',return_value=record) as api:
+            self.assertEqual(qualification_draft('tlolabs/ativ',42,record['tag_name'],'a'*40),record)
+            api.assert_called_once_with('repos/tlolabs/ativ/releases/42')
+        for change in ({'id':43},{'tag_name':'other'},{'draft':False},{'target_commitish':'b'*40}):
+            with self.subTest(change=change),patch('verify_macos_qualification.gh_json',return_value=dict(record,**change)):
+                with self.assertRaises(ValueError):qualification_draft('tlolabs/ativ',42,record['tag_name'],'a'*40)
+        with self.assertRaises(ValueError):qualification_draft('tlolabs/ativ',0,record['tag_name'],'a'*40)
 
 if __name__=='__main__':unittest.main()
