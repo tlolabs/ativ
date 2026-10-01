@@ -34,6 +34,12 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 | Package checksums/integrity | A | A | A | A | A | A |
 | Minimum supported OS runtime | M macOS 13 | M macOS 13 | M Win10 1809 | M Win10 1809 | M baseline glibc/desktop dependencies | M baseline glibc/desktop dependencies |
 
+## Current Avalonia migration evidence
+
+[Native run 36898844766](https://github.com/tlolabs/ativ/actions/runs/36898844766) at application commit `5da8139db9bc4375ae8414232a5d434b763c8dfb` passed the shared Rust and release-infrastructure gate, both Windows portable targets, both Linux AppImages, both native macOS production targets, and the internal Apple Silicon Avalonia reference. Windows and Linux jobs each passed shared presentation tests, real media contracts, native package validation and startup smoke. Linux also launched the extracted AppImage on both architectures. The internal reference passed actual bundle startup plus managed probe, preview and export integration; its separately downloadable CI artifact is `ATIV-INTERNAL-REFERENCE-macos-arm64`. Its ZIP SHA-256 is `40fe3c06ab5700767e5e68310bbf1d6d4dee03435122189bd3e044783c5d0291`.
+
+These automated results do not establish interactive file-picker, drag/drop, screen-reader, high-DPI, older-OS or signed older-to-newer update behavior. This run was build/qualification only; it did not sign or publish a production release. The 0.2.6 updater qualification remains [open](updates/qualification-20261001.md).
+
 ## Historical automated evidence
 
 The WinUI installer and GTK Debian results below document retired formats and do not qualify the Avalonia packages.
