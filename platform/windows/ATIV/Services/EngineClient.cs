@@ -28,18 +28,54 @@ public sealed class EngineClient
             ?? throw new InvalidOperationException("The media engine returned no format presets.");
     }
 
+    private Process? previewProcess;
+
     public async Task<double?> ProbeAsync(string audio)
     {
         var events = await RunCaptureAsync(["probe", "--audio", audio]);
         return events.FirstOrDefault(item => item.Event == "probe")?.DurationSeconds;
     }
 
+    public async Task CancelPreviewAsync()
+    {
+        Process? process;
+        lock (gate) process = previewProcess;
+        if (process is { HasExited: false })
+        {
+            try
+            {
+                await process.StandardInput.WriteLineAsync("cancel");
+                await process.StandardInput.FlushAsync();
+                process.Kill();
+            }
+            catch { }
+        }
+    }
+
     public async Task PreviewAsync(string image, string output, int width, int height, bool flipHorizontal, bool flipVertical)
     {
+        await CancelPreviewAsync();
         var arguments = new List<string> { "preview", "--image", image, "--output", output, "--width", width.ToString(), "--height", height.ToString() };
         if (flipHorizontal) arguments.Add("--flip-horizontal");
         if (flipVertical) arguments.Add("--flip-vertical");
-        await RunCaptureAsync(arguments);
+        using var process = CreateProcess(arguments);
+        lock (gate) previewProcess = process;
+        try
+        {
+            process.Start();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            var outputText = await stdoutTask;
+            var errorOutput = await stderrTask;
+            var events = outputText.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(Deserialize).Where(item => item is not null).Cast<EngineEvent>().ToList();
+            if (process.ExitCode == 0) return;
+            throw new InvalidOperationException(events.LastOrDefault(item => item.Event == "error")?.Message ?? errorOutput);
+        }
+        finally
+        {
+            lock (gate) if (ReferenceEquals(previewProcess, process)) previewProcess = null;
+        }
     }
 
     public async Task RenderAsync(string image, string audio, string output, Preset preset, string bitrate, int fps, bool flipHorizontal, bool flipVertical, Action<EngineEvent> onEvent)

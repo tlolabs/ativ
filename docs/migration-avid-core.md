@@ -1,5 +1,7 @@
 # ATIV migration to AVID Core
 
+> Historical first extraction report. Current integration and verification: [Core 0.3.0 migration](core-runtime-migration.md). Paths, versions and blockers below describe the original work only.
+
 ATIV now delegates its feature engine to the independently versioned `avid-core` crate. This is the first host migration. EnCAP was not modified, and the two-host consolidation is not complete.
 
 ## Revisions and preserved work

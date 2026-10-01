@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! ATIV distribution helper. No media or shared-core dependency.
 use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use ring::signature::{ED25519, UnparsedPublicKey};
@@ -165,10 +167,21 @@ fn run() -> Result<()> {
                 .as_file()
                 .set_permissions(fs::Permissions::from_mode(0o755))?;
         }
+        // Retain a complete previous executable for recovery; never overwrite a backup.
+        let mut previous = tempfile::Builder::new()
+            .prefix("ativ-previous-")
+            .suffix(".AppImage")
+            .tempfile_in(target.parent().ok_or("Missing AppImage parent")?)?;
+        std::io::copy(&mut fs::File::open(target)?, &mut previous)?;
+        previous
+            .as_file()
+            .set_permissions(fs::metadata(target)?.permissions())?;
+        previous.as_file().sync_all()?;
+        let (_, backup) = previous.keep()?;
         staged.persist(target)?;
         println!(
             "{}",
-            serde_json::json!({"installed":true,"version":payload.version})
+            serde_json::json!({"installed":true,"version":payload.version,"backup":backup})
         );
     } else {
         let directory = tempfile::Builder::new().prefix("ativ-update-").tempdir()?;
@@ -182,7 +195,7 @@ fn run() -> Result<()> {
         let _ = directory.keep();
         println!(
             "{}",
-            serde_json::json!({"path":path,"version":payload.version})
+            serde_json::json!({"path":path,"version":payload.version,"sha256":asset.sha256,"target":config.target})
         );
     }
     Ok(())
@@ -202,7 +215,7 @@ mod tests {
         let config = Config {
             version: "0.2.1".into(),
             channel: "stable".into(),
-            target: "linux-x64-deb".into(),
+            target: "linux-x64-appimage".into(),
             public_key: B64.encode(key.public_key().as_ref()),
         };
         let payload = serde_json::to_vec(&Payload {
@@ -258,7 +271,7 @@ mod tests {
         let same_version_config = Config {
             version: "0.3.0".into(),
             channel: "stable".into(),
-            target: "linux-x64-deb".into(),
+            target: "linux-x64-appimage".into(),
             public_key: config.public_key.clone(),
         };
         let not_newer = semver::Version::parse(&payload.version).unwrap()

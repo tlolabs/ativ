@@ -16,6 +16,8 @@ enum EngineClientError: LocalizedError {
 final class EngineClient {
     private let lock = NSLock()
     private var renderProcess: Process?
+    private var previewProcess: Process?
+    private var probeProcess: Process?
 
     private var engineURL: URL? {
         if let configured = ProcessInfo.processInfo.environment["ATIV_ENGINE_PATH"] { return URL(fileURLWithPath: configured) }
@@ -35,20 +37,50 @@ final class EngineClient {
     }
 
     func probe(audio: URL, completion: @escaping (Result<Double?, Error>) -> Void) {
-        runCapture(arguments: ["probe", "--audio", audio.path]) { result in
+        cancelProbe()
+        runCapture(arguments: ["probe", "--audio", audio.path], assign: { [weak self] p in
+            self?.lock.lock(); self?.probeProcess = p; self?.lock.unlock()
+        }, clear: { [weak self] p in
+            self?.lock.lock(); if self?.probeProcess === p { self?.probeProcess = nil }; self?.lock.unlock()
+        }) { result in
             completion(result.map { $0.first(where: { $0.event == "probe" })?.durationSeconds })
         }
     }
 
+    func cancelProbe() {
+        lock.lock(); let process = probeProcess; probeProcess = nil; lock.unlock()
+        guard let process, process.isRunning else { return }
+        if let handle = (process.standardInput as? Pipe)?.fileHandleForWriting {
+            try? handle.write(contentsOf: Data("cancel\n".utf8))
+        }
+        process.terminate()
+    }
+
     func preview(image: URL, output: URL, width: Int, height: Int, flipHorizontal: Bool, flipVertical: Bool, completion: @escaping (Result<URL, Error>) -> Void) {
+        cancelPreview()
         var arguments = ["preview", "--image", image.path, "--output", output.path, "--width", String(width), "--height", String(height)]
         if flipHorizontal { arguments.append("--flip-horizontal") }
         if flipVertical { arguments.append("--flip-vertical") }
-        runCapture(arguments: arguments) { result in completion(result.map { _ in output }) }
+        runCapture(arguments: arguments, assign: { [weak self] p in
+            self?.lock.lock(); self?.previewProcess = p; self?.lock.unlock()
+        }, clear: { [weak self] p in
+            self?.lock.lock(); if self?.previewProcess === p { self?.previewProcess = nil }; self?.lock.unlock()
+        }) { result in completion(result.map { _ in output }) }
+    }
+
+    func cancelPreview() {
+        lock.lock(); let process = previewProcess; previewProcess = nil; lock.unlock()
+        guard let process, process.isRunning else { return }
+        if let handle = (process.standardInput as? Pipe)?.fileHandleForWriting {
+            try? handle.write(contentsOf: Data("cancel\n".utf8))
+        }
+        process.terminate()
     }
 
     func render(image: URL, audio: URL, output: URL, preset: Preset, bitrate: String, fps: Int, flipHorizontal: Bool, flipVertical: Bool, event: @escaping (EngineEvent) -> Void, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
+        cancelPreview()
+        cancelProbe()
         var arguments = ["render", "--image", image.path, "--audio", audio.path, "--output", output.path, "--width", String(preset.width), "--height", String(preset.height), "--audio-bitrate", bitrate, "--fps", String(fps)]
         if flipHorizontal { arguments.append("--flip-horizontal") }
         if flipVertical { arguments.append("--flip-vertical") }
@@ -87,21 +119,35 @@ final class EngineClient {
         try? handle.write(contentsOf: Data("cancel\n".utf8))
     }
 
-    private func runCapture(arguments: [String], completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
+    private func runCapture(arguments: [String], assign: ((Process) -> Void)? = nil, clear: ((Process) -> Void)? = nil, completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
         guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
         DispatchQueue.global(qos: .userInitiated).async {
-            let process = Process(), output = Pipe()
+            let process = Process(), output = Pipe(), stdin = Pipe()
             process.executableURL = engineURL
             process.arguments = arguments
             process.standardOutput = output
             process.standardError = FileHandle.nullDevice
-            process.standardInput = FileHandle.nullDevice
+            process.standardInput = stdin
+            if let assign { assign(process) }
             do { try process.run() } catch {
+                if let clear { clear(process) }
                 completion(.failure(EngineClientError.launchFailed("Could not start the media engine: \(error.localizedDescription)"))); return
             }
             let data = output.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
-            let events = String(data: data, encoding: .utf8)?.split(separator: "\n").compactMap { try? JSONDecoder().decode(EngineEvent.self, from: Data($0.utf8)) } ?? []
+            if let clear { clear(process) }
+
+            let decoder = JSONDecoder()
+            var events: [EngineEvent] = []
+            var index = data.startIndex
+            while index < data.endIndex {
+                let lineEnd = data[index...].firstIndex(of: 10) ?? data.endIndex
+                let lineData = data[index..<lineEnd]
+                if !lineData.isEmpty, let event = try? decoder.decode(EngineEvent.self, from: lineData) {
+                    events.append(event)
+                }
+                index = (lineEnd == data.endIndex) ? data.endIndex : data.index(after: lineEnd)
+            }
             if process.terminationStatus == 0 { completion(.success(events)); return }
             let message = events.last(where: { $0.event == "error" })?.message ?? "The media engine could not complete this operation."
             completion(.failure(EngineClientError.operationFailed(message)))
@@ -110,18 +156,19 @@ final class EngineClient {
 
     private func consumeLines(from handle: FileHandle, event: (EngineEvent) -> Void) {
         var buffer = Data()
+        let decoder = JSONDecoder()
         while true {
             let data = handle.availableData
             if data.isEmpty { break }
             buffer.append(data)
             while let newline = buffer.firstIndex(of: 10) {
                 let line = buffer[..<newline]
-                buffer.removeSubrange(...newline)
-                if let decoded = try? JSONDecoder().decode(EngineEvent.self, from: line) { event(decoded) }
+                buffer.removeSubrange(..<buffer.index(after: newline))
+                if !line.isEmpty, let decoded = try? decoder.decode(EngineEvent.self, from: line) { event(decoded) }
             }
         }
         if !buffer.isEmpty {
-            if let decoded = try? JSONDecoder().decode(EngineEvent.self, from: buffer) { event(decoded) }
+            if let decoded = try? decoder.decode(EngineEvent.self, from: buffer) { event(decoded) }
         }
     }
 
