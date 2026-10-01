@@ -37,12 +37,13 @@ python (Join-Path $root "script/ffmpeg_runtime.py") stage $ffmpegTarget --runtim
 if ($LASTEXITCODE -ne 0) { throw "ATIV FFmpeg runtime staging failed" }
 Copy-Item (Join-Path $root "LICENSE") $publish
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
-python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
-if ($LASTEXITCODE -ne 0) { throw "License collection failed" }
 
 
 python (Join-Path $root "script/ffmpeg_runtime.py") finish $ffmpegTarget --binary $publish --metadata (Join-Path $publish "ffmpeg-runtime")
 if ($LASTEXITCODE -ne 0) { throw "Signed ATIV FFmpeg runtime recording failed" }
+# Core licenses remain inside its immutable metadata tree; application licenses stay separate.
+python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
+if ($LASTEXITCODE -ne 0) { throw "License collection failed" }
 python (Join-Path $root "script/validate_package.py") $publish "windows-$label"
 if ($LASTEXITCODE -ne 0) { throw "Packaged ATIV FFmpeg runtime validation failed" }
 

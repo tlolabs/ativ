@@ -47,7 +47,8 @@ def validate(root,target):
     # Run in isolation so PATH cannot hide missing bundle dependencies.
     engine=binary/('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
     env=os.environ.copy();env['PATH']=''
-    result=subprocess.run([str(engine.resolve()),'check'],env=env,capture_output=True,text=True,check=True,timeout=60)
+    result=subprocess.run([str(engine.resolve()),'check'],env=env,capture_output=True,text=True,check=False,timeout=60)
+    assert result.returncode == 0, f'Packaged engine check failed: {result.stdout} {result.stderr}'
     assert '"event":"tools"' in result.stdout
     presets=subprocess.run([str(engine.resolve()),'presets'],capture_output=True,text=True,check=True,timeout=20)
     assert len(json.loads(presets.stdout)['items'])==27
