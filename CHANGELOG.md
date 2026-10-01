@@ -6,6 +6,8 @@ Notable changes to ATIV are recorded here using a [Keep a Changelog](https://kee
 
 - Standardized authenticated stable updates; corrected the Sparkle manual update command and active-export shutdown coordination. Version 0.2.5 is the local updater bridge; 0.2.6 is the next release candidate.
 
+- Preserve cancellation status when a media operation is stopped before tool discovery begins.
+
 ### Changed
 
 - ATIV 0.2.5 consumes AVID Core's published FFmpeg/ffprobe runtime instead of compiling its own source recipe; Mac apps are distributed as ZIP archives.

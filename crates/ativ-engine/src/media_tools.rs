@@ -168,7 +168,7 @@ pub fn resolve(
     token: &CancellationToken,
 ) -> ativ_core::Result<MediaTools> {
     if token.is_cancelled() {
-        return Err(unavailable());
+        return Err(AtivError::cancelled());
     }
     let (ffmpeg, ffprobe, version) = match (ffmpeg, ffprobe) {
         (Some(ffmpeg), Some(ffprobe)) if ffmpeg.is_absolute() && ffprobe.is_absolute() => {
@@ -193,4 +193,20 @@ pub fn resolve(
         }
     }
     Ok(tools)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cancellation_before_resolution_retains_cancelled_error() {
+        let token = CancellationToken::default();
+        token.cancel();
+        let error = match resolve(None, None, &token) {
+            Err(error) => error,
+            Ok(_) => panic!("A cancelled request must not resolve media tools"),
+        };
+        assert_eq!(error.code(), "cancelled");
+    }
 }

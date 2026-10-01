@@ -299,8 +299,8 @@ printf finished > "$output"
             tool(fake_ffmpeg, f"touch '{marker}'\nexec sleep 60\n")
             for command, args in [('check', []), ('probe', ['--audio', audio_paths[0]]), ('preview', ['--image', image, '--output', output, '--width', 160, '--height', 90]), ('render', base)]:
                 process = subprocess.Popen([str(engine), command, *(str(x) for x in args), *fake_tools], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-                stdout, _ = process.communicate(b'cancel\n', timeout=5)
-                assert process.returncode == 130 and json.loads(stdout.splitlines()[-1])['code'] == 'cancelled'
+                stdout, stderr = process.communicate(b'cancel\n', timeout=5)
+                assert process.returncode == 130 and json.loads(stdout.splitlines()[-1])['code'] == 'cancelled', (command, process.returncode, stdout, stderr)
             setup()
             tool(fake_ffprobe, "echo 'ffprobe version different'\n")
             assert invoke('check', tools=fake_tools, status=1)[-1]['code'] == 'media_tools_unavailable'

@@ -17,6 +17,10 @@ impl From<Error> for AtivError {
     }
 }
 impl AtivError {
+    pub fn cancelled() -> Self {
+        Self::Shared(Error::Cancelled)
+    }
+
     pub fn code(&self) -> &'static str {
         match self {
             Self::InvalidInput(_) | Self::Shared(Error::InvalidInput(_)) => "invalid_input",
