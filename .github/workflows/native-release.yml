@@ -9,9 +9,13 @@ on:
         options: [all, macos, windows, linux]
         default: all
       stable_macos:
-        description: Build stable macOS artifacts for local Developer ID signing (no publication)
+        description: Compatibility input; manual builds use the application version without requiring signing
         type: boolean
         default: false
+      owner_testing:
+        description: Build packages for owner testing without application acceptance prerequisites
+        type: boolean
+        default: true
       qualify_core_candidate:
         description: Use the exact authenticated candidate for unpublished host qualification
         type: boolean
@@ -38,10 +42,11 @@ permissions:
   attestations: read
 
 env:
+  ATIV_BUILD_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.owner_testing && '1' || '0' }}
   GH_TOKEN: ${{ github.token }}
   AVID_CORE_QUALIFICATION: ${{ github.event_name == 'workflow_dispatch' && inputs.qualify_core_candidate && '1' || '0' }}
   CARGO_TERM_COLOR: always
-  ATIV_CHANNEL: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.stable_macos) && 'stable' || 'development' }}
+  ATIV_CHANNEL: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || github.event_name == 'workflow_dispatch') && 'stable' || 'development' }}
   ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
   DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
 
@@ -71,7 +76,7 @@ jobs:
           if [[ "$ATIV_CHANNEL" == stable ]]; then
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
@@ -133,7 +138,7 @@ jobs:
           if [[ "$ATIV_CHANNEL" == stable ]]; then
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
@@ -169,6 +174,7 @@ jobs:
           security list-keychains -d user -s "${KEYCHAIN}"
           xcrun notarytool store-credentials ativ-notary --apple-id "${NOTARY_APPLE_ID}" --team-id "${NOTARY_TEAM_ID}" --password "${NOTARY_PASSWORD}"
       - name: Verify ATIV tests and packaged media contract
+        if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
           cargo test --locked --all-targets
@@ -179,10 +185,12 @@ jobs:
           APPLE_NOTARY_PROFILE: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && 'ativ-notary' || '' }}
         run: ./script/package_macos.sh "${{ matrix.arch }}"
       - name: Native process integration tests
+        if: ${{ !inputs.owner_testing }}
         run: |
           python3 script/create_smoke_media.py build/native-fixtures
           ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
       - name: Validate packaged application and startup
+        if: ${{ !inputs.owner_testing }}
         run: |
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
           python3 script/validate_package.py "build/package-macos-${{ matrix.arch }}/ATIV.app" "macos-$label"
@@ -191,6 +199,7 @@ jobs:
           test -s "$RUNNER_TEMP/ativ-smoke.json"
           pkill -x ATIV || true
       - name: Record exact native host evidence
+        if: ${{ !inputs.owner_testing }}
         run: |
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
           python3 script/host_evidence.py --application ativ --target "macos-${{ matrix.arch }}" --pin runtime/core-runtime.json --binary "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS" --metadata "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/Resources/FFmpeg" --packages packages/*.zip --output "packages/host-macos-${{ matrix.arch }}.json"
@@ -240,7 +249,7 @@ jobs:
           if [[ "$ATIV_CHANNEL" == stable ]]; then
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
@@ -250,6 +259,7 @@ jobs:
           target: windows-${{ matrix.runtime_arch }}
           clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Verify ATIV tests and packaged media contract
+        if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
           cargo test --locked --all-targets
@@ -258,9 +268,11 @@ jobs:
         shell: pwsh
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
       - name: Native integration and extracted portable ZIP smoke tests
+        if: ${{ !inputs.owner_testing }}
         shell: pwsh
         run: ./script/test_windows_native.ps1 -Architecture "${{ matrix.arch }}"
       - name: Record exact native host evidence
+        if: ${{ !inputs.owner_testing }}
         shell: pwsh
         run: |
           $packages = (Get-ChildItem packages -Filter '*.zip').FullName
@@ -311,7 +323,7 @@ jobs:
           if [[ "$ATIV_CHANNEL" == stable ]]; then
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "$GITHUB_REF_NAME" = "v$base"; fi
             echo "ATIV_VERSION=$base" >> "$GITHUB_ENV"
-            echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "ATIV_RELEASE=1" >> "$GITHUB_ENV"; fi
           else
             echo "ATIV_VERSION=$base-dev.$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
           fi
@@ -325,6 +337,7 @@ jobs:
           target: linux-${{ matrix.runtime_arch }}
           clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Verify ATIV tests and packaged media contract
+        if: ${{ !inputs.owner_testing }}
         shell: bash
         run: |
           cargo test --locked --all-targets
@@ -332,8 +345,10 @@ jobs:
       - name: Build and package native application
         run: ./script/package_linux.sh "${{ matrix.arch }}"
       - name: Native GTK and package smoke tests
+        if: ${{ !inputs.owner_testing }}
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
       - name: Record exact native host evidence
+        if: ${{ !inputs.owner_testing }}
         run: |
           python3 script/host_evidence.py --application ativ --target "linux-${{ matrix.runtime_arch }}" --pin runtime/core-runtime.json --binary "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ" --metadata "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ/ffmpeg-runtime" --packages packages/*.AppImage --output "packages/host-linux-${{ matrix.runtime_arch }}.json"
       - name: Attest stable Linux packages

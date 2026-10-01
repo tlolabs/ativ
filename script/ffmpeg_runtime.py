@@ -166,7 +166,8 @@ def validate(target, binary, metadata, runtime=None):
         verify(runtime, target)
     engine = binary / ('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
     subprocess.run([str(engine.resolve()), 'check'], env=dict(os.environ, PATH=''), check=True, timeout=60)
-    subprocess.run([__import__('sys').executable, str(ROOT / 'script/test_engine_contract.py'), '--engine', str(engine), '--ffmpeg', str(binary / pair(target)[0]), '--ffprobe', str(binary / pair(target)[1]), '--managed'], check=True)
+    if os.environ.get('ATIV_BUILD_ONLY') != '1':
+        subprocess.run([__import__('sys').executable, str(ROOT / 'script/test_engine_contract.py'), '--engine', str(engine), '--ffmpeg', str(binary / pair(target)[0]), '--ffprobe', str(binary / pair(target)[1]), '--managed'], check=True)
     return provenance
 
 
