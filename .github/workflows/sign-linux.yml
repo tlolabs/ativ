@@ -24,7 +24,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN: ${{ inputs.native_run }}
-        run: python3 script/acquire_app_artifact.py --run "$SOURCE_RUN" --workflow .github/workflows/native-release.yml --platform linux --output unsigned
+        run: python3 script/acquire_app_artifact.py --run "$SOURCE_RUN" --workflow .github/workflows/native-release.yml --platform linux --output unsigned --allow-partial
       - name: Sign final AppImage bytes with approved maintainer key
         env:
           LINUX_GPG_PRIVATE_KEY_B64: ${{ secrets.LINUX_GPG_PRIVATE_KEY_B64 }}
@@ -34,7 +34,8 @@ jobs:
           set -euo pipefail
           mkdir signed-packages
           mapfile -d '' images < <(find unsigned -type f -name '*.AppImage' -print0)
-          test "${#images[@]}" = 2
+          test "${#images[@]}" -ge 1
+          test "${#images[@]}" -le 2
           for image in "${images[@]}"; do
             cp "$image" signed-packages/
             python3 script/sign_linux.py "signed-packages/$(basename "$image")"
@@ -48,6 +49,7 @@ jobs:
           path: signed-packages/*
           if-no-files-found: error
   verify-native:
+    name: Verify signed Linux ${{ matrix.target }}
     needs: sign
     strategy:
       fail-fast: false

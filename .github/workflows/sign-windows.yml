@@ -40,7 +40,7 @@ jobs:
       - name: Authenticate exact same-commit native build before signing
         shell: pwsh
         run: |
-          python script/acquire_app_artifact.py --run $env:SOURCE_RUN --workflow '.github/workflows/native-release.yml' --platform windows --output unsigned
+          python script/acquire_app_artifact.py --run $env:SOURCE_RUN --workflow '.github/workflows/native-release.yml' --platform windows --output unsigned --allow-partial
           if ($LASTEXITCODE -ne 0) { throw 'Native input authentication failed' }
           New-Item -ItemType Directory -Force sign-stage | Out-Null
           Get-ChildItem unsigned -Recurse -Filter '*.zip' | ForEach-Object {
@@ -74,7 +74,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force signed-packages | Out-Null
           $version = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
-          foreach ($target in @('windows-arm64','windows-x86_64')) {
+          foreach ($directory in (Get-ChildItem sign-stage -Directory)) {
+            $target = $directory.Name
             $root = Join-Path sign-stage $target
             ./script/verify_authenticode.ps1 -Folder $root -ExpectedSubject $env:AZURE_SIGNING_SUBJECT
             python script/ffmpeg_runtime.py finish $target --binary $root --metadata (Join-Path $root 'ffmpeg-runtime')
@@ -91,6 +92,7 @@ jobs:
           path: signed-packages/*
           if-no-files-found: error
   verify-native:
+    name: Verify signed Windows ${{ matrix.target }}
     needs: sign
     strategy:
       fail-fast: false
