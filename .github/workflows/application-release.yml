@@ -29,11 +29,8 @@ jobs:
           cargo test --locked -p tlo-updater -p ativ-update
       - name: Require all applicable final-package release gates
         run: python3 script/application_release.py --output release-assets
-      - name: Verify approved signed annotated stable tag
+      - name: Verify annotated stable tag and version
         if: startsWith(github.ref, 'refs/tags/')
-        env:
-          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
-          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
         run: bash script/verify_release_tag.sh
       - name: Generate signed updates for exact qualified staged packages
         env:

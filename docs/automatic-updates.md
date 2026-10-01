@@ -12,7 +12,7 @@ Retain [Sparkle](https://sparkle-project.org/documentation/) rather than reimple
 
 [WinSparkle](https://winsparkle.org/guides/integrating-winsparkle/) provides update UI and signed-download support, but does not make ATIV's current portable directory replacement transactional. An installer migration or persistent recovery bootstrapper is required before claiming power-loss-safe Windows installation. Keep the existing portable adapter as an unqualified candidate, strengthen its authentication, and require native interruption evidence before publishing. Do not add another update discovery system merely to launch the same unsafe ZIP replacement.
 
-[AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) supports embedded update information and delta transport. Existing images do not have the required update information/zsync channel; the installed trust chain uses detached GPG signatures plus attestations. For this bridge, retain and harden the existing full-download atomic AppImage adapter behind the shared API. Authentication always precedes replacement. Delta transport may be adopted later under the same signed manifest; a zsync checksum is not authentication.
+[AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) supports embedded update information and delta transport. Existing images do not have the required update information/zsync channel; the installed trust chain uses the signed update manifest and release provenance attestations. For this bridge, retain and harden the existing full-download atomic AppImage adapter behind the shared API. Authentication always precedes replacement. Delta transport may be adopted later under the same signed manifest; a zsync checksum is not authentication.
 
 ## Repository audit and scope
 
@@ -56,12 +56,12 @@ Every asset URL must equal `https://github.com/<repository>/releases/download/v<
 
 ## Trust chain and policy
 
-1. Install an independently authenticated initial application (native signed/notarized package or approved GPG/attested AppImage).
+1. Install an independently authenticated initial application (native signed/notarized package or release-attested AppImage).
 2. Its binary pins its application/repository/version; its authenticated package supplies the existing Ed25519 public key and target.
 3. Authenticate the manifest before trusting any artifact URL, checksum, version or target.
 4. Compare numeric semantic versions with both the installed version and the highest previously authenticated version. Equal/older versions are not updates. A replay below the high-water mark fails.
 5. Download and verify the signed size and SHA-256. SHA-256 alone never authorizes installation.
-6. Apply native verification/installation. Windows rechecks the same open archive stream, package application/version/target/key and timestamped Authenticode signer identity before running a new executable. Linux's signed manifest authenticates exact bytes; GPG identity and GitHub attestations remain mandatory publication gates. Sparkle uses archive Ed25519 plus the macOS signing chain.
+6. Apply native verification/installation. Windows rechecks the same open archive stream, package application/version/target/key and timestamped Authenticode signer identity before running a new executable. Linux's signed manifest authenticates exact bytes; GitHub attestations remain a publication gate. Sparkle uses archive Ed25519 plus the macOS signing chain.
 
 An attacker with the release signing key can sign malicious releases; keys and protected release authority remain trusted. Persisted high-water state defends ordinary replay after observation, not a malicious local user deleting state, a first-install freeze attack, or a compromised operating system. There is no online freshness authority. HTTPS outages and metadata failures leave the app usable. GitHub necessarily sees ordinary request network metadata; the client sends no installation ID, hardware profile, media paths, analytics or telemetry.
 
@@ -75,14 +75,14 @@ ATIV's Sparkle delegate defers checks and an already requested restart while exp
 
 `Cargo.toml` workspace package version is authoritative per application. ATIV's helper uses Cargo's compiled package version. Distribution configuration refuses a different environment override. Windows project versions derive from Cargo; macOS plist is a build template whose two version fields are set during packaging; Meson reads Cargo. Stable tags must match exactly. Release generation reads embedded package identity (ZIP metadata, macOS Info.plist, or AppImage SquashFS data without executing it), rejecting application, version, target or key disagreement.
 
-Keep the existing native build/sign/notarize/GPG/attestation workflows and the applicable final-package gates. In addition:
+Keep the existing native build, platform signing, notarization and attestation workflows and the applicable final-package gates. In addition:
 
 1. Run shared Rust tests and release tooling tests; verify the source snapshot and dependency inventory.
 2. Package native production artifacts and authenticate them under the existing platform policy.
 3. Obtain exact-artifact older-to-newer native qualification evidence. Record every target, including unperformed targets.
 4. Generate `update-manifest.json`, compatibility `latest.json`, Sparkle appcasts and `SHA256SUMS` with the deployed update key. `script/release_metadata.py` is ATIV's compatibility entry point; shared implementation is `script/tlo_update_release.py`.
 5. Independently verify metadata against actual packaged artifacts; run `script/qualify_updates.py --assets <directory>`. Existing application qualification gates still apply.
-6. Create a new draft for the verified signed tag. Upload immutable artifacts and metadata, download them again, verify hashes/signatures/attestations and appcast agreement.
+6. Create a new draft for the verified annotated tag. Upload immutable artifacts and metadata, download them again, verify hashes/applicable signatures/attestations and appcast agreement.
 7. Publish without replacing existing assets or tags. Run `script/qualify_updates.py --assets <verified-downloads> --published`, which invokes the same Rust verification code against the public latest URL and actual downloaded artifact for each trusted old configuration. Failure fails CI qualification; do not silently rewrite published bytes.
 
 Python and `cryptography` are release-only tools. Apps do not acquire a Python runtime. `unsquashfs` is needed in Linux release verification, never to execute a downloaded application.
@@ -107,7 +107,7 @@ Thomas Lothian retains application release/signing authority. Private update see
 
 Do not replace a key as a setup shortcut. Planned rotation requires a bridge that the old installed key can authenticate, distribution of the new trust root in that authenticated application, and actual oldest-supported-to-bridge-to-new-key tests. The current Windows adapter deliberately rejects a public-key change; implement and qualify explicit bridge support before rotation. Do not overwrite the old secret until supported installed versions can migrate. Keep offline protected recovery copies under the maintainer's custody.
 
-If the old signing key is unavailable, use independently native-signed/notarized or GPG-authenticated manual reinstall. If it is compromised, stop release publication, revoke/recover platform and repository credentials as appropriate, and establish a new trusted initial installation. A manifest signed only by a compromised key is not a recovery authority.
+If the old update-signing key is unavailable, use an independently authenticated manual reinstall. If it is compromised, stop release publication, revoke/recover platform and repository credentials as appropriate, and establish a new trusted initial installation. A manifest signed only by a compromised key is not a recovery authority.
 
 ## Adoption and troubleshooting
 

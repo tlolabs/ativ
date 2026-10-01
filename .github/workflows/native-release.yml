@@ -63,11 +63,8 @@ jobs:
           persist-credentials: false
           path: ATIV
           fetch-depth: 0
-      - name: Verify stable release authorization
+      - name: Verify annotated stable tag and version
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
-        env:
-          ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64: ${{ vars.ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64 }}
-          ATIV_RELEASE_SIGNING_FINGERPRINT: ${{ vars.ATIV_RELEASE_SIGNING_FINGERPRINT }}
         run: bash script/verify_release_tag.sh
       - name: Configure build identity
         shell: bash

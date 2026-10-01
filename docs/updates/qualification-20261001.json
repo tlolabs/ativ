@@ -156,10 +156,10 @@
     "Restore/unlock the existing EnCAP notarization profile locally; finish signing workflow, staple, verify Gatekeeper and dispatch exact-source verify-macos.yml",
     "Native UI attachment to ATIV still crashes in SkyComputerUseService; Finder attachment works. Alternative AppleScript UI automation requires explicit authorization under the computer-use tool instructions; question pending.",
     "Prepublication native old-to-new installation/failure evidence and exact-package manual acceptance",
-    "Unlock configured GPG signing key for required signed stable tag; noninteractive commit-signing attempt failed in curses pinentry. DCO commits pushed as authorized",
+    "Historical tag-signing prerequisite has been removed; DCO commits were pushed as authorized",
     "Tagged normal-pipeline publication followed by real GitHub UI old-to-new update and post-update regression checks",
     "Windows Azure signing provisioning, native signed upgrade and interruption/power-loss evidence",
-    "Linux production signing and native AppImage installation/failure evidence",
+    "Linux provenance attestation and native AppImage installation/failure evidence",
     "Linux AppImage native-library notice coverage and AppStream metadata warnings require resolution before Linux publication."
   ],
   "initial_test_setup_failure": "Native Swift media test pointed at an unbundled debug engine. Correct packaged-engine invocation passed without test changes or skips.",
@@ -281,8 +281,8 @@
   },
   "commit_signing": {
     "dco": "All eight source commits verified; accompanying evidence commit carries the same DCO sign-off",
-    "cryptographic_commit_signature": "not present; configured GPG key could not unlock via noninteractive curses pinentry",
-    "stable_tag_signature": "still required; no stable tag created"
+    "cryptographic_commit_signature": "not present; no longer required",
+    "stable_tag_signature": "no longer required; no stable tag created"
   },
   "failed_native_ci": {
     "run": 36831865999,

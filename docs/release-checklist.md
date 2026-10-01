@@ -4,7 +4,7 @@
 - Pass Rust formatting, strict clippy, workspace tests, real-media contract tests, release metadata tests and all native package/startup jobs.
 - Verify each distributed package's architecture, version, native icons, licenses, engine, FFmpeg and ffprobe. Run bundled discovery without PATH.
 - Complete the manual [acceptance matrix](acceptance-matrix.md), including screen readers, focus, appearance, scaling, cancellation, quit, clean install, upgrades and uninstall.
-- Configure the update public variable/private secret and Apple Developer ID/notary secrets listed in [releasing](RELEASING.md). Configure required Azure Authenticode signing and Linux GPG signing.
+- Configure the update public variable/private secret and Apple Developer ID/notary secrets listed in [releasing](RELEASING.md). Configure required Azure Authenticode signing and Linux attestation permissions.
 - Test a real older-to-newer update using the installed verification key. Reject corrupted downloads, wrong-channel feeds and lower versions; preserve the working installation on failure.
 - Verify Developer ID, Hardened Runtime, nested Sparkle signatures, app notarization, stapling and Gatekeeper on macOS. Require valid Authenticode signatures and timestamps on every packaged Windows executable.
 - Verify separate development identity, package IDs, preferences and feed URLs. Existing legacy releases without an updater require one manual installation of the new version.

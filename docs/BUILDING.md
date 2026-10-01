@@ -34,7 +34,7 @@ python3 script/ffmpeg_runtime.py provision macos-arm64
 
 Packaging verifies Core's runtime and corresponding source before signing and verifies the packaged binaries afterward. There is no system/PATH production fallback. Both explicit engine `--ffmpeg`/`--ffprobe` paths remain available for deliberate development tests. Candidate qualification remains available only through explicit local/manual `AVID_CORE_QUALIFICATION=1` builds; ordinary builds acquire the published release.
 
-ATIV retains native SwiftUI/AppKit for production macOS and uses shared Avalonia for Windows/Linux. Its final package signing remains: a signed/notarized macOS ZIP, an Azure Authenticode Windows portable ZIP, and a GPG-signed Linux AppImage. All native package validators run bundled discovery with an empty PATH and representative exports/previews through the actual packaged engine.
+ATIV retains native SwiftUI/AppKit for production macOS and uses shared Avalonia for Windows/Linux. Final packages remain a signed/notarized macOS ZIP, an Azure Authenticode Windows portable ZIP, and an attested Linux AppImage. All native package validators run bundled discovery with an empty PATH and representative exports/previews through the actual packaged engine.
 
 ## Icons and contributor workflow
 

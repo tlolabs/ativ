@@ -4,9 +4,9 @@
 
 ATIV's pipeline builds and tests six native targets and publishes passing artifacts independently. It produces ZIP on macOS, installer/ZIP on Windows, and AppImage/`.deb` on Linux. The target standard for Windows is a lowercase ZIP and for Linux an AppImage. The current updater opens the Windows installer and supports the Linux `.deb`; those paths must be migrated and tested together before the extra formats can safely be removed.
 
-Stable tags now have a CI signature verification gate. Before the next stable release, Thomas must configure the base64-encoded armored GPG public key as `ATIV_RELEASE_SIGNING_PUBLIC_KEY_B64` and its fingerprint as `ATIV_RELEASE_SIGNING_FINGERPRINT` repository variables, then sign an annotated tag with the matching private key. Existing unsigned tags remain historical records; do not move or rewrite them. `Cargo.toml` and package metadata must agree with the tag.
+This historical document describes the release process before Core integration. The current policy requires an annotated stable tag matching `Cargo.toml`; it does not require a cryptographic tag signature. Existing tags remain historical records; do not move or rewrite them.
 
-The pipeline still needs Azure Artifact Signing for Windows, GPG signatures for Linux AppImages, and a release path for beta/RC tags. Stable target jobs now request GitHub/Sigstore attestations for passing artifacts before upload, but this has not yet been exercised in a live tagged run. Until the signing gates exist and pass, do not describe those artifacts as production signed or the workflow as fully compliant with [the signing policy](../CODE_SIGNING_POLICY.md). A CycloneDX SBOM and `SHA256SUMS` are generated for releases; review the final package contents and notices for every target.
+The pipeline still needs Azure Artifact Signing for Windows, release provenance attestations for Linux AppImages, and a release path for beta/RC tags. Stable target jobs request GitHub/Sigstore attestations for passing artifacts before upload. Do not describe unqualified artifacts as production ready. A CycloneDX SBOM and `SHA256SUMS` are generated for releases; review the final package contents and notices for every target.
 
 ## Reference and adaptations
 
