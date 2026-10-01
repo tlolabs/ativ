@@ -4,7 +4,7 @@
 
 Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.0 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
 
-Use a current stable Rust toolchain and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements. macOS builds need full Xcode, The shared Avalonia UI targets .NET 8 and requires the .NET 10 SDK compiler for Avalonia 12.1.3. Windows and Linux publish self-contained .NET 8 applications; Linux AppImage creation still uses linuxdeploy and appimagetool. Full Xcode is needed for native macOS. CI installs each platform's requirements.
+Use a current stable Rust toolchain and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements. macOS builds need full Xcode. The shared Avalonia UI targets .NET 8 and requires the .NET 10 SDK compiler for Avalonia 12.1.3. Windows and Linux publish self-contained .NET 8 applications; Linux AppImage creation still uses linuxdeploy and appimagetool. The optional .NET LTTng trace provider is omitted from AppImages because its legacy SONAME is unavailable on the packaging baseline; application logging and media processing are unaffected. Full Xcode is needed for native macOS. CI installs each platform's requirements.
 
 ```sh
 cargo fmt --all -- --check

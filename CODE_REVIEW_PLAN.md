@@ -1,3 +1,5 @@
+> Historical review of the former WinUI and GTK frontends. See [the current Avalonia migration audit](docs/avalonia-migration.md) for the active architecture.
+
 # ATIV Codebase Review, Repair and Optimization Plan & Final Report
 
 Persistent working record for the autonomous review, repair, refactoring, optimization, and validation of the ATIV repository.

@@ -424,6 +424,10 @@ jobs:
           test -s "$ATIV_SMOKE_REPORT" || { cat "$RUNNER_TEMP/ativ-reference.log"; exit 1; }
           python3 -c 'import json,os; assert json.load(open(os.environ["ATIV_SMOKE_REPORT"]))["presets"]==27'
           python3 script/validate_avalonia_reference.py build/avalonia-reference-macos-arm64/ATIV-Reference.app
+      - name: Verify packaged reference media process integration
+        run: |
+          python3 script/create_smoke_media.py build/native-fixtures
+          ATIV_ENGINE_PATH="$PWD/build/avalonia-reference-macos-arm64/ATIV-Reference.app/Contents/MacOS/ativ-engine" dotnet run --project platform/windows/Tests/NativeIntegration.csproj -c Release -- "$PWD/build/native-fixtures"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ATIV-INTERNAL-REFERENCE-macos-arm64

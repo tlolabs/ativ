@@ -2,7 +2,7 @@
 
 ## Current Core integration
 
-ATIV 0.2.5 pins Core 0.3.0 at `25d19098a22936638b0e2a70616083d929fe409c`. This revision declares GPL-3.0-or-later and supplies the runtime built for the published `ffmpeg-9.0.1-r7.1` release. ATIV no longer owns an FFmpeg source recipe. Packages preserve Core's original source archive, notices and qualification metadata, and include its crate license. The current dependency disclosures are [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
+ATIV 0.2.6 pins Core 0.3.0 at `25d19098a22936638b0e2a70616083d929fe409c`. This revision declares GPL-3.0-or-later and supplies the runtime built for the published `ffmpeg-9.0.1-r7.1` release. ATIV no longer owns an FFmpeg source recipe. Packages preserve Core's original source archive, notices and qualification metadata, and include its crate license. The current dependency disclosures are [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md). Windows and Linux now use Avalonia 12.1.3 under MIT rather than WinUI and GTK. Its transitive SkiaSharp and HarfBuzzSharp packages are MIT; the Windows ANGLE native asset is BSD-3-Clause. The complete locked NuGet audit is [docs/avalonia-dependencies.json](docs/avalonia-dependencies.json), with redistributed texts in `platform/avalonia/licenses/`.
 
 ## Historical review of ATIV 0.2.4
 

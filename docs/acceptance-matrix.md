@@ -23,18 +23,20 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 | Native icon resources / visible app identity | A + M | A + M | A + M | A + M | A + M | A + M |
 | Version/channel metadata | A | A | A | A | A | A |
 | Installer/package structure and machine type | A | A | A | A | A | A |
-| Clean-machine installation | M | M | A + M | A + M | A + M | A + M |
-| Reinstallation / real version upgrade | M | M | A reinstall + M upgrade | A reinstall + M upgrade | A reinstall + M upgrade | A reinstall + M upgrade |
+| Clean-machine installation | M | M | M portable ZIP | M portable ZIP | M AppImage | M AppImage |
+| Reinstallation / real version upgrade | M | M | M portable upgrade | M portable upgrade | M AppImage upgrade | M AppImage upgrade |
 | Automatic update / manual update check | M | M | M | M | M | M |
 | Signed feed / corrupt download rejection | A | A | A | A | A | A |
 | Actual signed update installation and restart | M | M | M | M | M | M |
-| Uninstall without deleting user media | M | M | A + M | A + M | A + M | A + M |
+| Removal without deleting user media | M | M | M portable removal | M portable removal | M AppImage removal | M AppImage removal |
 | Signing and timestamp verification | A + M | A + M | A when configured | A when configured | Signed update metadata | Signed update metadata |
 | Notarization and stapling | A when configured + M | A when configured + M | N/A | N/A | N/A | N/A |
 | Package checksums/integrity | A | A | A | A | A | A |
-| Minimum supported OS runtime | M macOS 13 | M macOS 13 | M Win10 1809 | M Win10 1809 | M baseline glibc/toolkit | M baseline glibc/toolkit |
+| Minimum supported OS runtime | M macOS 13 | M macOS 13 | M Win10 1809 | M Win10 1809 | M baseline glibc/desktop dependencies | M baseline glibc/desktop dependencies |
 
 ## Historical automated evidence
+
+The WinUI installer and GTK Debian results below document retired formats and do not qualify the Avalonia packages.
 
 Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Native implementation `c7275e2` passed macOS Apple Silicon/Intel and Windows x64/ARM64 in [run 34802411354](https://github.com/tlolabs/ativ/actions/runs/34802411354). Both Linux targets passed in [run 34803708905](https://github.com/tlolabs/ativ/actions/runs/34803708905) at `937a9a8`, which changes CI fixture execution and documentation without changing native application code. See the [validation report](native-distribution-report.md) for the original Linux fixture failure and resolution. Full engine/media contracts run in CI against each release tool pair.
 

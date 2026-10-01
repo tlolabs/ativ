@@ -39,6 +39,9 @@ python3 "$ROOT_DIR/script/configure_distribution.py" "$PACKAGE_ROOT/usr/lib/ativ
 python3 "$ROOT_DIR/script/ffmpeg_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$PACKAGE_ROOT/usr/lib/ativ"
 python3 "$ROOT_DIR/script/ffmpeg_runtime.py" finish "$RUNTIME_TARGET" --binary "$PACKAGE_ROOT/usr/lib/ativ" --metadata "$PACKAGE_ROOT/usr/lib/ativ/ffmpeg-runtime"
 cp -a "${BUILD_DIR}/managed/." "${PACKAGE_ROOT}/usr/lib/ativ/"
+# Ubuntu 24.04 ships LTTng SONAME 1; this optional .NET trace provider still
+# links SONAME 0 and prevents linuxdeploy from staging a runnable AppImage.
+rm -f "${PACKAGE_ROOT}/usr/lib/ativ/libcoreclrtraceptprovider.so"
 cp "${ROOT_DIR}/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${PACKAGE_ROOT}/usr/share/doc/ativ/THIRD_PARTY_NOTICES.md"
 python3 "$ROOT_DIR/script/collect_licenses.py" "$PACKAGE_ROOT/usr/share/doc/ativ/licenses"
