@@ -84,7 +84,8 @@ jobs:
         run: |
           python3 -m venv build/release-tools
           build/release-tools/bin/pip install -r script/requirements-build.txt
-          build/release-tools/bin/python script/test_release_infrastructure.py
+          build/release-tools/bin/python -m unittest discover -s script -p 'test_*.py'
+          python3 script/check_updater_snapshot.py
           python3 script/dependency_inventory.py --check
       - name: Verify contributor DCO sign-offs
         if: github.event_name == 'pull_request'
@@ -195,7 +196,7 @@ jobs:
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
           python3 script/validate_package.py "build/package-macos-${{ matrix.arch }}/ATIV.app" "macos-$label"
           ATIV_SMOKE_REPORT="$RUNNER_TEMP/ativ-smoke.json" open -n "build/package-macos-${{ matrix.arch }}/ATIV.app" --env ATIV_SMOKE_REPORT="$RUNNER_TEMP/ativ-smoke.json"
-          for attempt in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
+          for _ in {1..30}; do [[ ! -s "$RUNNER_TEMP/ativ-smoke.json" ]] || break; sleep 1; done
           test -s "$RUNNER_TEMP/ativ-smoke.json"
           pkill -x ATIV || true
       - name: Record exact native host evidence

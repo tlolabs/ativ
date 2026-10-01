@@ -167,6 +167,13 @@
       "version": "1.2.2"
     },
     {
+      "checksum": "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213",
+      "license": "MIT/Apache-2.0",
+      "name": "fs2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "version": "0.4.3"
+    },
+    {
       "checksum": "b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4",
       "license": "MIT OR Apache-2.0",
       "name": "futures-channel",
@@ -748,6 +755,11 @@
       "version": "1.13.3"
     },
     {
+      "license": "GPL-3.0-or-later",
+      "name": "tlo-updater",
+      "version": "0.1.0"
+    },
+    {
       "checksum": "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed",
       "license": "MIT",
       "name": "tokio",
@@ -951,11 +963,32 @@
       "version": "1.0.9"
     },
     {
+      "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
+      "license": "MIT/Apache-2.0",
+      "name": "winapi",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "version": "0.3.9"
+    },
+    {
+      "checksum": "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6",
+      "license": "MIT/Apache-2.0",
+      "name": "winapi-i686-pc-windows-gnu",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "version": "0.4.0"
+    },
+    {
       "checksum": "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22",
       "license": "Unlicense OR MIT",
       "name": "winapi-util",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "version": "0.1.11"
+    },
+    {
+      "checksum": "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f",
+      "license": "MIT/Apache-2.0",
+      "name": "winapi-x86_64-pc-windows-gnu",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "version": "0.4.0"
     },
     {
       "checksum": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",

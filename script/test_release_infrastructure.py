@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import base64, json, tempfile, unittest, os, runpy
+import base64, json, tempfile, unittest, os, runpy, zipfile, plistlib
 from unittest.mock import patch
 from types import SimpleNamespace
 from pathlib import Path
@@ -13,7 +13,11 @@ class ReleaseTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
         self.seed=bytes(range(32));self.key=Ed25519PrivateKey.from_private_bytes(self.seed);self.public=self.key.public_key().public_bytes(Encoding.Raw,PublicFormat.Raw)
     def test_partial_release_has_only_passing_targets_and_valid_signatures(self):
-        artifact=self.root/'ATIV-0.3.0-macos-arm64.zip';artifact.write_bytes(b'package fixture')
+        artifact=self.root/'ATIV-0.3.0-macos-arm64.zip'
+        config=dict(application_id='com.tlolabs.ativ',repository='tlolabs/ativ',version='0.3.0',channel='stable',target='macos-arm64',public_key=base64.b64encode(self.public).decode())
+        with zipfile.ZipFile(artifact,'w') as archive:
+            archive.writestr('ATIV.app/Contents/Resources/update-config.json',json.dumps(config))
+            archive.writestr('ATIV.app/Contents/Info.plist',plistlib.dumps(dict(CFBundleIdentifier='com.tlolabs.ativ',CFBundleVersion='0.3.0',CFBundleShortVersionString='0.3.0',SUPublicEDKey=config['public_key'])))
         payload=build(self.root,'0.3.0','stable','v0.3.0',self.seed,self.public)
         self.assertEqual(list(payload['assets']),['macos-arm64'])
         envelope=json.loads((self.root/'latest.json').read_text())
@@ -24,12 +28,9 @@ class ReleaseTests(unittest.TestCase):
         for version,channel,tag in [('0.3.0-dev.1','stable','v0.3.0-dev.1'),('0.3.0','stable','v0.4.0'),('0.3.0','development','development')]:
             with self.assertRaises(ValueError):build(self.root,version,channel,tag,self.seed,self.public)
         with self.assertRaises(ValueError):build(self.root,'0.3.0','stable','v0.3.0',self.seed,bytes(32))
-    def test_development_feed_is_separate_and_monotonic(self):
-        (self.root/'ATIV-0.3.0-dev.42-macos-intel.zip').write_bytes(b'development fixture')
-        build(self.root,'0.3.0-dev.42','development','development',self.seed,self.public)
-        tree=ET.parse(self.root/'appcast-macos-intel.xml')
-        self.assertEqual(tree.find(f'.//{{{SPARKLE}}}version').text,'42')
-        self.assertIn('/download/development/',tree.find('.//enclosure').attrib['url'])
+    def test_development_feed_is_retired(self):
+        with self.assertRaises(ValueError):
+            build(self.root,'0.3.0-dev.42','development','development',self.seed,self.public)
     def test_empty_release_fails(self):
         with self.assertRaises(ValueError):build(self.root,'0.3.0','stable','v0.3.0',self.seed,self.public)
 

@@ -47,6 +47,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       GH_TOKEN: ${{ github.token }}
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
       AVID_CORE_QUALIFICATION: ${{ inputs.qualify_core_candidate && '1' || '0' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -70,9 +71,11 @@ jobs:
         run: |
           set -euo pipefail
           python3 script/validate_package.py final-native/extracted/ATIV.app 'macos-${{ matrix.label }}'
+          python3 script/create_smoke_media.py build/native-fixtures
+          ATIV_TEST_MEDIA="$PWD/build/native-fixtures" ATIV_ENGINE_PATH="$PWD/final-native/extracted/ATIV.app/Contents/MacOS/ativ-engine" swift test --package-path platform/macos --scratch-path build/native-tests
           report="$RUNNER_TEMP/ativ-final-smoke.json"
           open -n final-native/extracted/ATIV.app --env ATIV_SMOKE_REPORT="$report"
-          for attempt in {1..30}; do [[ ! -s "$report" ]] || break; sleep 1; done
+          for _ in {1..30}; do [[ ! -s "$report" ]] || break; sleep 1; done
           test -s "$report"
           pkill -x ATIV || true
           python3 script/host_evidence.py --application ativ --target '${{ matrix.target }}' --pin runtime/core-runtime.json --binary final-native/extracted/ATIV.app/Contents/MacOS --metadata final-native/extracted/ATIV.app/Contents/Resources/FFmpeg --packages final-native/*.zip --output final-native/host-${{ matrix.target }}.json

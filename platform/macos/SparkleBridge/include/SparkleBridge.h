@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+void ATIVSetUpdateWorkInProgress(bool working);
 bool ATIVStartUpdater(void);
 bool ATIVCheckForUpdates(void);
 

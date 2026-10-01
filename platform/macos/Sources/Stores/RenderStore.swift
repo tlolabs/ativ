@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SparkleBridge
 
 @MainActor
 final class RenderStore: ObservableObject {
@@ -18,7 +19,7 @@ final class RenderStore: ObservableObject {
     @Published var previewImage: NSImage?
     @Published var progress = 0.0
     @Published var status = "Loading media engine…"
-    @Published var isRendering = false
+    @Published var isRendering = false { didSet { ATIVSetUpdateWorkInProgress(isRendering) } }
     @Published var errorMessage: String?
     @Published var showDiagnostics = false
     @Published var diagnostics: [String] = []
@@ -41,7 +42,7 @@ final class RenderStore: ObservableObject {
     var resolutions: [Preset] { presets.filter { $0.platform == selectedPlatform && $0.aspect == selectedAspect } }
     var canRender: Bool {
         imageURL != nil && audioURL != nil && outputURL != nil && selectedPreset != nil && !isRendering
-        && outputURL != imageURL && outputURL != audioURL
+        && outputURL != imageURL && outputURL != audioURL && !terminating
     }
 
     func start() {
@@ -93,7 +94,7 @@ final class RenderStore: ObservableObject {
     func previewOptionsChanged() { refreshPreview() }
 
     func render() {
-        guard !isRendering else { return }
+        guard !isRendering && !terminating else { return }
         guard let imageURL, let audioURL, let outputURL, let preset = selectedPreset else {
             errorMessage = "Choose an image, audio recording, output destination, and format."
             return
@@ -132,8 +133,10 @@ final class RenderStore: ObservableObject {
 
     func requestTermination() -> NSApplication.TerminateReply {
         guard isRendering else { return .terminateNow }
+        // Sparkle may request termination without its postponement callback.
+        // Complete the current export before replying; Stop remains user-controlled.
         terminating = true
-        cancel()
+        status = "Finishing the current video before quitting…"
         return .terminateLater
     }
 

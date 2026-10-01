@@ -1,4 +1,4 @@
-project('ativ-linux', 'c', version: '0.2.3', default_options: ['c_std=c17', 'warning_level=3'])
+project('ativ-linux', 'c', version: run_command('python3', '-c', 'import pathlib,tomllib; print(tomllib.loads(pathlib.Path(__import__("sys").argv[1]).read_text())["workspace"]["package"]["version"])', meson.current_source_dir() / '../../Cargo.toml', check: true).stdout().strip(), default_options: ['c_std=c17', 'warning_level=3'])
 
 gtk = dependency('gtk4', version: '>=4.10')
 adw = dependency('libadwaita-1', version: '>=1.4')

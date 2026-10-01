@@ -29,6 +29,7 @@ public static class UpdateClient
         start.ArgumentList.Add(AppContext.BaseDirectory);
         start.ArgumentList.Add(Environment.ProcessId.ToString());
         start.ArgumentList.Add(download.GetProperty("target").GetString()!);
+        start.ArgumentList.Add(download.GetProperty("version").GetString()!);
         _ = Process.Start(start) ?? throw new IOException("Cannot start the portable update helper.");
     }
 }

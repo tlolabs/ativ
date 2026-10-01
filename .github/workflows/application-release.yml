@@ -23,6 +23,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Test shared stable updater
+        run: |
+          python3 script/check_updater_snapshot.py
+          cargo test --locked -p tlo-updater -p ativ-update
       - name: Require all applicable final-package release gates
         run: python3 script/application_release.py --output release-assets
       - name: Verify approved signed annotated stable tag
@@ -42,13 +46,20 @@ jobs:
           build/release-tools/bin/pip install -r script/requirements-build.txt
           python3 script/dependency_inventory.py --check
           python3 script/dependency_inventory.py --sbom-dir release-assets
+          build/release-tools/bin/python -m unittest discover -s script -p 'test_*.py'
+          sudo apt-get update
+          sudo apt-get install -y squashfs-tools
           build/release-tools/bin/python script/release_metadata.py --assets release-assets --version "$VERSION" --channel stable --tag "v$VERSION"
+          build/release-tools/bin/python script/tlo_update_release.py --verify --assets release-assets
+          build/release-tools/bin/python script/qualify_updates.py --assets release-assets
       - name: Attest package promotion identity
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
           subject-path: release-assets/*
       - name: Create new release, verify actual downloads, then publish
+        env:
+          ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           set -euo pipefail
@@ -63,4 +74,8 @@ jobs:
           for asset in verified-downloads/*; do
             gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/application-release.yml" --source-digest "$GITHUB_SHA" --source-ref "$GITHUB_REF" --deny-self-hosted-runners >/dev/null
           done
+          build/release-tools/bin/python script/tlo_update_release.py --verify --assets verified-downloads
           gh release edit "$GITHUB_REF_NAME" --draft=false --latest=true
+          # Probe the same public, unauthenticated static URL installed clients use.
+          # A failure fails qualification; never mutate a published tag or its bytes.
+          build/release-tools/bin/python script/qualify_updates.py --assets verified-downloads --published

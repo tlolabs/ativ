@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import ATIV
 
@@ -60,4 +61,26 @@ final class EngineClientTests: XCTestCase {
         wait(for:[render],timeout:60)
     }
 
+}
+
+final class UpdateWorkCoordinationTests: XCTestCase {
+    @MainActor
+    func testIdleTerminationCanProceed() async {
+        let store = RenderStore()
+        XCTAssertEqual(store.requestTermination(), .terminateNow)
+    }
+
+    @MainActor
+    func testTerminationWaitsForActiveExportWithoutCancellingIt() async {
+        let store = RenderStore()
+        store.isRendering = true
+        store.progress = 0.4
+        XCTAssertEqual(store.requestTermination(), .terminateLater)
+        XCTAssertTrue(store.isRendering)
+        XCTAssertEqual(store.progress, 0.4)
+        XCTAssertEqual(store.status, "Finishing the current video before quitting…")
+        XCTAssertFalse(store.canRender)
+        // Reset the bridge's shared work state for subsequent tests.
+        store.isRendering = false
+    }
 }

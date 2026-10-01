@@ -475,6 +475,7 @@ static void cancel_render(GtkButton *button, gpointer user_data) {
 static void start_render(GtkButton *button, gpointer user_data) {
   AtivWindow *self = user_data;
   if (self->render_process) { cancel_render(button, user_data); return; }
+  if (self->update_busy) { show_error(self,"Wait for the current update operation to finish before exporting."); return; }
   if (self->preview_process) {
     g_subprocess_force_exit(self->preview_process);
     g_clear_object(&self->preview_process);
@@ -581,7 +582,8 @@ static void update_worker(GTask *task, gpointer source, gpointer data, GCancella
 static void begin_update(AtivWindow *self, gboolean manual, const gchar *command);
 static void install_response(AdwMessageDialog *dialog, const gchar *response, gpointer data) {
   AtivWindow *self = data;
-  if (g_str_equal(response,"install") && !self->render_process) begin_update(self,TRUE,g_getenv("APPIMAGE") ? "install-appimage" : "download");
+  if (!self->render_process && (g_str_equal(response,"install") || g_str_equal(response,"download")))
+    begin_update(self,TRUE,g_str_equal(response,"install") ? "install-appimage" : "download");
   g_object_unref(self->window);
 }
 static void update_done(GObject *source, GAsyncResult *result, gpointer data) {
@@ -593,13 +595,16 @@ static void update_done(GObject *source, GAsyncResult *result, gpointer data) {
   if (error) { if(request->manual) show_error(self,error->message); return; }
   g_autoptr(JsonObject) object = NULL;
   if (!parse_event(output,&object)) { if(request->manual) show_error(self,"Invalid updater response"); return; }
-  if (g_str_equal(request->command,"check")) {
+  if ((g_str_equal(request->command,"check") || g_str_equal(request->command,"check-auto"))) {
     gboolean available = json_object_get_boolean_member_with_default(object,"available",FALSE);
     if (!available && !request->manual) return;
     if (self->render_process) return;
     GtkWidget *dialog = adw_message_dialog_new(GTK_WINDOW(self->window), available ? "An ATIV update is available" : "ATIV is up to date", available ? "Download and install the verified update?" : "No newer build is available for this platform.");
     adw_message_dialog_add_response(ADW_MESSAGE_DIALOG(dialog),"later","Close");
-    if (available) adw_message_dialog_add_response(ADW_MESSAGE_DIALOG(dialog),"install","Install");
+    if (available) {
+      if (g_getenv("APPIMAGE")) adw_message_dialog_add_response(ADW_MESSAGE_DIALOG(dialog),"install","Install");
+      adw_message_dialog_add_response(ADW_MESSAGE_DIALOG(dialog),"download","Download for Manual Installation");
+    }
     g_object_ref(self->window); g_signal_connect(dialog,"response",G_CALLBACK(install_response),self);
     gtk_window_present(GTK_WINDOW(dialog));
   } else if (g_str_equal(request->command,"install-appimage")) {
@@ -609,7 +614,9 @@ static void update_done(GObject *source, GAsyncResult *result, gpointer data) {
     if (self->render_process) { show_error(self,"Finish your export before installing the update."); return; }
     if (!path) { show_error(self,"Could not locate the downloaded update package."); return; }
     // The distribution's native package installer owns dependency resolution and authorization.
-    g_autofree gchar *uri = g_filename_to_uri(path,NULL,NULL);
+    g_autofree gchar *parent = g_path_get_dirname(path);
+    gtk_label_set_text(self->status_label,"Verified update downloaded. Close ATIV and replace the old AppImage manually.");
+    g_autofree gchar *uri = g_filename_to_uri(parent,NULL,NULL);
     if (!g_app_info_launch_default_for_uri(uri,NULL,&error)) show_error(self,error->message);
   }
 }
@@ -623,7 +630,7 @@ static void begin_update(AtivWindow *self, gboolean manual, const gchar *command
 static void update_action(GSimpleAction *action, GVariant *value, gpointer data) { begin_update(data,TRUE,"check"); }
 static gboolean periodic_update(gpointer data) {
   AtivWindow *self=data;
-  if (g_key_file_get_boolean(self->preferences,"General","automatic_updates",NULL)) begin_update(self,FALSE,"check");
+  if (g_key_file_get_boolean(self->preferences,"General","automatic_updates",NULL)) begin_update(self,FALSE,"check-auto");
   return G_SOURCE_CONTINUE;
 }
 static void media_action(GSimpleAction *action, GVariant *value, gpointer data) {

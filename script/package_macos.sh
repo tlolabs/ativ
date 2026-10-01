@@ -63,7 +63,13 @@ codesign "${SIGN_ARGS[@]}" "${MACOS}/ffprobe"
 python3 "$ROOT_DIR/script/ffmpeg_runtime.py" finish "macos-$ARCH" --binary "$MACOS" --metadata "$RESOURCES/FFmpeg"
 codesign "${SIGN_ARGS[@]}" "${MACOS}/ATIV"
 # Sign nested Sparkle code inside-out before the enclosing bundle.
-while IFS= read -r -d '' nested; do codesign "${SIGN_ARGS[@]}" "$nested"; done < <(find "$CONTENTS/Frameworks" -depth \( -name '*.xpc' -o -name '*.app' -o -name '*.framework' -o -name Autoupdate \) -print0)
+while IFS= read -r -d '' nested; do
+  if [[ "$nested" == */Downloader.xpc ]]; then
+    codesign "${SIGN_ARGS[@]}" --preserve-metadata=entitlements "$nested"
+  else
+    codesign "${SIGN_ARGS[@]}" "$nested"
+  fi
+done < <(find "$CONTENTS/Frameworks" -depth \( -name '*.xpc' -o -name '*.app' -o -name '*.framework' -o -name Autoupdate \) -print0)
 codesign "${SIGN_ARGS[@]}" "${APP}"
 codesign --verify --deep --strict "${APP}"
 python3 "$ROOT_DIR/script/validate_package.py" "$APP" "macos-$LABEL"

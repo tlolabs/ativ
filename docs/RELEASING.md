@@ -28,3 +28,7 @@ Azure provisioning is outstanding: no Artifact Signing account currently exists.
 Linux key transfer to ATIV and EnCAP Actions stores is approved. Run `python3 script/configure_linux_signing.py` in a secure interactive terminal. It configures secrets `LINUX_GPG_PRIVATE_KEY_B64`, `LINUX_GPG_PASSPHRASE` and public variables `LINUX_GPG_PUBLIC_KEY_B64`, `LINUX_GPG_FINGERPRINT`, without logging/writing private material. Final AppImages require both the pinned maintainer GPG signature and GitHub/Sigstore attestation.
 
 The Windows portable update helper stages the authenticated ZIP on the same filesystem, rejects unsafe entries and wrong targets, verifies executable signatures/timestamps and the intended Core runtime, waits for the application to exit, preserves user additions, retains the complete previous directory and rolls back a failed startup. Its native compilation and real older-to-newer signed upgrade remain awaiting evidence; opening a ZIP or verifying metadata is not an installation test. Linux AppImage replacement must preserve the previous installation on failure; settings and user media remain outside replacement. macOS Sparkle installation/restart needs actual acceptance. Manual results stay awaiting acceptance until supplied by a reviewer for exact packages.
+
+## Shared automatic updates
+
+See [automatic updates](automatic-updates.md) for the signed schema-2 contract, compatibility feeds, native upgrade gates and migration blockers. No platform has been end-to-end updater qualified by compilation or common contract tests.

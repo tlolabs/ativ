@@ -64,7 +64,7 @@ def stage(plan, pin, output):
     build_revision=plan['application_revision']
     subprocess.run(['git','merge-base','--is-ancestor',build_revision,revision],cwd=ROOT,check=True)
     changed=subprocess.check_output(['git','diff','--name-only',build_revision,revision],cwd=ROOT,text=True).splitlines()
-    require(all(p.startswith('docs/') or p=='runtime/application-qualification.json' for p in changed), 'Application inputs changed after qualification; new native evidence required')
+    require(all(p.startswith('docs/') or p in ('runtime/application-qualification.json','runtime/updater-qualification.json') for p in changed), 'Application inputs changed after qualification; new native evidence required')
     require(not output.exists(), 'Application staging destination must be new')
     output.mkdir(parents=True)
     for target, entry in passed.items():

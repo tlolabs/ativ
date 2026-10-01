@@ -1,0 +1,68 @@
+{
+  "scope": [
+    "ATIV",
+    "EnCAP shared updater adapter",
+    "AVID Core audit only"
+  ],
+  "validation": {
+    "shared_rust_contract_tests": {
+      "passed": 17
+    },
+    "release_tests": {
+      "passed": 20
+    },
+    "rust_clippy": "passed",
+    "ATIV_macos_build": "passed",
+    "ATIV_macos_media_tests": {
+      "skipped": 2,
+      "reason": "media/process fixtures not configured"
+    },
+    "ATIV_windows_portable_helper_build": "passed on macOS; Windows execution not tested",
+    "EnCAP_shared_adapter_tests": "passed; concurrent native migration not reviewed as complete",
+    "workflow_yaml": "parsed",
+    "dependency_inventory": "passed"
+  },
+  "end_to_end_qualified": [],
+  "not_qualified": {
+    "ATIV": {
+      "macos": [
+        "x86_64",
+        "arm64"
+      ],
+      "windows": [
+        "x86_64",
+        "arm64"
+      ],
+      "linux": [
+        "x86_64",
+        "arm64"
+      ]
+    },
+    "EnCAP": {
+      "macos": [
+        "x86_64",
+        "arm64"
+      ],
+      "windows": [
+        "x86_64",
+        "arm64"
+      ],
+      "linux": [
+        "x86_64",
+        "arm64"
+      ]
+    }
+  },
+  "published_starting_points": {
+    "ATIV": "v0.2.4",
+    "EnCAP": "v2.0.3",
+    "schema_2_published": false
+  },
+  "blockers": [
+    "Windows portable directory swap still requires a crash-recovery bootstrapper or installer before production qualification.",
+    "Actual authenticated older-to-newer native installs and restart/failure tests have not been run on any target.",
+    "EnCAP has active concurrent adapter, packaging, release and documentation edits; shared snapshot and qualification interfaces need reconciliation.",
+    "Production signing/release credentials were not provisioned or validated by this task; existing documentation reports Windows signing service provisioning outstanding."
+  ],
+  "release_actions": "No tags/releases/assets published or modified. No secrets read, exported or rotated."
+}

@@ -1,0 +1,48 @@
+{
+  "status": "qualification_in_progress",
+  "application": "ATIV",
+  "version_a": "0.2.4",
+  "version_b": "0.2.5",
+  "version_a_sha256": "59517b16211fd069fbd6321fde857901533379c0dae13d57dc823bbfed7c3514",
+  "version_a_trust": {
+    "strict_signature": "passed",
+    "stapled_ticket": "passed",
+    "gatekeeper": "accepted: Notarized Developer ID"
+  },
+  "tests": {
+    "rust": 32,
+    "benchmarks": 2,
+    "python": 26,
+    "swift": 4,
+    "media": "27 presets, 20 previews, 4 exports, failure/process-cleanup checks; managed runtime damage/missing-file checks passed",
+    "rust_fmt_clippy": "passed",
+    "dependency_inventory": "passed",
+    "workflow_actionlint_shellcheck": "passed",
+    "shared_snapshot": "ATIV/EnCAP identical"
+  },
+  "audit": {
+    "source_items_reviewed": 27,
+    "reportable_security_findings": 0,
+    "scan_id": "54f35510-f901-4805-811a-485af0074697",
+    "scope": "Frozen initial updater diff and relevant native/release supporting code; dependency internals not exhaustively audited"
+  },
+  "corrections": [
+    "macOS termination waits for active export, including Sparkle termination paths without postpone callback",
+    "Windows render startup owns busy state before awaiting preview shutdown; updater prevents render startup",
+    "Production Sparkle Downloader XPC signing preserves sandbox entitlements",
+    "Native/promotion CI runs complete Python suite; final Mac verification runs native Swift tests",
+    "Refreshed dependency license inventory and privacy feed documentation",
+    "Added malformed-manifest, service failure/retry, interrupted download, install permission and cleanup/retry tests"
+  ],
+  "native_upgrade": "not_run",
+  "production_version_b": "not_built",
+  "release": "not_published",
+  "remaining": [
+    "Exact native production build/sign/notarize and normal verification workflow",
+    "Prepublication native old-to-new qualification and exact-package manual acceptance",
+    "Tagged normal-pipeline publication followed by real GitHub UI old-to-new update",
+    "Windows power-loss recovery and Azure signing provisioning",
+    "Linux native AppImage installation/failure evidence"
+  ],
+  "initial_test_setup_failure": "Native Swift media test pointed at an unbundled debug engine. Correct packaged-engine invocation passed without test changes or skips."
+}

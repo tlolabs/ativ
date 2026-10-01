@@ -5,6 +5,31 @@
 #import <objc/runtime.h>
 
 static id ATIVUpdaterController;
+static BOOL ATIVWorkInProgress;
+
+// Sparkle is loaded dynamically; these selectors follow SPUUpdaterDelegate.
+@interface ATIVUpdateDelegate : NSObject
+@end
+@implementation ATIVUpdateDelegate
+- (BOOL)updater:(id)updater mayPerformUpdateCheck:(NSInteger)check error:(NSError **)error {
+    if (ATIVWorkInProgress && error) *error = [NSError errorWithDomain:@"com.tlolabs.ativ.updates" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Finish the current export before updating."}];
+    return !ATIVWorkInProgress;
+}
+- (BOOL)updater:(id)updater shouldProceedWithUpdate:(id)item updateCheck:(NSInteger)check error:(NSError **)error {
+    return [self updater:updater mayPerformUpdateCheck:check error:error];
+}
+- (NSArray *)allowedSystemProfileKeysForUpdater:(id)updater { return @[]; }
+- (BOOL)updater:(id)updater shouldPostponeRelaunchForUpdate:(id)item untilInvokingBlock:(void (^)(void))installHandler {
+    if (!ATIVWorkInProgress) return NO;
+    [NSTimer scheduledTimerWithTimeInterval:1.0 repeats:YES block:^(NSTimer *timer) {
+        if (!ATIVWorkInProgress) { [timer invalidate]; installHandler(); }
+    }];
+    return YES;
+}
+@end
+static ATIVUpdateDelegate *ATIVUpdaterDelegate;
+void ATIVSetUpdateWorkInProgress(bool working) { ATIVWorkInProgress = working; }
+
 
 bool ATIVStartUpdater(void) {
     if (ATIVUpdaterController != nil) {
@@ -28,12 +53,13 @@ bool ATIVStartUpdater(void) {
         return false;
     }
 
+    ATIVUpdaterDelegate = [ATIVUpdateDelegate new];
     id allocated = ((id (*)(id, SEL))objc_msgSend)(controllerClass, sel_registerName("alloc"));
     ATIVUpdaterController = ((id (*)(id, SEL, BOOL, id, id))objc_msgSend)(
         allocated,
         initializer,
         YES,
-        nil,
+        ATIVUpdaterDelegate,
         nil
     );
     return ATIVUpdaterController != nil;

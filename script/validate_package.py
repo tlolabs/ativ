@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate staged resources, target machine types, identity and bundled discovery."""
-import argparse,json,os,plistlib,struct,subprocess
+import argparse,json,os,plistlib,struct,subprocess,tomllib
 from pathlib import Path
 from ffmpeg_runtime import validate as validate_runtime
 
@@ -39,9 +39,12 @@ def validate(root,target):
     for name in names: machine(binary/name,target)
     config_path=(contents/'Resources/update-config.json') if target.startswith('macos') else (binary/'update-config.json')
     config=json.loads(config_path.read_text()); assert config['target']==target
-    assert config['channel'] in ('stable','development')
+    assert config['channel']=='stable'
+    expected=tomllib.loads((Path(__file__).resolve().parents[1]/'Cargo.toml').read_text())['workspace']['package']['version']
+    assert config['version']==expected, 'Packaged updater version differs from workspace'
+    assert config['application_id']=='com.tlolabs.ativ' and config['repository']=='tlolabs/ativ'
     if target.startswith('macos'):
-        assert config['version']==info['ATIVDistributionVersion']
+        assert config['version']==info['ATIVDistributionVersion']==info['CFBundleVersion']==info['CFBundleShortVersionString']
         assert info['SUEnableAutomaticChecks'] and info['SUVerifyUpdateBeforeExtraction']
         assert info['SUFeedURL'].endswith(f'appcast-{target}.xml')
     # Run in isolation so PATH cannot hide missing bundle dependencies.

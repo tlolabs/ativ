@@ -205,6 +205,7 @@ public sealed partial class MainWindow : Window
             await engine.CancelAsync();
             return;
         }
+        if (updateBusy) return;
         if (ResolutionBox.SelectedItem is not Preset preset) return;
         if (string.Equals(OutputPath.Text, ImagePath.Text, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(OutputPath.Text, AudioPath.Text, StringComparison.OrdinalIgnoreCase))
@@ -213,7 +214,6 @@ public sealed partial class MainWindow : Window
             return;
         }
         SavePreferences();
-        await engine.CancelPreviewAsync();
         rendering = true;
         RenderButton.Content = "Stop Video Creation";
         RenderButton.IsEnabled = true;
@@ -221,6 +221,7 @@ public sealed partial class MainWindow : Window
         StatusText.Text = "Preparing video…";
         try
         {
+            await engine.CancelPreviewAsync();
             await engine.RenderAsync(ImagePath.Text, AudioPath.Text, OutputPath.Text, preset, BitrateBox.Text, Math.Max(1, (int)FpsBox.Value), FlipHorizontal.IsChecked == true, FlipVertical.IsChecked == true, item => DispatcherQueue.TryEnqueue(() => ApplyEvent(item)));
             RenderProgress.Value = 1;
             StatusText.Text = $"Video saved as {Path.GetFileName(OutputPath.Text)}.";
@@ -256,7 +257,7 @@ public sealed partial class MainWindow : Window
         "encoding" => "Creating video…", "publishing" => "Saving completed video…", "complete" => "Complete", _ => "Working…"
     };
 
-    private void UpdateRenderEnabled() => RenderButton.IsEnabled = rendering || (
+    private void UpdateRenderEnabled() => RenderButton.IsEnabled = rendering || (!updateBusy &&
         !string.IsNullOrWhiteSpace(ImagePath.Text) &&
         !string.IsNullOrWhiteSpace(AudioPath.Text) &&
         !string.IsNullOrWhiteSpace(OutputPath.Text) &&
@@ -296,8 +297,9 @@ public sealed partial class MainWindow : Window
     private async Task CheckUpdatesAsync(bool manual) {
         if (updateBusy || rendering) return;
         updateBusy = true;
+        UpdateRenderEnabled();
         try {
-            var result = await UpdateClient.RunAsync("check");
+            var result = await UpdateClient.RunAsync(manual ? "check" : "check-auto");
             if (!result.GetProperty("available").GetBoolean()) {
                 if (manual) await new ContentDialog { Title = "ATIV is up to date", CloseButtonText = "OK", XamlRoot = RootGrid.XamlRoot }.ShowAsync();
                 return;
@@ -310,7 +312,7 @@ public sealed partial class MainWindow : Window
             UpdateClient.InstallPortable(download);
             Close();
         } catch (Exception error) { if (manual) ShowError(error.Message); }
-        finally { updateBusy = false; }
+        finally { updateBusy = false; UpdateRenderEnabled(); }
     }
 
     private void MediaDragOver(object sender, DragEventArgs args)
