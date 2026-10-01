@@ -1,3 +1,5 @@
+> Current release integration: the automated results below are historical unless tied to the new exact application commit, Core pair and final package. The next Windows package is a portable ZIP and Linux package an AppImage. Installer/deb/DMG results do not qualify them. Local Apple credentials are now usable; no Azure account exists. New real upgrades and manual acceptance remain awaiting evidence. Core uses the approved hosted-runner OS policy; older OS rows below are untested compatibility claims, not proof from deployment targets.
+
 # Cross-platform acceptance matrix
 
 This is an evidence ledger, not a claim that unexecuted checks passed. `A` denotes an automated check implemented in CI; `M` denotes manual acceptance still required. Every row applies to each target: macOS Apple Silicon, macOS Intel, Windows x64, Windows ARM64, Linux x64 and Linux ARM64. Exact CI results are recorded below after validation.
@@ -32,7 +34,7 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 | Package checksums/integrity | A | A | A | A | A | A |
 | Minimum supported OS runtime | M macOS 13 | M macOS 13 | M Win10 1809 | M Win10 1809 | M baseline glibc/toolkit | M baseline glibc/toolkit |
 
-## Automated evidence
+## Historical automated evidence
 
 Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Native implementation `c7275e2` passed macOS Apple Silicon/Intel and Windows x64/ARM64 in [run 34802411354](https://github.com/tlolabs/ativ/actions/runs/34802411354). Both Linux targets passed in [run 34803708905](https://github.com/tlolabs/ativ/actions/runs/34803708905) at `937a9a8`, which changes CI fixture execution and documentation without changing native application code. See the [validation report](native-distribution-report.md) for the original Linux fixture failure and resolution. Full engine/media contracts run in CI against each release tool pair.
 
@@ -46,6 +48,6 @@ Traverse controls with the screen reader and keyboard, inspect 100/150/200% scal
 
 For upgrades, install a signed older build using the same verification key and channel, publish a higher test build, check automatic and manual notification, defer it, then install it. Verify preference retention, restart, offline handling, wrong-key/tampered downloads, read-only AppImage location, and installer interruption/recovery. Confirm development cannot update stable and a missing platform artifact offers no broken download.
 
-## External gates
+## Historical external gates
 
 The first computer-use inspection failed with `Sky Computer Use native pipe closed before response`. A later retry reached the host but reported the Mac locked; interactive inspection requires the user to unlock it. Apple signing/notarization and Windows Authenticode credentials were absent when inspected. The initial Ed25519 update-signing secret and public variable have since been configured. Credential-dependent release trust and live update delivery cannot be certified until configured and exercised. These gaps must stay visible and must not be relabelled as passes.

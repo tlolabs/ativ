@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Thomas Lothian
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include <adwaita.h>
 #include <json-glib/json-glib.h>
 #include <glib/gstdio.h>
@@ -38,6 +40,8 @@ typedef struct {
   GDataInputStream *render_output;
   gchar *engine;
   gchar *preview_path;
+  gchar *last_preview_key;
+  GSubprocess *preview_process;
   guint preview_generation;
   gboolean render_owner_ref_held;
   gboolean close_after_render;
@@ -75,6 +79,11 @@ static void ativ_window_free(gpointer data) {
   g_clear_object(&self->render_process);
   g_clear_pointer(&self->presets, g_ptr_array_unref);
   g_clear_pointer(&self->engine, g_free);
+  if (self->preview_process) {
+    g_subprocess_force_exit(self->preview_process);
+    g_clear_object(&self->preview_process);
+  }
+  g_clear_pointer(&self->last_preview_key, g_free);
   if (self->preview_path) g_unlink(self->preview_path);
   g_clear_pointer(&self->preview_path, g_free);
   if (self->update_timer) g_source_remove(self->update_timer);
@@ -216,6 +225,9 @@ static void suggest_output(AtivWindow *self, const gchar *source) {
 static void preview_done(GObject *source, GAsyncResult *result, gpointer user_data) {
   PreviewRequest *request = user_data;
   AtivWindow *self = request->window;
+  if ((GSubprocess *)source == self->preview_process) {
+    g_clear_object(&self->preview_process);
+  }
   g_autoptr(GError) error = NULL;
   if (g_subprocess_wait_check_finish(G_SUBPROCESS(source), result, &error) && request->generation == self->preview_generation) {
     if (self->preview_path) g_unlink(self->preview_path);
@@ -235,23 +247,36 @@ static void refresh_preview(AtivWindow *self) {
   const gchar *image = gtk_editable_get_text(GTK_EDITABLE(self->image_entry));
   Preset *preset = selected_preset(self);
   if (!*image || !preset) return;
+  guint width = preset->width >= preset->height ? 360 : MAX(2, (360 * preset->width / preset->height) & ~1u);
+  guint height = preset->height >= preset->width ? 360 : MAX(2, (360 * preset->height / preset->width) & ~1u);
+  gboolean flip_h = gtk_check_button_get_active(self->flip_h);
+  gboolean flip_v = gtk_check_button_get_active(self->flip_v);
+  g_autofree gchar *key = g_strdup_printf("%s|%u|%u|%d|%d", image, width, height, flip_h, flip_v);
+  if (self->last_preview_key && g_strcmp0(self->last_preview_key, key) == 0 && self->preview_path) {
+    return;
+  }
+  g_free(self->last_preview_key);
+  self->last_preview_key = g_steal_pointer(&key);
+  if (self->preview_process) {
+    g_subprocess_force_exit(self->preview_process);
+    g_clear_object(&self->preview_process);
+  }
   g_autofree gchar *directory = g_build_filename(g_get_user_cache_dir(), "ativ", NULL);
   g_mkdir_with_parents(directory, 0700);
   guint generation = ++self->preview_generation;
   g_autofree gchar *name = g_strdup_printf("preview-%u-%" G_GINT64_FORMAT ".png", generation, g_get_monotonic_time());
   g_autofree gchar *output = g_build_filename(directory, name, NULL);
-  guint width = preset->width >= preset->height ? 360 : MAX(2, (360 * preset->width / preset->height) & ~1u);
-  guint height = preset->height >= preset->width ? 360 : MAX(2, (360 * preset->height / preset->width) & ~1u);
   g_autofree gchar *width_text = g_strdup_printf("%u", width);
   g_autofree gchar *height_text = g_strdup_printf("%u", height);
   const gchar *argv[16] = {self->engine, "preview", "--image", image, "--output", output, "--width", width_text, "--height", height_text, NULL};
   guint n = 10;
-  if (gtk_check_button_get_active(self->flip_h)) argv[n++] = "--flip-horizontal";
-  if (gtk_check_button_get_active(self->flip_v)) argv[n++] = "--flip-vertical";
+  if (flip_h) argv[n++] = "--flip-horizontal";
+  if (flip_v) argv[n++] = "--flip-vertical";
   argv[n] = NULL;
   g_autoptr(GError) error = NULL;
   GSubprocess *process = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_NONE, &error);
   if (process) {
+    self->preview_process = g_object_ref(process);
     PreviewRequest *request = g_new0(PreviewRequest, 1);
     request->window = self;
     request->owner = g_object_ref(self->window);
@@ -450,6 +475,10 @@ static void cancel_render(GtkButton *button, gpointer user_data) {
 static void start_render(GtkButton *button, gpointer user_data) {
   AtivWindow *self = user_data;
   if (self->render_process) { cancel_render(button, user_data); return; }
+  if (self->preview_process) {
+    g_subprocess_force_exit(self->preview_process);
+    g_clear_object(&self->preview_process);
+  }
   Preset *preset = selected_preset(self);
   const gchar *image = gtk_editable_get_text(GTK_EDITABLE(self->image_entry));
   const gchar *audio = gtk_editable_get_text(GTK_EDITABLE(self->audio_entry));

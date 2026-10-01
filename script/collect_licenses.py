@@ -11,6 +11,8 @@ index=[]
 for package in metadata['packages']:
     if package['source'] is None:continue
     root=Path(package['manifest_path']).parent
+    if package['name']=='avid-core':
+        (a.destination.parent/'AVID_CORE_LICENSE.txt').write_bytes((root/'LICENSE').read_bytes())
     folder=a.destination/(package['name']+'-'+package['version']);folder.mkdir(exist_ok=True)
     texts=[]
     for source in sorted(root.iterdir()):

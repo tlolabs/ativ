@@ -24,6 +24,14 @@ final class RenderStore: ObservableObject {
     @Published var diagnostics: [String] = []
 
     private let engine = EngineClient()
+    private struct PreviewKey: Equatable {
+        let imageURL: URL
+        let width: Int
+        let height: Int
+        let flipHorizontal: Bool
+        let flipVertical: Bool
+    }
+    private var lastPreviewKey: PreviewKey?
     private var previewGeneration = 0
     private var audioGeneration = 0
     private var terminating = false
@@ -62,6 +70,7 @@ final class RenderStore: ObservableObject {
     func setImage(_ url: URL) { guard !isRendering else { return }; imageURL = url; suggestOutputIfNeeded(); refreshPreview() }
     func setAudio(_ url: URL) {
         guard !isRendering else { return }
+        if audioURL == url && duration != nil { return }
         audioGeneration += 1
         let generation = audioGeneration
         audioURL = url
@@ -128,26 +137,39 @@ final class RenderStore: ObservableObject {
         return .terminateLater
     }
 
-    func cancel() { status = "Stopping safely…"; engine.cancelRender() }
+    func cancel() {
+        status = "Stopping safely…"
+        engine.cancelRender()
+        engine.cancelPreview()
+        engine.cancelProbe()
+    }
 
     func refreshPreview() {
-        guard let imageURL, let preset = selectedPreset else { previewImage = nil; return }
-        previewGeneration += 1
-        let generation = previewGeneration
+        guard let imageURL, let preset = selectedPreset else {
+            lastPreviewKey = nil
+            previewImage = nil
+            return
+        }
         let ratio = Double(preset.width) / Double(preset.height)
         let width = ratio >= 1 ? 360 : Int(360 * ratio)
         let height = ratio >= 1 ? Int(360 / ratio) : 360
         let evenWidth = max(2, width - width % 2)
         let evenHeight = max(2, height - height % 2)
+        let key = PreviewKey(imageURL: imageURL, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical)
+        if key == lastPreviewKey && previewImage != nil { return }
+        lastPreviewKey = key
+        previewGeneration += 1
+        let generation = previewGeneration
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-preview-\(UUID().uuidString).png")
         engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] result in
             DispatchQueue.main.async {
-                if case .failure(let error) = result, generation == self?.previewGeneration { self?.fail(error) }
-                if case .success(let url) = result {
-                    let image = NSImage(contentsOf: url)
-                    try? FileManager.default.removeItem(at: url)
-                    guard let self, generation == self.previewGeneration else { return }
-                    self.previewImage = image
+                defer { try? FileManager.default.removeItem(at: output) }
+                guard let self, generation == self.previewGeneration else { return }
+                switch result {
+                case .success(let url):
+                    self.previewImage = NSImage(contentsOf: url)
+                case .failure(let error):
+                    self.fail(error)
                 }
             }
         }

@@ -7,14 +7,17 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.3"
+version = "0.2.5"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/tlolabs/ativ"
+homepage = "https://github.com/tlolabs/ativ"
+authors = ["Thomas Lothian"]
+description = "A TLO Labs open-source project for turning artwork and audio into video."
 rust-version = "1.85"
 
 [workspace.dependencies]
-avid-core = { path = "../AVID Core" }
+avid-core = { git = "https://github.com/tlolabs/avid-core", rev = "25d19098a22936638b0e2a70616083d929fe409c", version = "=0.3.0" }
 
 [profile.release]
 lto = "thin"

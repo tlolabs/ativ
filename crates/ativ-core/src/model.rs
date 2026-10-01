@@ -16,18 +16,18 @@ pub struct RenderRequest {
 
 impl RenderRequest {
     /// Preserve standalone audio semantics and the ATIV software encoding policy.
-    pub fn shared(&self) -> avid_core::RenderRequest {
+    pub fn into_shared(self) -> avid_core::RenderRequest {
         avid_core::RenderRequest {
             input: Input::Single {
-                image: self.image.clone(),
-                audio: self.audio.clone(),
+                image: self.image,
+                audio: self.audio,
             },
-            output: self.output.clone(),
+            output: self.output,
             settings: RenderSettings {
                 width: self.width,
                 height: self.height,
                 fps: self.fps,
-                audio_bitrate: self.audio_bitrate.clone(),
+                audio_bitrate: self.audio_bitrate,
                 flip_horizontal: self.flip_horizontal,
                 flip_vertical: self.flip_vertical,
                 codec: Codec::H264,
@@ -36,6 +36,11 @@ impl RenderRequest {
             },
             protected_paths: vec![],
         }
+    }
+
+    /// Preserve standalone audio semantics and the ATIV software encoding policy.
+    pub fn shared(&self) -> avid_core::RenderRequest {
+        self.clone().into_shared()
     }
 }
 

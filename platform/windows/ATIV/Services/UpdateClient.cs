@@ -17,4 +17,18 @@ public static class UpdateClient
         using var json = JsonDocument.Parse(await output);
         return json.RootElement.Clone();
     }
+    public static void InstallPortable(JsonElement download)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "ativ-portable-helper-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var helper = Path.Combine(directory,"ativ-portable-update.exe");
+        File.Copy(Path.Combine(AppContext.BaseDirectory,"ativ-portable-update.exe"),helper,false);
+        var start = new ProcessStartInfo(helper) { UseShellExecute=false };
+        start.ArgumentList.Add(download.GetProperty("path").GetString()!);
+        start.ArgumentList.Add(download.GetProperty("sha256").GetString()!);
+        start.ArgumentList.Add(AppContext.BaseDirectory);
+        start.ArgumentList.Add(Environment.ProcessId.ToString());
+        start.ArgumentList.Add(download.GetProperty("target").GetString()!);
+        _ = Process.Start(start) ?? throw new IOException("Cannot start the portable update helper.");
+    }
 }
