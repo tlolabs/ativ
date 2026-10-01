@@ -52,4 +52,4 @@ Completed exports are staged beside the destination and published only after suc
 
 ## License
 
-Original ATIV code and artwork are licensed under GPL-3.0-or-later. The combined engine includes GPL-3.0-only AVID Core, so the combined work cannot be offered under a later GPL version solely on ATIV's authority. Redistributed components retain their own licenses; see [the licensing review](LICENSING_REVIEW.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Copyright © Thomas Lothian.
+Original ATIV code and artwork and the pinned AVID Core library are licensed under GPL-3.0-or-later. Redistributed components retain their own licenses; see [the licensing review](LICENSING_REVIEW.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Copyright © Thomas Lothian.

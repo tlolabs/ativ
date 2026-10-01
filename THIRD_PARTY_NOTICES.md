@@ -2,11 +2,11 @@
 
 ## FFmpeg and FFprobe
 
-ATIV builds FFmpeg 9.0.2 and ffprobe from the official FFmpeg release archive, verified with SHA-256 and the upstream release signature. The exact source, configure options and external pins are in `runtime/ffmpeg/dependency.json`.
+ATIV bundles FFmpeg 9.0.1 and ffprobe from AVID Core's authenticated `ffmpeg-9.0.1-r7.1` release. Core owns the official source verification, configure options and native builds. `runtime/core-runtime.json` pins the release, binary, metadata and corresponding-source hashes for all six targets.
 
-The statically linked external libraries are x264 (GPL-2.0-or-later, stable commit b35605ace3ddf7c1a5d67a2eb553f034aef41d55) and zlib 1.3.1 (Zlib license). The resulting FFmpeg executables are GPL-2.0-or-later; version3 and nonfree components are disabled. Packages include complete corresponding source archives, build scripts, original upstream notices in `ffmpeg-licenses/`, and build/provenance records. On macOS these live in `Contents/Resources/FFmpeg`; elsewhere they accompany the engine. Preserve these materials when redistributing. See [the source-runtime documentation](docs/ffmpeg-source-runtime.md).
+The statically linked external libraries are x264 (GPL-2.0-or-later, stable commit b35605ace3ddf7c1a5d67a2eb553f034aef41d55), x265 4.1 (GPL-2.0-or-later), LAME 4.0 (LGPL-2.0-or-later), and zlib 1.3.1 (zlib license). The resulting FFmpeg executables are GPL-2.0-or-later; version3 and nonfree components are disabled. Packages preserve Core's complete corresponding-source archive, build scripts, original upstream notices in `licenses/`, and build/provenance records. On macOS these live in `Contents/Resources/FFmpeg`; on Windows/Linux they live in `ffmpeg-runtime/` beside the engine. Preserve these materials when redistributing. See [the runtime documentation](docs/ffmpeg-source-runtime.md).
 
-Windows FFmpeg packages also include the MinGW-w64 runtime notices and the GCC Runtime Library Exception or LLVM compiler-rt notices for compiler support code. Linux packages include GCC runtime copyright/exception material and GPL-3 text. These notices are preserved under `ffmpeg-licenses/toolchain-*`; compiler and package versions are recorded in `build.json`.
+Core preserves the original compiler runtime notices in each runtime's `licenses/` directory. Compiler and package versions are recorded in `build.json`.
 
 ## Windows App SDK
 
@@ -32,7 +32,7 @@ The Linux application uses GTK 4 and libadwaita, distributed under the GNU Lesse
 
 ## AVID Core and Rust dependencies
 
-ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (v0.3.0, `3fb68807bc7c350359e1634b32af477ea3042c16`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and is GPL-3.0-only. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`. The host source retains GPL-3.0-or-later; the linked shared component does not grant a later-version option.
+ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (0.3.0, `25d19098a22936638b0e2a70616083d929fe409c`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and this pinned revision declares GPL-3.0-or-later. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`.
 
 The exact Rust dependency versions and checksums are in Cargo.lock. The following packages retain their upstream notices and licenses (source archives are available from https://crates.io):
 

@@ -1,5 +1,13 @@
 # Licensing and provenance review
 
+## Current Core integration
+
+ATIV 0.2.5 pins Core 0.3.0 at `25d19098a22936638b0e2a70616083d929fe409c`. This revision declares GPL-3.0-or-later and supplies the runtime built for the published `ffmpeg-9.0.1-r7.1` release. ATIV no longer owns an FFmpeg source recipe. Packages preserve Core's original source archive, notices and qualification metadata, and include its crate license. The current dependency disclosures are [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
+
+## Historical review of ATIV 0.2.4
+
+The following review describes the older Core pin and ATIV-owned FFmpeg 9.0.2 packages. Its GPL-3.0-only Core boundary and source-build paths do not describe the current pinned dependency. The Windows binary inventory remains evidence about those historical packages.
+
 This review records the licensing boundary for ATIV's GPL-3.0-or-later original source. **Do not describe every file in a release ZIP as GPL-3.0-or-later.** The combined Rust engine includes GPL-3.0-only AVID Core, and Windows release packages contain separately licensed Microsoft dependencies. The detailed file-by-file Windows analysis is [docs/WINDOWS_LICENSING.md](docs/WINDOWS_LICENSING.md) with its [exact binary inventory](docs/windows-distribution-inventory.json).
 
 ## Original work and provenance

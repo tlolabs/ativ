@@ -1,5 +1,29 @@
 # ATIV integration with AVID Core 0.3.0
 
+## Current integration in ATIV 0.2.5
+
+ATIV consumes the published Core runtime `ffmpeg-9.0.1-r7.1` and pins its Rust library to the matching build commit `25d19098a22936638b0e2a70616083d929fe409c`. Core owns FFmpeg source selection, build options, native compilation and qualification. ATIV's source builder and dependency recipe have been removed.
+
+The shared acquirer authenticates the release manifest's GitHub artifact attestation and verifies the pinned archive, metadata, executable and corresponding-source hashes. Staging validates the original pair with Core's `MediaTools::from_core_directory`. ATIV records platform signing as a derivative without rewriting Core's original records. Packaged discovery checks the compiled Core/application identity and signed binary hashes before passing the pair to Core. There is no PATH or system fallback.
+
+See [runtime acquisition](ffmpeg-source-runtime.md), [building](BUILDING.md), and [release integration](release-integration.md) for the current commands and immutable pins.
+
+### Verified macOS ARM64 build
+
+ATIV 0.2.5 was built with the published Core runtime on September 30, 2026. The packaged engine reports Core 0.3.0 at `25d19098a22936638b0e2a70616083d929fe409c` and both media tools report FFmpeg 9.0.1. No FFmpeg source compilation ran in ATIV.
+
+- Formatting, strict clippy, 15 workspace tests, three runtime ownership checks, dependency inventory verification and eight release infrastructure tests passed.
+- The full packaged-runtime suite passed: 27 presets, 20 previews, four exports, timeouts, cancellation/process cleanup, and rejection of missing or damaged tools and metadata with a usable fallback pair on PATH.
+- A real `0.2.5-dev.1` engine accepted matching packaged provenance and rejected a changed base-version record.
+- Both Swift native client tests passed against the signed release engine, including probing, preview and export.
+- Developer ID signing, Apple notarization, stapling, strict signatures, extracted ZIP runtime validation and Gatekeeper passed. Apple's accepted submission is `2a74d216-2b1a-417d-ad82-ddf62a458d52`.
+
+The final `ATIV-0.2.5-macos-arm64.zip` SHA-256 is `a06f55679ad07d17420422b9b06c72a83d04b10943e21eec09beb7bb56cb4062`. This records the local ARM64 build; other native application targets were not rerun in this build.
+
+## Historical September 23 integration report
+
+The remainder records the previous ATIV 0.2.4 source-build migration and its validation. Its old Core revision, FFmpeg 9.0.2 recipe and package formats are historical evidence, not the current build contract.
+
 The normal ATIV application consumes Core tag `v0.3.0`, commit
 `3fb68807bc7c350359e1634b32af477ea3042c16`, as an exact Cargo Git dependency
 with version `=0.3.0`. The published annotated tag was resolved before changes.

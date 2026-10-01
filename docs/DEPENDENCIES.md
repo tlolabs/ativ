@@ -4,9 +4,11 @@ ATIV pins the Rust graph in `Cargo.lock` and its direct AVID Core Git revision i
 
 | Direct dependency | Purpose and source | License and distribution |
 | --- | --- | --- |
-| AVID Core 0.3.0 | Shared media model/rendering from `tlolabs/avid-core`, pinned Git commit | GPL-3.0-only, linked into the engine; limits the combined work to GPL v3 pending rights review. |
-| FFmpeg 9.0.2 / ffprobe | Local media decode, composition and export; official authenticated FFmpeg source | Configured GPL-2.0-or-later executable, bundled with corresponding source and notices. |
+| AVID Core 0.3.0 | Shared media model/rendering from `tlolabs/avid-core`, pinned Git commit | GPL-3.0-or-later, linked into the engine. |
+| FFmpeg 9.0.1 / ffprobe | Local media decode, composition and export; authenticated Core runtime release `ffmpeg-9.0.1-r7.1` | Configured GPL-2.0-or-later executable, bundled with corresponding source and notices. |
 | x264 | H.264 encoder, pinned upstream source archive | GPL-2.0-or-later, statically linked into FFmpeg. |
+| x265 | HEVC encoder in the shared Core runtime | GPL-2.0-or-later, statically linked into FFmpeg. |
+| LAME | MP3 encoder in the shared Core runtime | LGPL-2.0-or-later, statically linked into FFmpeg. |
 | zlib | Compression support, pinned upstream source archive | zlib license, statically linked into FFmpeg. |
 | Sparkle 2.9.6 | macOS GitHub Release update checks | Permissive upstream license; framework and notice bundled. |
 | Microsoft Windows App SDK 2.4 / WinUI 2.3.6 | Native Windows UI and self-contained runtime from Microsoft NuGet packages | Microsoft Software License Terms; the [Windows audit](WINDOWS_LICENSING.md) inventories exact release files, license links, GPL System Library analysis, and a framework-dependent alternative. The broad metapackage currently includes unused AI/ML/Search/Widgets files. |

@@ -19,7 +19,7 @@ Python is build/test tooling only; no Python runtime ships in ATIV. The maintain
 
 ## Media tools
 
-AVID Core owns source selection and builds for FFmpeg and ffprobe. ATIV acquires its exact matched runtime through the shared authenticated verifier. See [runtime acquisition](ffmpeg-source-runtime.md). Production acquisition remains blocked until the durable Core release is published and pinned. For unpublished host qualification, explicitly set `AVID_CORE_QUALIFICATION=1` and dispatch the reviewed candidate workflow.
+AVID Core owns source selection and builds for FFmpeg and ffprobe. ATIV acquires its exact matched runtime from the published `ffmpeg-9.0.1-r7.1` release through the shared authenticated verifier. Install GitHub CLI and authenticate it before provisioning; the verifier checks the release manifest's artifact attestation. See [runtime acquisition](ffmpeg-source-runtime.md). No FFmpeg compiler toolchain or sibling Core checkout is required.
 
 ```sh
 python3 script/ffmpeg_runtime.py provision macos-arm64
@@ -29,7 +29,7 @@ python3 script/ffmpeg_runtime.py provision macos-arm64
 ./script/package_linux.sh x86_64
 ```
 
-Packaging verifies ATIV's source payload before signing and verifies the packaged binaries afterward. There is no system/PATH production fallback. Both explicit engine `--ffmpeg`/`--ffprobe` paths remain available for deliberate development tests. Manual workflow dispatch supports `clean_ffmpeg=true` for a fresh source qualification.
+Packaging verifies Core's runtime and corresponding source before signing and verifies the packaged binaries afterward. There is no system/PATH production fallback. Both explicit engine `--ffmpeg`/`--ffprobe` paths remain available for deliberate development tests. Candidate qualification remains available only through explicit local/manual `AVID_CORE_QUALIFICATION=1` builds; ordinary builds acquire the published release.
 
 ATIV owns its native UI and final package signing: a signed/notarized macOS ZIP, an Azure Authenticode Windows portable ZIP, and a GPG-signed Linux AppImage. All native package validators run bundled discovery with an empty PATH and representative exports/previews through the actual packaged engine.
 

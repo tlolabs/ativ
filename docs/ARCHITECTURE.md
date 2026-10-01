@@ -12,7 +12,7 @@ GTK 4/Adwaita ──┘                                  adapter
 
 - The pinned `avid-core` Cargo dependency owns presets, validation, probing, media commands, previews, rendering, progress, cancellation, staging, and publication.
 - `ativ-core` is a thin ATIV compatibility adapter: it maps the standalone request to single-track, fitted, software H.264 settings, presents path-free errors, and retains ATIV application version identity. It contains no media implementation.
-- ATIV owns FFmpeg/ffprobe source acquisition, build configuration, packaging and runtime discovery; Core runtime assets are not used.
+- AVID Core owns FFmpeg/ffprobe source selection, build configuration and native runtime qualification. ATIV acquires the pinned Core release and owns application packaging, signing and bundled runtime discovery.
 - `ativ-engine` exposes that functionality through a stable newline-delimited JSON process interface.
 - `platform/macos`, `platform/windows`, and `platform/linux` provide native file pickers, drag and drop, accessibility, window management, and each platform’s visual language.
 
@@ -41,7 +41,7 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 - Source images are limited to 32,768 pixels per axis and 50 megapixels.
 - Output is limited to 8,192 pixels per axis and 33,177,600 pixels.
 - FFmpeg and ffprobe run without a shell and with standard input disabled.
-- Packaged media tools are version-checked by avid-core before use; mismatched version identifiers are rejected. Each platform/architecture uses one ATIV source-built 9.0.2 pair for all modes. The shared crate supplies no binaries.
+- Packaged media tools are version-checked by avid-core before use; mismatched version identifiers are rejected. Each platform/architecture uses one Core-built 9.0.1 pair for all modes. ATIV verifies the authenticated release, preserves Core's original metadata and records the hashes after platform signing.
 - Diagnostics remain local; ATIV has no telemetry or automatic diagnostic upload.
 
 ## Platform support
@@ -58,4 +58,4 @@ Appearance/preferences remain platform-owned. Source selection, probing, preview
 
 `assets/icons` owns artwork; `generate_icons.py` converts it into tracked native resources. Distribution identity and versions are generated from the workspace version plus the CI development build number. Stable/development feeds and application identities are separate.
 
-Core 0.3.0 is pinned at `3fb68807bc7c350359e1634b32af477ea3042c16` (tag `v0.3.0`). Production calls `MediaTools::from_paths` after ATIV validates its own bundle. It never invokes Core discovery or runtime acquisition. `ativ-engine build-info` identifies the compiled source dependency; package provenance must match.
+Core 0.3.0 is pinned at `25d19098a22936638b0e2a70616083d929fe409c`, matching the published runtime build. Staging calls `MediaTools::from_core_directory` to validate the original Core package. Production calls `MediaTools::from_paths` after ATIV verifies its signed bundle against the pinned original metadata and signed binary hashes. This preserves platform signing without changing Core's original qualification records. `ativ-engine build-info` identifies the compiled source dependency; package provenance must match the compiled application version, including development versions.

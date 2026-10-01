@@ -1,4 +1,4 @@
-//! Core owns the media pair; EnCAP binds platform-signed copies to its pinned artifact.
+//! Core owns the media pair; ATIV binds platform-signed copies to its pinned artifact.
 use ativ_core::AtivError;
 use ativ_core::{CancellationToken, MediaTools};
 use serde_json::Value;
@@ -137,7 +137,7 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         || build["core_revision"] != pin["revision"]
         || build["core_worktree_modified"] != false
         || provenance
-            != serde_json::json!({"schema":1,"owner":"AVID Core","ativ_version":env!("CARGO_PKG_VERSION"),"avid_core":{"version":ativ_core::CORE_VERSION,"revision":ativ_core::CORE_REVISION,"source":ativ_core::CORE_SOURCE},"target":target})
+            != serde_json::json!({"schema":1,"owner":"AVID Core","ativ_version":ativ_core::VERSION,"avid_core":{"version":ativ_core::CORE_VERSION,"revision":ativ_core::CORE_REVISION,"source":ativ_core::CORE_SOURCE},"target":target})
         || signed["schema"] != 1
         || signed["target"] != target
         || hash(&metadata.join("corresponding-source.tar.gz"))?
@@ -170,20 +170,20 @@ pub fn resolve(
     if token.is_cancelled() {
         return Err(unavailable());
     }
-    let (ffmpeg, ffprobe, version) =
-        match (ffmpeg, ffprobe) {
-            (Some(ffmpeg), Some(ffprobe)) if ffmpeg.is_absolute() && ffprobe.is_absolute() => {
-                (ffmpeg, ffprobe, None)
-            }
-            (None, None) => {
-                let (ffmpeg, ffprobe, version) = packaged_pair()?;
-                (ffmpeg, ffprobe, Some(version))
-            }
-            _ => return Err(AtivError::InvalidInput(
-                "Development overrides require both ENCAP_FFMPEG and ENCAP_FFPROBE absolute paths."
-                    .into(),
-            )),
-        };
+    let (ffmpeg, ffprobe, version) = match (ffmpeg, ffprobe) {
+        (Some(ffmpeg), Some(ffprobe)) if ffmpeg.is_absolute() && ffprobe.is_absolute() => {
+            (ffmpeg, ffprobe, None)
+        }
+        (None, None) => {
+            let (ffmpeg, ffprobe, version) = packaged_pair()?;
+            (ffmpeg, ffprobe, Some(version))
+        }
+        _ => {
+            return Err(AtivError::InvalidInput(
+                "Development overrides require both --ffmpeg and --ffprobe absolute paths.".into(),
+            ));
+        }
+    };
     let tools = MediaTools::from_paths(ffmpeg, ffprobe, token)?;
     if let Some(version) = version {
         if tools.ffmpeg_version().split_whitespace().nth(2) != Some(version.as_str())
