@@ -14,14 +14,14 @@ ATIV processes media locally. No accounts, analytics, hosted crash reports, uplo
 | CI build/test target | Minimum | Current release packaging |
 | --- | --- | --- |
 | macOS (ARM64/x64) | macOS 13 | ZIP; Sparkle updates |
-| Windows (x64/ARM64) | Windows 10 1809 | Per-user installer and portable ZIP |
-| Linux (x64/ARM64) | GTK 4.10, libadwaita 1.4; Ubuntu 24.04 package baseline | AppImage |
+| Windows (x64/ARM64) | Windows 10 1809 | Portable ZIP |
+| Linux (x64/ARM64) | Avalonia 12.1.3; Ubuntu 24.04 package baseline | AppImage |
 
 Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Check each release's notes for artifacts omitted because a platform job failed. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for its pending qualification gates.
 
 All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed the release pipeline. The release notes identify incomplete builds.
 
-The interfaces use SwiftUI/AppKit, WinUI 3 and GTK/libadwaita, respectively. They follow native appearance and control conventions, default to the system theme, and offer Light/Dark/System preferences. The same Rust media implementation powers every platform.
+The interfaces use SwiftUI/AppKit on production macOS and one shared Avalonia 12 UI on Windows and Linux, respectively. They follow native appearance and control conventions, default to the system theme, and offer Light/Dark/System preferences. The same Rust media implementation powers every platform.
 
 ## Documentation
 

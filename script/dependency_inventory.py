@@ -46,10 +46,10 @@ def inventory():
             {"name": "AVID Core FFmpeg runtime", "version": sample["version"] + "-r" + str(sample["recipe"]), "license": "GPL-2.0-or-later", "source": ffmpeg["repository"] + "@" + ffmpeg["build_revision"]},
             *({"name": "Core runtime " + target, "version": record["version"], "license": "GPL-2.0-or-later", "sha256": record["sha256"]} for target, record in candidate["targets"].items()),
             {"name": "Sparkle", "version": "2.9.6", "license": "upstream permissive license", "source": "script/prepare_sparkle.sh"},
-            {"name": "Microsoft.WindowsAppSDK", "version": "2.4.0", "license": "Microsoft package terms; review required", "source": "platform/windows/ATIV/ATIV.csproj"},
-            {"name": "GTK", "version": ">=4.10", "license": "LGPL-family", "source": "platform/linux/meson.build"},
-            {"name": "libadwaita", "version": ">=1.4", "license": "LGPL-family", "source": "platform/linux/meson.build"},
-            {"name": "json-glib", "version": "system package", "license": "LGPL-family", "source": "platform/linux/meson.build"},
+            {"name": "Avalonia", "version": "12.1.3", "license": "MIT", "source": "platform/avalonia/packages.lock.json"},
+            {"name": "SkiaSharp", "version": "3.119.4", "license": "MIT", "source": "platform/avalonia/packages.lock.json"},
+            {"name": "HarfBuzzSharp", "version": "8.3.1.3", "license": "MIT", "source": "platform/avalonia/packages.lock.json"},
+            {"name": "ANGLE", "version": "2.1.27548.20260419", "license": "BSD-3-Clause", "source": "platform/avalonia/packages.lock.json"},
         ],
         "buildInputs": [line.strip() for line in (ROOT / "script/requirements-build.txt").read_text().splitlines() if line.strip() and not line.startswith("#")],
     }
@@ -73,6 +73,8 @@ def sbom(data):
         if package.get("license") and "review" not in package["license"] and "family" not in package["license"] and "upstream" not in package["license"]:
             component["licenses"] = [{"license": {"id": package["license"]}}]
         components.append(component)
+    for package in json.loads((ROOT / "docs/avalonia-dependencies.json").read_text())["packages"]:
+        components.append({"type":"library","name":package["name"],"version":package["version"],"bom-ref":"nuget:"+package["name"]+":"+package["version"],"purl":"pkg:nuget/"+package["name"]+"@"+package["version"],"licenses":[{"license":{"id":package["license"]}}]})
     return {"bomFormat": "CycloneDX", "specVersion": "1.6", "version": 1,
             "metadata": {"component": {"type": "application", "name": "ATIV", "version": data["projectVersion"]}},
             "components": components}

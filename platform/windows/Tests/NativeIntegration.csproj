@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
 <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
-<ItemGroup><Compile Include="../ATIV/Services/EngineClient.cs" Link="EngineClient.cs"/><Compile Include="../ATIV/Models/EngineModels.cs" Link="EngineModels.cs"/></ItemGroup>
+<ItemGroup><Compile Include="../../avalonia/Services/EngineClient.cs" Link="EngineClient.cs"/><Compile Include="../../avalonia/Models/EngineModels.cs" Link="EngineModels.cs"/><Compile Include="../../avalonia/Services/IMediaEngine.cs" Link="IMediaEngine.cs"/></ItemGroup>
 </Project>

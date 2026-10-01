@@ -8,6 +8,8 @@
 /platform/macos/.build/
 /platform/windows/**/bin/
 /platform/windows/**/obj/
+/platform/avalonia/**/bin/
+/platform/avalonia/**/obj/
 
 # Python build-tool bytecode (the application has no Python runtime)
 __pycache__/

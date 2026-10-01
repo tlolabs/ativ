@@ -14,7 +14,7 @@ Remove-Item $env:ATIV_SMOKE_REPORT -ErrorAction SilentlyContinue
 $app = Start-Process (Join-Path $stage 'ATIV.exe') -PassThru
 try {
     for ($i=0; $i -lt 30 -and !(Test-Path $env:ATIV_SMOKE_REPORT); $i++) { Start-Sleep -Seconds 1 }
-    if (!(Test-Path $env:ATIV_SMOKE_REPORT)) { throw 'WinUI startup and engine preset smoke failed' }
+    if (!(Test-Path $env:ATIV_SMOKE_REPORT)) { throw 'Avalonia startup and engine preset smoke failed' }
 } finally { if (!$app.HasExited) { Stop-Process -Id $app.Id } }
 # Extract the actual portable ZIP and execute bundled discovery from that fresh payload.
 $zip = Get-ChildItem (Join-Path $root 'packages') -Filter '*-windows-*.zip' | Select-Object -First 1

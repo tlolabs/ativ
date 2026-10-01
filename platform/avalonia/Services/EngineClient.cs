@@ -4,7 +4,7 @@ using ATIV.Models;
 
 namespace ATIV.Services;
 
-public sealed class EngineClient
+public sealed class EngineClient : IMediaEngine
 {
     private readonly object gate = new();
     private Process? renderProcess;
@@ -15,7 +15,7 @@ public sealed class EngineClient
         {
             var configured = Environment.GetEnvironmentVariable("ATIV_ENGINE_PATH");
             if (!string.IsNullOrWhiteSpace(configured)) return configured;
-            var sidecar = Path.Combine(AppContext.BaseDirectory, "ativ-engine.exe");
+            var sidecar = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "ativ-engine.exe" : "ativ-engine");
             if (File.Exists(sidecar)) return sidecar;
             throw new FileNotFoundException("The ATIV media engine is missing. Reinstall the application.", sidecar);
         }

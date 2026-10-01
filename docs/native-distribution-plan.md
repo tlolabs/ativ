@@ -1,3 +1,5 @@
+> Historical planning snapshot. Windows/Linux production UI now uses shared Avalonia; see [migration audit](avalonia-migration.md).
+
 # Native distribution migration
 
 ## Baseline review

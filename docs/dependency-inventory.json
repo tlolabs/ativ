@@ -1202,28 +1202,28 @@
       "version": "2.9.6"
     },
     {
-      "license": "Microsoft package terms; review required",
-      "name": "Microsoft.WindowsAppSDK",
-      "source": "platform/windows/ATIV/ATIV.csproj",
-      "version": "2.4.0"
+      "license": "MIT",
+      "name": "Avalonia",
+      "source": "platform/avalonia/packages.lock.json",
+      "version": "12.1.3"
     },
     {
-      "license": "LGPL-family",
-      "name": "GTK",
-      "source": "platform/linux/meson.build",
-      "version": ">=4.10"
+      "license": "MIT",
+      "name": "SkiaSharp",
+      "source": "platform/avalonia/packages.lock.json",
+      "version": "3.119.4"
     },
     {
-      "license": "LGPL-family",
-      "name": "libadwaita",
-      "source": "platform/linux/meson.build",
-      "version": ">=1.4"
+      "license": "MIT",
+      "name": "HarfBuzzSharp",
+      "source": "platform/avalonia/packages.lock.json",
+      "version": "8.3.1.3"
     },
     {
-      "license": "LGPL-family",
-      "name": "json-glib",
-      "source": "platform/linux/meson.build",
-      "version": "system package"
+      "license": "BSD-3-Clause",
+      "name": "ANGLE",
+      "source": "platform/avalonia/packages.lock.json",
+      "version": "2.1.27548.20260419"
     }
   ],
   "project": "ATIV",

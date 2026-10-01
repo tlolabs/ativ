@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:ATIV.ViewModels" x:DataType="vm:MainViewModel"
+        x:Class="ATIV.MainWindow" Title="ATIV — Artwork + Tracks Into Video" Width="1000" Height="720"
+        MinWidth="640" MinHeight="480" DragDrop.AllowDrop="True" DragDrop.Drop="OnDrop" DragDrop.DragOver="OnDragOver">
+  <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+    <Menu Grid.Row="0">
+      <MenuItem Header="File">
+        <MenuItem Header="Choose image…" Click="ChooseImage" InputGesture="Ctrl+I" />
+        <MenuItem Header="Choose audio…" Click="ChooseAudio" InputGesture="Ctrl+O" />
+        <MenuItem Header="Choose output…" Click="ChooseOutput" InputGesture="Ctrl+Shift+S" />
+      </MenuItem>
+      <MenuItem Header="Settings"><MenuItem Header="Preferences…" Click="ShowPreferences" /></MenuItem>
+      <MenuItem Header="Help">
+        <MenuItem Header="Check for Updates…" Click="ManualUpdate" IsEnabled="{Binding CanCheckUpdates}" />
+        <MenuItem Header="About ATIV" Click="ShowAbout" />
+      </MenuItem>
+    </Menu>
+    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid ColumnDefinitions="3*,2*" ColumnSpacing="24" Margin="24" MinWidth="600">
+        <StackPanel Grid.Column="0" Spacing="15">
+          <TextBlock Text="Create a video" Classes="sectionTitle" AutomationProperties.HeadingLevel="1" />
+          <TextBlock Text="Combine one image with an audio recording for social media distribution." TextWrapping="Wrap" />
+          <Border Padding="16" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Source media" Classes="sectionTitle" AutomationProperties.HeadingLevel="2" />
+              <Grid ColumnDefinitions="70,*,Auto" ColumnSpacing="8">
+                <TextBlock Text="Image" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding ImagePath}" IsReadOnly="True" PlaceholderText="Nothing selected" AutomationProperties.Name="Selected image" />
+                <Button Grid.Column="2" Content="Choose…" Click="ChooseImage" AutomationProperties.Name="Choose image" />
+              </Grid>
+              <Grid ColumnDefinitions="70,*,Auto" ColumnSpacing="8">
+                <TextBlock Text="Audio" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding AudioPath}" IsReadOnly="True" PlaceholderText="Nothing selected" AutomationProperties.Name="Selected audio" />
+                <Button Grid.Column="2" Content="Choose…" Click="ChooseAudio" AutomationProperties.Name="Choose audio" />
+              </Grid>
+              <TextBlock Text="{Binding Duration}" AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+          </Border>
+          <Border Padding="16" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Format" Classes="sectionTitle" AutomationProperties.HeadingLevel="2" />
+              <TextBlock Text="Social media outlet" />
+              <ComboBox ItemsSource="{Binding Platforms}" SelectedItem="{Binding SelectedPlatform}" AutomationProperties.Name="Social media outlet" />
+              <TextBlock Text="Aspect ratio" />
+              <ComboBox ItemsSource="{Binding Aspects}" SelectedItem="{Binding SelectedAspect}" AutomationProperties.Name="Aspect ratio" />
+              <TextBlock Text="Resolution" />
+              <ComboBox ItemsSource="{Binding Resolutions}" SelectedItem="{Binding SelectedPreset}" AutomationProperties.Name="Resolution" />
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel><TextBlock Text="Audio bitrate" /><TextBox Text="{Binding Bitrate}" AutomationProperties.Name="Audio bitrate" AutomationProperties.HelpText="Enter a value such as 128k" /></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Text="Frames per second" /><NumericUpDown Value="{Binding Fps}" Minimum="1" Maximum="240" Increment="1" AutomationProperties.Name="Frames per second" /></StackPanel>
+              </Grid>
+              <StackPanel Orientation="Horizontal" Spacing="18">
+                <CheckBox Content="Flip horizontally" IsChecked="{Binding FlipHorizontal}" />
+                <CheckBox Content="Flip vertically" IsChecked="{Binding FlipVertical}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <Border Padding="16" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Destination" Classes="sectionTitle" AutomationProperties.HeadingLevel="2" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBox Text="{Binding OutputPath}" IsReadOnly="True" PlaceholderText="Choose an MP4 destination" AutomationProperties.Name="Output video" />
+                <Button Grid.Column="1" Content="Choose…" Click="ChooseOutput" AutomationProperties.Name="Choose output video" />
+              </Grid>
+            </StackPanel>
+          </Border>
+          <Button Content="{Binding RenderLabel}" IsEnabled="{Binding CanRender}" Classes="primary" Click="RenderOrCancel" AutomationProperties.HelpText="Create or safely stop an MP4 video" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="14">
+          <TextBlock Text="Preview" Classes="sectionTitle" HorizontalAlignment="Center" AutomationProperties.HeadingLevel="2" />
+          <Border BorderThickness="1" BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" Padding="12" CornerRadius="8" MinHeight="300">
+            <Image x:Name="PreviewImage" Stretch="Uniform" AutomationProperties.Name="Video frame preview" />
+          </Border>
+          <TextBlock Text="{Binding PreviewCaption}" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+    </ScrollViewer>
+    <StackPanel Grid.Row="2" Margin="18,10" Spacing="6">
+      <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" AutomationProperties.Name="Video creation progress" />
+      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" AutomationProperties.LiveSetting="Assertive" />
+    </StackPanel>
+  </Grid>
+</Window>

@@ -5,7 +5,7 @@ public static class UpdateClient
 {
     public static async Task<JsonElement> RunAsync(string command)
     {
-        var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "ativ-update.exe")) {
+        var start = new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "ativ-update.exe" : "ativ-update")) {
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true
         };
         start.ArgumentList.Add(command);

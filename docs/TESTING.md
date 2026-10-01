@@ -9,6 +9,8 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --all-targets --locked
 python3 script/test_runtime_ownership.py
 python3 script/dependency_inventory.py --check
+python3 script/avalonia_dependencies.py --check
+dotnet run --project platform/avalonia/Tests/PresentationTests.csproj -c Release -warnaserror
 ```
 
 The release infrastructure tests use the pinned Python requirements and `script/test_release_infrastructure.py`. Run `./script/test_engine_integration.sh macos-arm64` to test the acquired Core runtime, media operations, cancellation and rejection of missing or damaged package files. ATIV has no independent FFmpeg source-builder tests. Native CI runs the same package and media tests on each target when `owner_testing=false`. Owner build mode skips acceptance tests; a build result alone does not establish that they passed. Record platform-specific validation in [the acceptance matrix](acceptance-matrix.md).
@@ -24,3 +26,5 @@ ATIV_TEST_MEDIA="$PWD/build/native-fixtures" \
 ATIV_ENGINE_PATH="$PWD/build/package-macos-arm64/ATIV.app/Contents/MacOS/ativ-engine" \
 swift test --package-path platform/macos --scratch-path build/native-tests
 ```
+
+Shared Avalonia smoke checks start the internal Mac reference bundle and decode 27 engine presets. The separate native C# integration harness probes, previews and exports through the packaged engine. CI runs the same shared presentation tests on both Windows and Linux architectures; the internal Mac reference is an additional build and launch gate, never a production release artifact. Manual Narrator/Orca checks remain necessary.

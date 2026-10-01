@@ -22,7 +22,7 @@ cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --
 if ($LASTEXITCODE -ne 0) { throw "Rust build failed" }
 if (Test-Path $build) { Remove-Item -Recurse -Force $build }
 New-Item -ItemType Directory -Force -Path $publish, $packages | Out-Null
-dotnet publish (Join-Path $root "platform/windows/ATIV/ATIV.csproj") -c Release -r $runtime --self-contained true -p:Platform=$Architecture -p:Version=$version -p:AssemblyVersion=$numericVersion -p:FileVersion=$numericVersion -o $publish
+dotnet publish (Join-Path $root "platform/avalonia/ATIV.Avalonia.csproj") -c Release -r $runtime --self-contained true -p:Version=$version -p:AssemblyVersion=$numericVersion -p:FileVersion=$numericVersion -o (Join-Path $build "managed")
 if ($LASTEXITCODE -ne 0) { throw "Native build failed" }
 
 dotnet publish (Join-Path $root "platform/windows/PortableUpdate/PortableUpdate.csproj") -c Release -r $runtime --self-contained true -o (Join-Path $build "update-helper")
@@ -41,6 +41,7 @@ Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
 
 python (Join-Path $root "script/ffmpeg_runtime.py") finish $ffmpegTarget --binary $publish --metadata (Join-Path $publish "ffmpeg-runtime")
 if ($LASTEXITCODE -ne 0) { throw "Signed ATIV FFmpeg runtime recording failed" }
+Copy-Item (Join-Path $build "managed/*") $publish -Recurse
 # Core licenses remain inside its immutable metadata tree; application licenses stay separate.
 python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
 if ($LASTEXITCODE -ne 0) { throw "License collection failed" }

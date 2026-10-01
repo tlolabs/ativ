@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Models/EngineModels.cs" Link="EngineModels.cs" />
+    <Compile Include="../Services/IMediaEngine.cs" Link="IMediaEngine.cs" />
+    <Compile Include="../Services/Preferences.cs" Link="Preferences.cs" />
+    <Compile Include="../Services/PlatformUpdates.cs" Link="PlatformUpdates.cs" />
+    <Compile Include="../Services/UpdateClient.cs" Link="UpdateClient.cs" />
+    <Compile Include="../ViewModels/MainViewModel.cs" Link="MainViewModel.cs" />
+  </ItemGroup>
+</Project>

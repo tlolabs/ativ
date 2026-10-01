@@ -3,9 +3,9 @@
 ATIV is a native desktop application backed by one shared Rust media engine. The app combines artwork and an audio track into an MP4 without sending either file to a service.
 
 ```text
-SwiftUI/AppKit ─┐
-WinUI 3/C# ─────┼─ process protocol ─ ativ-engine ─ ativ-core ─ avid-core ─ FFmpeg/ffprobe
-GTK 4/Adwaita ──┘                                  adapter
+SwiftUI/AppKit ───────────┐
+Avalonia 12 (Windows/Linux) ├─ JSON process protocol ─ ativ-engine ─ ativ-core ─ avid-core ─ FFmpeg/ffprobe
+Avalonia 12 (Mac reference) ┘
 ```
 
 ## Components
@@ -14,9 +14,9 @@ GTK 4/Adwaita ──┘                                  adapter
 - `ativ-core` is a thin ATIV compatibility adapter: it maps the standalone request to single-track, fitted, software H.264 settings, presents path-free errors, and retains ATIV application version identity. It contains no media implementation.
 - AVID Core owns FFmpeg/ffprobe source selection, build configuration and native runtime qualification. ATIV acquires the pinned Core release and owns application packaging, signing and bundled runtime discovery.
 - `ativ-engine` exposes that functionality through a stable newline-delimited JSON process interface.
-- `platform/macos`, `platform/windows`, and `platform/linux` provide native file pickers, drag and drop, accessibility, window management, and each platform’s visual language.
+- `platform/macos` remains the native production SwiftUI/AppKit UI. `platform/avalonia` owns the single Windows/Linux presentation, view model and engine client; the internal Apple Silicon reference runs that same project. Platform services retain updater installation and filesystem differences.
 
-The process boundary keeps media work isolated from the user interfaces. Native clients pass file paths as individual process arguments, not shell strings; receive JSON events on standard output; and send `cancel` on standard input when a render must stop. A shared cancellation token now also covers tool validation, probes, and previews. Native worker queues and preview-generation guards remain unchanged.
+The process boundary keeps media work isolated from the user interfaces. Native clients pass file paths as individual process arguments, not shell strings; receive JSON events on standard output; and send `cancel` on standard input when a render must stop. A shared cancellation token now also covers tool validation, probes, and previews. The shared Avalonia view model retains preview-generation guards, render cancellation and update exclusion.
 
 ## Render lifecycle
 
@@ -48,13 +48,13 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 
 - **macOS:** macOS 13 or later, Apple Silicon and Intel.
 - **Windows:** Windows 10 version 1809 or later, x64 and ARM64.
-- **Linux:** GTK 4 and libadwaita 1.4 or later on current Ubuntu- and Fedora-family distributions.
+- **Linux:** Avalonia 12 over X11, with the self-contained .NET 8 runtime in AppImages for x64 and ARM64. The internal Mac arm64 Avalonia build is for development only.
 
 ## Application distribution boundary
 
-`ativ-update` is an ATIV-only Rust executable; it has no avid-core dependency and never receives media paths. Windows/GTK call it asynchronously to check signed metadata and download verified installers. macOS loads Sparkle through a small Objective-C bridge. Native UI confirmation and platform installers own the installation step. See [release architecture](RELEASING.md).
+`ativ-update` is an ATIV-only Rust executable; it has no avid-core dependency and never receives media paths. The shared Avalonia UI calls it asynchronously on Windows/Linux; the platform service chooses portable Windows replacement or Linux AppImage replacement/manual download. The internal Mac reference has no updater binary or production update configuration. macOS loads Sparkle through a small Objective-C bridge. Native UI confirmation and platform installers own the installation step. See [release architecture](RELEASING.md).
 
-Appearance/preferences remain platform-owned. Source selection, probing, preview generations and render state belong to native stores/clients. An audio probe for an older selection cannot replace the current duration. Native process clients keep pipes drained and pass arguments without a shell. Closing or quitting an active render requests safe engine cancellation.
+Appearance and media workflow state are shared by the Avalonia view model on Windows/Linux/reference Mac. Windows JSON preferences retain their original path; Linux imports the old INI values into a JSON store without deleting the INI. Production macOS keeps its own native stores. An audio probe for an older selection cannot replace the current duration. Native process clients keep pipes drained and pass arguments without a shell. Closing or quitting an active render requests safe engine cancellation.
 
 `assets/icons` owns artwork; `generate_icons.py` converts it into tracked native resources. Distribution identity and versions are generated from the workspace version plus the CI development build number. Stable/development feeds and application identities are separate.
 

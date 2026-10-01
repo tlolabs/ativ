@@ -1,3 +1,5 @@
+> Historical audit of the published v0.2.4 WinUI binaries. The Avalonia migration removes Windows App SDK from source; this report does not describe new Avalonia packages. See [current dependencies](DEPENDENCIES.md).
+
 # Windows distribution licensing audit
 
 Reviewed 2026-09-24 against the published `v0.2.4` x64 and ARM64 portable ZIPs. This is a component analysis, not a claim that Microsoft code is GPL licensed. The exact filename, SHA-256, origin evidence, and package license URL for every `.dll`, `.exe`, `.winmd`, `.pri`, `.xbf`, and `.dat` in both archives are in [windows-distribution-inventory.json](windows-distribution-inventory.json). The companion [inventory script](../script/windows_distribution_inventory.py) reproduces the comparison against the NuGet cache. Its limits matter: the x64 .NET 8.0.30 package was absent locally, so `.deps.json` identifies those assets; a filename match alone is not proof of origin. `ATIV.pri` is an application-generated resource index, not a Microsoft runtime binary.

@@ -1,3 +1,5 @@
+> Historical native-distribution evidence predating the shared Avalonia migration. See [migration audit](avalonia-migration.md) for current source.
+
 # Native distribution migration report
 
 ## Scope and implementation

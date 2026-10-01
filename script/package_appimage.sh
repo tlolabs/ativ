@@ -14,18 +14,16 @@ fetch() { curl --fail --location --retry 3 --proto '=https' --proto-redir '=http
 fetch "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-$ARCH.AppImage" "$TOOLS/linuxdeploy" "$DEPLOY_HASH"
 fetch "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-$ARCH.AppImage" "$TOOLS/appimagetool" "$IMAGE_HASH"
 fetch "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-$ARCH" "$TOOLS/runtime" "$RUNTIME_HASH"
-curl --fail --location --proto '=https' 'https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/7a3fbc31a9e5075073ff8790f26effbac5f84453/linuxdeploy-plugin-gtk.sh' -o "$TOOLS/linuxdeploy-plugin-gtk.sh"
-chmod +x "$TOOLS/linuxdeploy-plugin-gtk.sh"
 rm -rf "$APPDIR"; mkdir -p "$APPDIR"; cp -a "$STAGE/usr" "$APPDIR/"
 python3 "$ROOT_DIR/script/configure_distribution.py" "$APPDIR/usr/lib/ativ" "linux-$LABEL-appimage"
-export APPIMAGE_EXTRACT_AND_RUN=1 DEPLOY_GTK_VERSION=4 NO_STRIP=1
+export APPIMAGE_EXTRACT_AND_RUN=1 NO_STRIP=1
 export PATH="$TOOLS:$PATH"
 DESKTOP="$(find "$APPDIR/usr/share/applications" -name '*.desktop' -print -quit)"
 sed -i 's/^Exec=ativ-development$/Exec=ativ/' "$DESKTOP"
 # The verified FFmpeg pair only links system libraries. Keep it out of
 # linuxdeploy's ELF rewriting, then restore the exact source-built bytes.
 rm "$APPDIR/usr/lib/ativ/ffmpeg" "$APPDIR/usr/lib/ativ/ffprobe"
-linuxdeploy --appdir "$APPDIR" --executable "$APPDIR/usr/bin/ativ" --desktop-file "$DESKTOP" --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/$(basename "$DESKTOP" .desktop).png" --plugin gtk
+linuxdeploy --appdir "$APPDIR" --executable "$APPDIR/usr/lib/ativ/ATIV" --desktop-file "$DESKTOP" --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/$(basename "$DESKTOP" .desktop).png"
 cp -p "$STAGE/usr/lib/ativ/ffmpeg" "$STAGE/usr/lib/ativ/ffprobe" "$APPDIR/usr/lib/ativ/"
 # linuxdeploy-generated AppRun supplies the relocatable runtime environment.
 ARCH="$ARCH" "$TOOLS/appimagetool" --runtime-file "$TOOLS/runtime" "$APPDIR" "$ROOT_DIR/packages/ATIV-$VERSION-linux-$LABEL.AppImage"

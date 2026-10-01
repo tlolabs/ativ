@@ -33,7 +33,8 @@ def validate(root,target):
         icons=list((root/'usr/share/icons/hicolor/256x256/apps').glob('*.png'));names=['ativ-engine','ativ-update','ffmpeg','ffprobe']
         ui=root/'usr/bin/ativ'
         if not ui.exists():ui=root/'usr/bin/ativ-development'
-        machine(ui,target)
+        assert ui.is_file() and os.access(ui,os.X_OK), 'Missing Linux launcher'
+        machine(binary/'ATIV',target)
         assert list((root/'usr/share/applications').glob('*.desktop'))
     assert icons and all(p.is_file() and p.stat().st_size>100 for p in icons),'Missing native icons'
     for name in names: machine(binary/name,target)

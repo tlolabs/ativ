@@ -8,27 +8,11 @@ The statically linked external libraries are x264 (GPL-2.0-or-later, stable comm
 
 Core preserves the original compiler runtime notices in each runtime's `licenses/` directory. Compiler and package versions are recorded in `build.json`.
 
-## Windows App SDK
+## Avalonia and managed runtime
 
-The Windows application uses Microsoft Windows App SDK 2.4 under its [Microsoft Software License Terms](https://www.nuget.org/packages/Microsoft.WindowsAppSDK.WinUI/2.3.6/License) and package `NOTICE.txt`. Self-contained deployment copies its runtime files into the application package. Windows ML files have [separate Microsoft terms](https://www.nuget.org/packages/Microsoft.Windows.AI.MachineLearning/2.1.74/License). These terms apply to the Microsoft components; they are not relicensed as GPL. The exact current ZIP contents, including the Windows SDK projection, are in [the Windows licensing audit](docs/WINDOWS_LICENSING.md). Future packages must carry the applicable Microsoft terms and notices alongside the binaries; the already published v0.2.4 ZIPs omit them.
+Current Windows/Linux presentation uses Avalonia 12.1.3 (MIT), SkiaSharp 3.119.4 (MIT), HarfBuzzSharp 8.3.1.3 (MIT), ANGLE 2.1.27548.20260419 (BSD-3-Clause on Windows), and a self-contained .NET 8 runtime (MIT). Exact NuGet package versions, hashes, target selection and declared licenses appear in `docs/avalonia-dependencies.json`. The packages include `licenses/Avalonia.txt`, `Avalonia-notices.txt`, `SkiaSharp.txt`, `HarfBuzzSharp.txt` and `ANGLE.txt`. Preserve them on redistribution. The .NET runtime retains its upstream notices and source attribution.
 
-The self-contained .NET 8 runtime and `System.Numerics.Tensors` use MIT terms according to their [Microsoft](https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.win-x64/8.0.30) and [NuGet](https://www.nuget.org/packages/System.Numerics.Tensors/9.0.0) package metadata. Preserve their copyright and license notices in future packages.
-
-The three WebView2 SDK DLLs in the Windows ZIP are covered by the following [Microsoft WebView2 package license](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3719.77/License). Its copyright notice, conditions and disclaimer must accompany binary redistribution:
-
-> Copyright (C) Microsoft Corporation. All rights reserved.
->
-> Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
->
-> * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-> * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-> * The name of Microsoft Corporation, or the names of its contributors may not be used to endorse or promote products derived from this software without specific prior written permission.
->
-> THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-## GTK and libadwaita
-
-The Linux application uses GTK 4 and libadwaita, distributed under the GNU Lesser General Public License 2.1 or later.
+Published v0.2.4 Windows ZIPs used WinUI and Microsoft Windows App SDK; [their historical audit](docs/WINDOWS_LICENSING.md) remains available. Those components are removed from the new source packaging path. Linux GTK/libadwaita source and deployment dependencies are likewise retired.
 
 ## AVID Core and Rust dependencies
 
@@ -51,4 +35,4 @@ Sparkle 2.9.6 is redistributed in macOS bundles under its upstream permissive li
 
 `webpki-roots` 1.0.9, used by the TLS update stack, contains CA trust-anchor data derived from the Common CA Database under CDLA-Permissive-2.0. Its original data license must remain available with redistributed source and notices.
 
-Inno Setup (https://jrsoftware.org/isinfo.php) builds Windows installers. linuxdeploy and appimagetool (https://github.com/linuxdeploy/linuxdeploy, https://github.com/AppImage/appimagetool) package Linux AppImages; their runtime/tool licenses apply to redistributed components. Python, Pillow and cryptography are development/release tooling and are not bundled as application runtimes. Native UI frameworks retain their platform/distribution licenses.
+Inno Setup (https://jrsoftware.org/isinfo.php) builds Windows installers. linuxdeploy and appimagetool (https://github.com/linuxdeploy/linuxdeploy, https://github.com/AppImage/appimagetool) package Linux AppImages; their runtime/tool licenses apply to redistributed components. Python, Pillow and cryptography are development/release tooling and are not bundled as application runtimes. The native production macOS UI retains its platform license boundaries.
