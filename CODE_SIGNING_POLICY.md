@@ -1,5 +1,7 @@
 # Code signing policy
 
+Git commits are unsigned by project policy; see [Contributing](CONTRIBUTING.md#commit-signing) for clone setup and DCO sign-offs. This does not change the release-tag or artifact-signing requirements below.
+
 An official stable ATIV release is a GitHub Release built from a cryptographically signed, verified `vMAJOR.MINOR.PATCH` Git tag approved by Thomas Lothian. He is the sole maintainer and final signing/release approver. CI may build and verify artifacts but must not turn an unsigned tag or a development build into an official signed release.
 
 Stable macOS applications use Apple Developer ID signing and notarization. The completed, stapled app is verified and distributed in a ZIP. Stable Windows executables use Azure Artifact Signing and Authenticode verification, then a portable ZIP. Stable Linux AppImages use GPG signatures and GitHub/Sigstore artifact attestations. Stable downloadable artifacts receive SHA-256 checksums, an SBOM and provenance attestations where supported. These are the intended requirements; the current workflow must be brought into agreement before a new stable release is authorized.
