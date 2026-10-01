@@ -25,6 +25,7 @@ def write_json(path, value):
 
 
 def target_id(target):
+    target = {'macos-intel':'macos-x86_64','windows-x64':'windows-x86_64','linux-x64':'linux-x86_64','linux-x64-appimage':'linux-x86_64','linux-arm64-appimage':'linux-arm64'}.get(target,target)
     target = target.replace('aarch64', 'arm64')
     if target not in PIN['targets']:
         raise ValueError('Unsupported Core target: ' + target)

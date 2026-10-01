@@ -27,10 +27,30 @@ def run(args, **kwargs):
 
 def process_tree():
     if os.name == 'nt':
-        command = ['powershell.exe', '-NoProfile', '-Command',
-                   'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name | ConvertTo-Json -Compress']
-        rows = json.loads(run(command))
-        return {int(row['ProcessId']): (int(row['ParentProcessId']), row['Name']) for row in rows}
+        import ctypes
+        from ctypes import wintypes
+        class Entry(ctypes.Structure):
+            _fields_ = [('dwSize',wintypes.DWORD),('cntUsage',wintypes.DWORD),('pid',wintypes.DWORD),
+                        ('heap',ctypes.c_size_t),('module',wintypes.DWORD),('threads',wintypes.DWORD),
+                        ('parent',wintypes.DWORD),('priority',wintypes.LONG),('flags',wintypes.DWORD),
+                        ('name',wintypes.WCHAR*260)]
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.CreateToolhelp32Snapshot.argtypes=[wintypes.DWORD,wintypes.DWORD]
+        kernel.CreateToolhelp32Snapshot.restype=wintypes.HANDLE
+        for name in ('Process32FirstW','Process32NextW'):
+            function=getattr(kernel,name);function.argtypes=[wintypes.HANDLE,ctypes.POINTER(Entry)];function.restype=wintypes.BOOL
+        kernel.CloseHandle.argtypes=[wintypes.HANDLE];kernel.CloseHandle.restype=wintypes.BOOL
+        handle=kernel.CreateToolhelp32Snapshot(2,0)
+        if handle==ctypes.c_void_p(-1).value:raise ctypes.WinError(ctypes.get_last_error())
+        result={}
+        try:
+            entry=Entry();entry.dwSize=ctypes.sizeof(Entry)
+            available=kernel.Process32FirstW(handle,ctypes.byref(entry))
+            while available:
+                result[int(entry.pid)]=(int(entry.parent),entry.name)
+                available=kernel.Process32NextW(handle,ctypes.byref(entry))
+        finally:kernel.CloseHandle(handle)
+        return result
     rows = run(['ps', '-axo', 'pid=,ppid=,comm=']).decode().splitlines()
     return {int(parts[0]): (int(parts[1]), parts[2]) for row in rows if len(parts := row.strip().split(None, 2)) == 3}
 
@@ -194,7 +214,11 @@ def main():
                 time.sleep(.15)
                 break
         assert encoding
-        child_pids = owned_media_processes(process.pid)
+        deadline=time.monotonic()+5
+        child_pids=set()
+        while not child_pids and time.monotonic()<deadline and process.poll() is None:
+            child_pids=owned_media_processes(process.pid)
+            if not child_pids:time.sleep(.02)
         assert child_pids, 'Cancellation test must observe an actual FFmpeg child'
         stdout, _ = process.communicate(b'cancel\n', timeout=10)
         assert process.returncode == 130 and json.loads(stdout.splitlines()[-1])['code'] == 'cancelled'

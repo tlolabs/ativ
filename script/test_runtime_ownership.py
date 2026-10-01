@@ -16,6 +16,12 @@ class OwnershipTests(unittest.TestCase):
         core,=[p for p in metadata['packages'] if p['name']=='avid-core']
         self.assertEqual(core['version'],dependency['version'][1:])
         self.assertEqual(core['source'],f"git+{dependency['git']}?rev={dependency['rev']}#{dependency['rev']}")
+    def test_distribution_names_resolve_only_to_exact_core_targets(self):
+        from ffmpeg_runtime import target_id
+        for name,target in [('macos-intel','macos-x86_64'),('windows-x64','windows-x86_64'),('linux-x64-appimage','linux-x86_64'),('linux-arm64-appimage','linux-arm64')]:
+            self.assertEqual(target_id(name),target)
+        with self.assertRaises(ValueError):target_id('windows-other')
+        self.assertIn('script/core_runtime.py text eol=lf',(ROOT/'.gitattributes').read_text())
     def test_no_independent_ffmpeg_builder_or_fallback(self):
         self.assertFalse((ROOT/'script/ffmpeg_build.py').exists())
         self.assertFalse((ROOT/'runtime/ffmpeg/dependency.json').exists())
