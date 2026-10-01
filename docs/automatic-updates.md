@@ -26,7 +26,7 @@ Read-only GitHub inspection confirmed the latest published stable starting point
 
 The audit covers the three supplied workspace roots. It does not establish the status of other TLO Labs repositories.
 
-ATIV's deployment key names are `ATIV_UPDATE_PRIVATE_KEY` (secret) and `ATIV_UPDATE_PUBLIC_KEY` (public variable). EnCAP's existing names are `ENCAP_UPDATE_PRIVATE_KEY` and `ENCAP_UPDATE_PUBLIC_KEY`; local EnCAP key files also exist. No private key contents were read, exported, generated or changed. The updater preserves those identities. Existing EnCAP legacy release generation is retained until migration is proven; it must not race the standardized publisher.
+ATIV's deployment key names are `ATIV_UPDATE_PRIVATE_KEY` (secret) and `ATIV_UPDATE_PUBLIC_KEY` (public variable). EnCAP's existing names are `ENCAP_UPDATE_PRIVATE_KEY` and `ENCAP_UPDATE_PUBLIC_KEY`; local EnCAP key files also exist. The existing ATIV seed was used locally by signing tools to authenticate qualification fixtures; no private key contents were displayed, exported, regenerated or changed. The updater preserves those identities. Existing EnCAP legacy release generation is retained until migration is proven; it must not race the standardized publisher.
 
 ## Stable GitHub Release contract
 
@@ -115,4 +115,4 @@ A new application vendors the reviewed standalone snapshot, adds a tiny CLI adap
 
 If an update is unavailable: check stable tag/latest release metadata presence, installed key/identity, target and minimum OS, then the application-specific state file. Errors should remain local. A failed signature must never be bypassed. Clock changes cause a retry; outage retries are throttled. If a write fails, use the native manual-download action and a writable destination after closing the application. Restore an AppImage from the reported `tlo-previous-*.AppImage` backup after closing it. Windows recovery currently needs the retained `.ativ-backup-*` directory when interrupted; this is an outstanding production blocker, not automatic recovery.
 
-Current qualification evidence: [2026-10-01 report](updates/qualification-20261001.json). The implementation-validation report describes the earlier implementation run and is historical.
+Current qualification evidence: [2026-10-01 report](updates/qualification-20261001.md). The implementation-validation report describes the earlier implementation run and is historical.

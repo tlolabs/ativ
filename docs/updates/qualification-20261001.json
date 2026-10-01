@@ -1,48 +1,379 @@
 {
-  "status": "qualification_in_progress",
+  "status": "not_qualified_notarization_and_native_upgrade_blocked",
   "application": "ATIV",
-  "version_a": "0.2.4",
-  "version_b": "0.2.5",
-  "version_a_sha256": "59517b16211fd069fbd6321fde857901533379c0dae13d57dc823bbfed7c3514",
+  "version_a": "0.2.5",
+  "version_b": "0.2.6",
+  "version_a_sha256": "ce2cbe8688954c5a7bc0804364676b3acfc1d5e4ee57dacc507f5caa443b5dc2",
   "version_a_trust": {
     "strict_signature": "passed",
     "stapled_ticket": "passed",
     "gatekeeper": "accepted: Notarized Developer ID"
   },
   "tests": {
-    "rust": 32,
+    "rust": 33,
     "benchmarks": 2,
-    "python": 26,
-    "swift": 4,
+    "python": 30,
+    "swift": 6,
     "media": "27 presets, 20 previews, 4 exports, failure/process-cleanup checks; managed runtime damage/missing-file checks passed",
     "rust_fmt_clippy": "passed",
     "dependency_inventory": "passed",
     "workflow_actionlint_shellcheck": "passed",
-    "shared_snapshot": "ATIV/EnCAP identical"
+    "shared_snapshot": "ATIV/EnCAP identical",
+    "benchmarks_note": "Both existing ignored-by-default performance tests were explicitly executed and passed."
   },
   "audit": {
     "source_items_reviewed": 27,
     "reportable_security_findings": 0,
     "scan_id": "54f35510-f901-4805-811a-485af0074697",
-    "scope": "Frozen initial updater diff and relevant native/release supporting code; dependency internals not exhaustively audited"
+    "scope": "Frozen initial updater diff and relevant native/release supporting code; 27 source items reviewed. Later manual-action, dependency, AppImage-tooling and version changes were reviewed and tested separately; the sealed scan does not cover those later diffs. Dependency internals were not exhaustively audited. The later ticket-provenance fix passed three added rejection tests and a real signed CI artifact comparison. Later cancellation classification and immutable draft-ID fixes were reviewed and passed regression tests separately.",
+    "measured_usage": {
+      "total_tokens": 7123548,
+      "input_tokens": 7091782,
+      "cached_input_tokens": 6677760,
+      "output_tokens": 31766,
+      "reasoning_tokens": 3012,
+      "threads": 4
+    },
+    "preflight": "ready; optional Daybreak enrollment unavailable, reported during the audit",
+    "report_directory": "/Users/tlothian/.codex/state/plugins/codex-security/scans/ATIV/8c9931199f9bd009a08b0833c7e880a3abd70f22_20261001T063840Z_fb761e6h"
   },
   "corrections": [
     "macOS termination waits for active export, including Sparkle termination paths without postpone callback",
     "Windows render startup owns busy state before awaiting preview shutdown; updater prevents render startup",
-    "Production Sparkle Downloader XPC signing preserves sandbox entitlements",
+    "Production Sparkle Downloader XPC signing preserves upstream entitlement metadata",
     "Native/promotion CI runs complete Python suite; final Mac verification runs native Swift tests",
     "Refreshed dependency license inventory and privacy feed documentation",
-    "Added malformed-manifest, service failure/retry, interrupted download, install permission and cleanup/retry tests"
+    "Added malformed-manifest, service failure/retry, interrupted download, install permission and cleanup/retry tests",
+    "Route macOS manual Check for Updates action to the Sparkle controller, with two native regression tests",
+    "Patch release-tool dependencies to cryptography 50.0.2 and Pillow 12.3.0",
+    "Pin named linuxdeploy/appimagetool releases and independently verified hashes after rolling asset hash failure",
+    "Prepare distinct 0.2.5 bridge and 0.2.6 candidate versions",
+    "Exclude Unix compatibility helper functions from Windows builds; mark intentionally unused GTK callback parameters; require native Clippy with warnings denied on every target",
+    "Authenticate Apple stapled tickets before excluding their reserved file from exact CI-code comparison; reject invalid tickets, symlinks and unrelated added resources",
+    "Preserve cancellation error classification when stdin cancellation arrives before media-tool resolution; add deterministic regression and retain the existing lifecycle assertion",
+    "Resolve qualification drafts by immutable release ID, preserving exact draft/tag/source binding; release-by-tag API is correctly reserved for published releases"
   ],
-  "native_upgrade": "not_run",
-  "production_version_b": "not_built",
-  "release": "not_published",
+  "native_upgrade": {
+    "status": "not_run",
+    "github_ui_discovery": "not_run",
+    "download_through_app": "not_run",
+    "installation": "not_run",
+    "post_update_launch": "not_run",
+    "settings_and_user_data_preservation": "not_run",
+    "post_update_regression": "not_run",
+    "full_requested_transition_succeeded": false
+  },
+  "production_version_b": {
+    "status": "signed_only_notarization_blocked",
+    "source_revision": "c8023ffbba9b91de0c5cf3164f34109dbdbf5d52",
+    "path": "packages/ATIV-0.2.6-macos-arm64.zip",
+    "application_id": "com.tlolabs.ativ",
+    "architecture": "arm64",
+    "developer_id": "Thomas Lothian (VR64M92P2M)",
+    "hardened_runtime": "passed",
+    "nested_signatures": "passed",
+    "exact_ci_code_comparison": "passed",
+    "notarization": "blocked: No Keychain password item found for profile: EnCAP",
+    "stapling": "not present; stapler validation exit 65",
+    "gatekeeper": "rejected: Unnotarized Developer ID; exit 3",
+    "canonical_ci_origin_promotion": "verify-macos.yml not dispatched; notarization prerequisite failed",
+    "packages": {
+      "arm64": {
+        "filename": "ATIV-0.2.6-macos-arm64.zip",
+        "sha256": "090171222c36d9936be8a176afe79198959ae7423700cd46328573ab601a44dc",
+        "size": 42161455,
+        "version": "0.2.6",
+        "application_id": "com.tlolabs.ativ",
+        "source_revision": "c8023ffbba9b91de0c5cf3164f34109dbdbf5d52",
+        "original_code_comparison": "passed",
+        "notarization": "blocked: EnCAP keychain profile unavailable",
+        "checks": {
+          "signature": {
+            "returncode": 0,
+            "output": ""
+          },
+          "staple": {
+            "returncode": 65,
+            "output": "Processing: /Users/tlothian/Documents/Projects/ATIV/build/updater-qualification-20260930/pipeline-signing/arm64/ATIV.app\nATIV.app does not have a ticket stapled to it.\n"
+          },
+          "gatekeeper": {
+            "returncode": 3,
+            "output": "/Users/tlothian/Documents/Projects/ATIV/build/updater-qualification-20260930/pipeline-signing/arm64/ATIV.app: rejected\nsource=Unnotarized Developer ID\n"
+          },
+          "identity": {
+            "returncode": 0,
+            "output": "Executable=/Users/tlothian/Documents/Projects/ATIV/build/updater-qualification-20260930/pipeline-signing/arm64/ATIV.app/Contents/MacOS/ATIV\nIdentifier=com.tlolabs.ativ\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20500 size=1660 flags=0x10000(runtime) hashes=45+3 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=984320\nHash type=sha256 size=32\nCandidateCDHash sha256=45093661d29cff56a1096038b9de05a60d5e43f3\nCandidateCDHashFull sha256=45093661d29cff56a1096038b9de05a60d5e43f33161a7e0631c35a59778188b\nHash choices=sha256\nCMSDigest=45093661d29cff56a1096038b9de05a60d5e43f33161a7e0631c35a59778188b\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=212992\nExecutable Segment flags=0x1\nPage size=16384\nCDHash=45093661d29cff56a1096038b9de05a60d5e43f3\nSignature size=8977\nAuthority=Developer ID Application: Thomas Lothian (VR64M92P2M)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Oct 1, 2026 at 7:57:33\u202fAM\nInfo.plist entries=23\nTeamIdentifier=VR64M92P2M\nRuntime Version=15.5.0\nSealed Resources version=2 rules=13 files=269\nInternal requirements count=1 size=176\n"
+          },
+          "architecture": {
+            "returncode": 0,
+            "output": "arm64\n"
+          }
+        }
+      },
+      "intel": {
+        "filename": "ATIV-0.2.6-macos-intel.zip",
+        "sha256": "76aa3a3cad99213cae7aeb86ba9c64a07d8856ecc824a0dd95656a71f649a58c",
+        "size": 44546712,
+        "version": "0.2.6",
+        "application_id": "com.tlolabs.ativ",
+        "source_revision": "c8023ffbba9b91de0c5cf3164f34109dbdbf5d52",
+        "original_code_comparison": "passed",
+        "notarization": "blocked: EnCAP keychain profile unavailable",
+        "checks": {
+          "signature": {
+            "returncode": 0,
+            "output": ""
+          },
+          "staple": {
+            "returncode": 65,
+            "output": "Processing: /Users/tlothian/Documents/Projects/ATIV/build/updater-qualification-20260930/pipeline-signing/intel/ATIV.app\nATIV.app does not have a ticket stapled to it.\n"
+          },
+          "gatekeeper": {
+            "returncode": 3,
+            "output": "/Users/tlothian/Documents/Projects/ATIV/build/updater-qualification-20260930/pipeline-signing/intel/ATIV.app: rejected\nsource=Unnotarized Developer ID\n"
+          },
+          "identity": {
+            "returncode": 0,
+            "output": "Executable=/Users/tlothian/Documents/Projects/ATIV/build/updater-qualification-20260930/pipeline-signing/intel/ATIV.app/Contents/MacOS/ATIV\nIdentifier=com.tlolabs.ativ\nFormat=app bundle with Mach-O thin (x86_64)\nCodeDirectory v=20500 size=5852 flags=0x10000(runtime) hashes=176+3 location=embedded\nVersionPlatform=1\nVersionMin=851968\nVersionSDK=984320\nHash type=sha256 size=32\nCandidateCDHash sha256=1d0d619d2e33649c6e6045ca257407558edd8da7\nCandidateCDHashFull sha256=1d0d619d2e33649c6e6045ca257407558edd8da7f02b50e18e481672da9a2629\nHash choices=sha256\nCMSDigest=1d0d619d2e33649c6e6045ca257407558edd8da7f02b50e18e481672da9a2629\nCMSDigestType=2\nExecutable Segment base=0\nExecutable Segment limit=212992\nExecutable Segment flags=0x1\nPage size=4096\nCDHash=1d0d619d2e33649c6e6045ca257407558edd8da7\nSignature size=8978\nAuthority=Developer ID Application: Thomas Lothian (VR64M92P2M)\nAuthority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=Oct 1, 2026 at 7:57:49\u202fAM\nInfo.plist entries=23\nTeamIdentifier=VR64M92P2M\nRuntime Version=15.5.0\nSealed Resources version=2 rules=13 files=271\nInternal requirements count=1 size=176\n"
+          },
+          "architecture": {
+            "returncode": 0,
+            "output": "x86_64\n"
+          }
+        }
+      }
+    }
+  },
+  "release": {
+    "planned_tag": "v0.2.6",
+    "tag_created": false,
+    "published": false,
+    "github_release": null,
+    "gate_check": "blocked as required: Native authenticated installation is not qualified: macos-arm64",
+    "qualification_draft": "Only historical e6c61a9 draft exists; no current-source draft created because notarization failed."
+  },
   "remaining": [
-    "Exact native production build/sign/notarize and normal verification workflow",
-    "Prepublication native old-to-new qualification and exact-package manual acceptance",
-    "Tagged normal-pipeline publication followed by real GitHub UI old-to-new update",
-    "Windows power-loss recovery and Azure signing provisioning",
-    "Linux native AppImage installation/failure evidence"
+    "Restore/unlock the existing EnCAP notarization profile locally; finish signing workflow, staple, verify Gatekeeper and dispatch exact-source verify-macos.yml",
+    "Native UI attachment to ATIV still crashes in SkyComputerUseService; Finder attachment works. Alternative AppleScript UI automation requires explicit authorization under the computer-use tool instructions; question pending.",
+    "Prepublication native old-to-new installation/failure evidence and exact-package manual acceptance",
+    "Unlock configured GPG signing key for required signed stable tag; noninteractive commit-signing attempt failed in curses pinentry. DCO commits pushed as authorized",
+    "Tagged normal-pipeline publication followed by real GitHub UI old-to-new update and post-update regression checks",
+    "Windows Azure signing provisioning, native signed upgrade and interruption/power-loss evidence",
+    "Linux production signing and native AppImage installation/failure evidence",
+    "Linux AppImage native-library notice coverage and AppStream metadata warnings require resolution before Linux publication."
   ],
-  "initial_test_setup_failure": "Native Swift media test pointed at an unbundled debug engine. Correct packaged-engine invocation passed without test changes or skips."
+  "initial_test_setup_failure": "Native Swift media test pointed at an unbundled debug engine. Correct packaged-engine invocation passed without test changes or skips.",
+  "source_revision": "c8023ffbba9b91de0c5cf3164f34109dbdbf5d52",
+  "branch": "codex/ativ-core-runtime-build",
+  "version_b_sha256": "090171222c36d9936be8a176afe79198959ae7423700cd46328573ab601a44dc",
+  "version_a_source_revision": "4ba41fc738fc72ce821286ed18d91dc9fdfbe80a",
+  "historical_version_a_rejected": {
+    "version": "0.2.4",
+    "reason": "Published manual Check for Updates action sends checkForUpdates: to SPUUpdater, but that action belongs to SPUStandardUpdaterController. A fixed 0.2.5 bridge was built through the production packaging path."
+  },
+  "production_version_a": {
+    "status": "local_production_build_passed",
+    "path": "build/updater-qualification-20260930/bridge-a/ATIV-0.2.5-macos-arm64.zip",
+    "notarization": "Accepted",
+    "notarization_id": "576a981f-8437-4a86-87a7-b22b280836ee",
+    "standalone_launch": "passed; 27 presets"
+  },
+  "authentication": {
+    "source_revision": "c8023ffbba9b91de0c5cf3164f34109dbdbf5d52",
+    "package_sha256": "090171222c36d9936be8a176afe79198959ae7423700cd46328573ab601a44dc",
+    "signed_manifest_and_artifact": "passed",
+    "native_sparkle_archive_signature": "passed",
+    "invalid_signature": "rejected",
+    "modified_archive_bytes": "rejected",
+    "installation": "not_tested",
+    "scope": "Local staged fixture only; current candidate not notarized and not published."
+  },
+  "native_ci": {
+    "run": 36876018252,
+    "url": "https://github.com/tlolabs/ativ/actions/runs/36876018252",
+    "revision": "c8023ffbba9b91de0c5cf3164f34109dbdbf5d52",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "Shared Rust engine": "success",
+      "macOS x86_64": "success",
+      "Linux x86_64": "success",
+      "macOS arm64": "success",
+      "Windows ARM64": "success",
+      "Windows x64": "success",
+      "Linux aarch64": "success"
+    }
+  },
+  "evidence_directory": "build/updater-qualification-20260930/",
+  "previous_native_ci": {
+    "run": 36828924504,
+    "url": "https://github.com/tlolabs/ativ/actions/runs/36828924504",
+    "revision": "f75aa4976d20459d2fb87b430a4cc3fac80e232f",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "Shared Rust engine": "success",
+      "Windows ARM64": "success",
+      "Linux aarch64": "success",
+      "Windows x64": "success",
+      "macOS arm64": "success",
+      "macOS x86_64": "success",
+      "Linux x86_64": "success"
+    }
+  },
+  "warnings": [
+    "One pedantic extra-semicolon diagnostic originates in the runner-installed GTK header gdkdmabufformats.h; repository callback warnings were fixed",
+    "Default-branch Dependabot still reports 24 alerts; release-tool dependency patches are on this qualification branch and not yet merged",
+    "Linux linuxdeploy cannot resolve some bundled-library copyright notices, including liblzo2, and appimagetool reports missing upstream AppStream metadata; native-library notice coverage is not qualified. Rust license inventory results do not cover this gap."
+  ],
+  "superseded_native_runs": [
+    {
+      "run": 36831454584,
+      "revision": "dcba7e76483d0bc9b5cd917b1d9e443acb0b9e73",
+      "reason": "Superseded by tested notarization-ticket provenance fix before publication"
+    }
+  ],
+  "test_coverage": {
+    "release_selection": [
+      "no compatible update",
+      "newer/same/older versions",
+      "malformed and development versions",
+      "draft/prerelease rejection",
+      "wrong application/repository/platform/architecture",
+      "minimum OS/libc",
+      "replay below persisted high-water"
+    ],
+    "authentication_and_transport": [
+      "invalid signature/wrong key",
+      "signed metadata substitution",
+      "manifest/artifact mismatch",
+      "corruption/truncation/overflow/SHA-256 mismatch",
+      "malformed manifest/payload",
+      "unreachable endpoint",
+      "HTTP 503 and retry",
+      "interrupted download and retry",
+      "failed authentication staging cleanup"
+    ],
+    "installation_contract": [
+      "AppImage interrupted-install old-file preservation",
+      "backup retention",
+      "symlink rejection",
+      "install permission failure",
+      "cleanup and retry"
+    ],
+    "native_coordination": [
+      "macOS active export defers termination without cancellation",
+      "macOS idle termination",
+      "manual update action reaches controller",
+      "missing action fails gracefully",
+      "pre-cancelled media-tool resolution retains cancelled status"
+    ],
+    "release_provenance": [
+      "unsafe ZIP paths/links rejected",
+      "framework links inside root allowed",
+      "changed resource rejected",
+      "Apple ticket validation required",
+      "ticket cannot permit unrelated added resources",
+      "ticket symlink rejected",
+      "immutable draft release ID must match exact draft/tag/source identity"
+    ],
+    "limits": "Local/mocked transport and installation contract tests do not establish native Sparkle installation, Windows recovery, or real Linux desktop installation qualification."
+  },
+  "commit_signing": {
+    "dco": "All eight source commits verified; accompanying evidence commit carries the same DCO sign-off",
+    "cryptographic_commit_signature": "not present; configured GPG key could not unlock via noninteractive curses pinentry",
+    "stable_tag_signature": "still required; no stable tag created"
+  },
+  "failed_native_ci": {
+    "run": 36831865999,
+    "revision": "bfbf9b9cd4e342452a7ed4f226cdde8a2f6b3216",
+    "conclusion": "failure",
+    "jobs": {
+      "Shared Rust engine": "success",
+      "Windows ARM64": "success",
+      "Linux aarch64": "success",
+      "Linux x86_64": "success",
+      "Windows x64": "success",
+      "macOS x86_64": "failure",
+      "macOS arm64": "success"
+    },
+    "failure": "Intel packaged-media lifecycle assertion: cancellation arriving before tool resolution was incorrectly classified media_tools_unavailable. Deterministic added test reproduced failure, then passed with the error mapping corrected; original assertion retained."
+  },
+  "historical_local_version_b": {
+    "status": "local_production_build_passed",
+    "artifact": "ATIV-0.2.6-macos-arm64.zip",
+    "path": "build/updater-qualification-20260930/production-b/ATIV-0.2.6-macos-arm64.zip",
+    "application_id": "com.tlolabs.ativ",
+    "architecture": "arm64",
+    "developer_id": "Thomas Lothian (VR64M92P2M)",
+    "hardened_runtime": "passed",
+    "nested_signatures": "passed",
+    "notarization": "Accepted",
+    "notarization_id": "969d19d3-1f36-488a-b983-e59181fb237b",
+    "stapling": "passed",
+    "gatekeeper": "accepted: Notarized Developer ID",
+    "canonical_ci_origin_promotion": "pending; local source build is not a substitute for exact native CI artifact verification",
+    "source_revision": "f75aa4976d20459d2fb87b430a4cc3fac80e232f",
+    "scope": "Earlier 0.2.6 source build before platform warning-only corrections; final exact CI artifact signing is pending.",
+    "sha256": "c51a1f132597982fc61b6d3a89b7999a660161079cfeb18ff0ea468f4197d8e6"
+  },
+  "sparkle_entitlements": {
+    "upstream_hash_pinned_archive": "52bf9e88cdd972fc0c81501377a880e90d47031bd8ca5462488f843e2609e192",
+    "fresh_upstream_downloader": {},
+    "final_arm64_downloader": {},
+    "result": "unchanged; no sandbox-enabled claim is made"
+  },
+  "previous_successful_native_ci": {
+    "run": 36871294638,
+    "url": "https://github.com/tlolabs/ativ/actions/runs/36871294638",
+    "revision": "e6c61a961e6339d6d09b457b2d92e5c0e3a16781",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "Shared Rust engine": "success",
+      "macOS x86_64": "success",
+      "Linux aarch64": "success",
+      "Windows x64": "success",
+      "macOS arm64": "success",
+      "Linux x86_64": "success",
+      "Windows ARM64": "success"
+    }
+  },
+  "signed_ci_candidate_before_draft_api_fix": {
+    "source_revision": "e6c61a961e6339d6d09b457b2d92e5c0e3a16781",
+    "packages": {
+      "arm64": {
+        "filename": "ATIV-0.2.6-macos-arm64.zip",
+        "sha256": "210a857e0b75ec5c7a5e8acf2c99b41e7619f91575c6164b079c8922704e1c90",
+        "size": 42163029,
+        "notarization": {
+          "message": "Processing complete",
+          "id": "c55836bf-853a-4ec6-a828-65566c56ec53",
+          "status": "Accepted"
+        }
+      },
+      "intel": {
+        "filename": "ATIV-0.2.6-macos-intel.zip",
+        "sha256": "4e1e5a2d1b3fe49d8e765f925c31a7f69da18345e02280dbee8e6d04533d3c83",
+        "size": 44548328,
+        "notarization": {
+          "status": "Accepted",
+          "id": "4dfed54d-deab-46f3-b04d-0827db3b1ead",
+          "message": "Processing complete"
+        }
+      }
+    },
+    "draft_id": 401040650,
+    "draft_tag": "qualification-0.2.6-e6c61a961e63",
+    "draft_url": "https://github.com/tlolabs/ativ/releases/tag/untagged-97773b46515965188a37",
+    "status": "signed/notarized/Gatekeeper accepted; exact original-code comparison and local update authentication passed; not updater qualified",
+    "verification_preflight": "Release-by-tag endpoint rejected draft with 404. Corrected immutable-ID lookup validated the real draft; no tags or published metadata were changed to work around this."
+  },
+  "source_preservation_branch": "codex/ativ-0.2.6-native-source",
+  "resume_instructions": [
+    "Use the source-preservation branch at c8023ffbba9b91de0c5cf3164f34109dbdbf5d52 for the same-source verification dispatch; documentation commits are not new build inputs.",
+    "Preserve existing incomplete packages before rerunning sign_macos_release.sh, which intentionally refuses output replacement. Do not call current packages notarized or final.",
+    "Create a new unpublished qualification draft only after current packages pass notarization, stapling and Gatekeeper; bind it by immutable release ID.",
+    "Do not update native installation ledgers, tag or publish until actual native acceptance evidence exists."
+  ]
 }
