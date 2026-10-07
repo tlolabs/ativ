@@ -1,15 +1,17 @@
 import Foundation
 
-enum EngineClientError: LocalizedError {
+enum EngineClientError: LocalizedError, Equatable {
     case missingEngine
     case launchFailed
     case operationFailed(String)
+    case cancelled
 
     var errorDescription: String? {
         switch self {
         case .missingEngine: return "The ATIV media engine is missing. Reinstall the application."
         case .launchFailed: return "The ATIV media engine could not start. Reinstall the complete application and try again."
         case .operationFailed(let detail): return detail
+        case .cancelled: return "Video creation was stopped. The previous output was preserved."
         }
     }
 }
@@ -109,7 +111,7 @@ final class EngineClient {
 
             self.clear(process)
             if process.terminationStatus == 0 { completion(.success(())); return }
-            if process.terminationStatus == 130 { completion(.failure(EngineClientError.operationFailed("Video creation was stopped. The previous output was preserved."))); return }
+            if process.terminationStatus == 130 { completion(.failure(EngineClientError.cancelled)); return }
             let detail = lastError ?? "The media engine could not finish this operation."
             completion(.failure(EngineClientError.operationFailed(detail)))
         }

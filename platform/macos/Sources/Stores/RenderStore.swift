@@ -136,7 +136,16 @@ final class RenderStore: ObservableObject {
                     self.status = "Video saved as \(outputURL.lastPathComponent) in \(String(format: "%.1f", exportSeconds)) seconds."
                     self.announce(self.status)
                     NSDocumentController.shared.noteNewRecentDocumentURL(outputURL)
-                case .failure(let error): self.fail(error)
+                case .failure(let error):
+                    if case EngineClientError.cancelled = error {
+                        self.status = "Video creation stopped. Previous output preserved."
+                        self.announce(self.status)
+                    } else if case EngineClientError.operationFailed(let msg) = error, msg.contains("stopped") {
+                        self.status = msg
+                        self.announce(self.status)
+                    } else {
+                        self.fail(error)
+                    }
                 }
             }
         }
@@ -249,7 +258,7 @@ final class RenderStore: ObservableObject {
         }
         return String(format: "%d:%02d", total / 60, total % 60)
     }
-    private func fail(_ error: Error) { errorMessage = error.localizedDescription; status = "Unable to complete the operation." }
+    private func fail(_ error: Error) { errorMessage = error.localizedDescription; status = "Unable to complete the operation."; announce(status) }
     private func announce(_ message: String) {
         guard let window = NSApp.mainWindow else { return }
         NSAccessibility.post(element: window, notification: .announcementRequested, userInfo: [

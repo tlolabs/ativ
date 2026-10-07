@@ -20,6 +20,8 @@ public:
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
         painter.fillRect(rect(), palette().brush(QPalette::Base));
+        painter.setPen(palette().color(QPalette::Mid));
+        painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 4, 4);
         if (image.isNull()) {
             painter.setPen(palette().color(QPalette::PlaceholderText));
             painter.drawText(rect().adjusted(24, 24, -24, -24), Qt::AlignCenter | Qt::TextWordWrap,
@@ -71,6 +73,13 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 
     preferences = Preferences::load();
     applyAppearance(preferences.appearance);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    connect(qApp->styleHints(), &QStyleHints::colorSchemeChanged, this, [this](Qt::ColorScheme) {
+        if (preferences.appearance == "System") {
+            applyAppearance("System");
+        }
+    });
+#endif
 
     resize(1020, 740);
     setMinimumSize(640, 480);
@@ -108,9 +117,12 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         field->setPlaceholderText("Nothing selected");
         field->setObjectName(id);
         field->setAccessibleName("Selected " + name);
+        field->setToolTip("Selected " + name + " path");
         field->setMinimumWidth(120);
         auto *button = new QPushButton("Choose…");
+        button->setObjectName("choose_" + id);
         button->setAccessibleName("Choose " + name);
+        button->setToolTip("Choose " + name);
         connect(button, &QPushButton::clicked, this, action);
         layout->addWidget(field, 1);
         layout->addWidget(button);
@@ -139,14 +151,17 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     platform = new QComboBox;
     platform->setObjectName("platform");
     platform->setAccessibleName("Social media outlet");
+    platform->setToolTip("Select social media outlet");
 
     aspect = new QComboBox;
     aspect->setObjectName("aspect");
     aspect->setAccessibleName("Aspect ratio");
+    aspect->setToolTip("Select video aspect ratio");
 
     resolution = new QComboBox;
     resolution->setObjectName("resolution");
     resolution->setAccessibleName("Resolution");
+    resolution->setToolTip("Select video resolution");
 
     bitrate = new QComboBox;
     bitrate->addItems({"128k", "192k", "256k", "320k"});
@@ -156,6 +171,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         bitrate->setCurrentText("128k");
     }
     bitrate->setAccessibleName("Audio bitrate");
+    bitrate->setToolTip("Select audio bitrate");
 
     for (auto *combo : {platform, aspect, resolution, bitrate}) {
         combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
@@ -169,6 +185,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     fps->setSuffix(" fps");
     fps->setObjectName("fps");
     fps->setAccessibleName("Frames per second");
+    fps->setToolTip("Select video frame rate (1-240 fps)");
 
     form->addRow("Social media outlet", platform);
     form->addRow("Aspect ratio", aspect);
@@ -194,9 +211,11 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     flipH = new QCheckBox("Flip horizontally");
     flipH->setObjectName("flipHorizontal");
     flipH->setAccessibleName("Flip image horizontally");
+    flipH->setToolTip("Flip artwork horizontally");
     flipV = new QCheckBox("Flip vertically");
     flipV->setObjectName("flipVertical");
     flipV->setAccessibleName("Flip image vertically");
+    flipV->setToolTip("Flip artwork vertically");
     flipLayout->addWidget(flipH);
     flipLayout->addWidget(flipV);
     left->addWidget(flips);
@@ -236,6 +255,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     rightLayout->addWidget(previewCaption);
 
     auto *diagnosticToggle = new QCheckBox("Show diagnostics");
+    diagnosticToggle->setToolTip("Show technical diagnostic log");
     rightLayout->addWidget(diagnosticToggle);
 
     diagnostics = new QPlainTextEdit;
@@ -272,14 +292,18 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 #endif
     reveal->hide();
     reveal->setAccessibleName("Reveal exported video file");
+    reveal->setToolTip("Show completed video in file manager");
     footer->addWidget(reveal);
 
     create = new QPushButton("Create Video");
     create->setObjectName("createVideo");
     create->setDefault(true);
     create->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
+    auto *enterShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Enter), this);
+    connect(enterShortcut, &QShortcut::activated, create, &QPushButton::animateClick);
     create->setAccessibleName("Create video");
     create->setAccessibleDescription("Start combining artwork and audio into video");
+    create->setToolTip("Create an MP4 video (Ctrl+Return)");
     footer->addWidget(create);
 
     cancel = new QPushButton("Stop Video Creation");
@@ -287,6 +311,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     cancel->setShortcut(QKeySequence(Qt::Key_Escape));
     cancel->setAccessibleName("Stop video creation");
     cancel->setAccessibleDescription("Safely cancel video export and preserve previous file");
+    cancel->setToolTip("Stop video creation (Escape)");
     cancel->hide();
     footer->addWidget(cancel);
 
@@ -300,31 +325,36 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 #if defined(Q_OS_MACOS)
         QProcess::startDetached("/usr/bin/open", {"-R", completedOutput});
 #elif defined(Q_OS_WIN)
-        QProcess::startDetached("explorer.exe", {"/select,", QDir::toNativeSeparators(completedOutput)});
+        QProcess::startDetached("explorer.exe", {QString("/select,%1").arg(QDir::toNativeSeparators(completedOutput))});
 #else
         QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(completedOutput).absolutePath()));
 #endif
     });
 
-    auto *fileMenu = menuBar()->addMenu("File");
-    auto *chooseImgAct = fileMenu->addAction("Choose Image…", QKeySequence("Ctrl+I"), this, &MainWindow::chooseImage);
+    auto *fileMenu = menuBar()->addMenu("&File");
+    auto *chooseImgAct = fileMenu->addAction("Choose &Image…", QKeySequence("Ctrl+I"), this, &MainWindow::chooseImage);
     chooseImgAct->setShortcutVisibleInContextMenu(true);
-    auto *chooseAudAct = fileMenu->addAction("Choose Audio…", QKeySequence("Ctrl+O"), this, &MainWindow::chooseAudio);
+    auto *chooseAudAct = fileMenu->addAction("Choose &Audio…", QKeySequence("Ctrl+O"), this, &MainWindow::chooseAudio);
     chooseAudAct->setShortcutVisibleInContextMenu(true);
-    auto *chooseOutAct = fileMenu->addAction("Choose Destination…", QKeySequence("Ctrl+Shift+S"), this, &MainWindow::chooseOutput);
+    auto *chooseOutAct = fileMenu->addAction("Choose &Destination…", QKeySequence("Ctrl+Shift+S"), this, &MainWindow::chooseOutput);
     chooseOutAct->setShortcutVisibleInContextMenu(true);
     fileMenu->addSeparator();
-    fileMenu->addAction("Close", QKeySequence::Close, this, &QWidget::close);
+    auto *closeAct = fileMenu->addAction("&Close", QKeySequence::Close, this, &QWidget::close);
+    closeAct->setShortcutVisibleInContextMenu(true);
 
-    auto *settingsMenu = menuBar()->addMenu("Settings");
-    settingsMenu->addAction("Preferences…", this, &MainWindow::showPreferences);
+    auto *settingsMenu = menuBar()->addMenu("&Settings");
+    auto *prefAct = settingsMenu->addAction("&Preferences…", this, &MainWindow::showPreferences);
+    prefAct->setMenuRole(QAction::PreferencesRole);
 
-    auto *helpMenu = menuBar()->addMenu("Help");
-    checkUpdatesAction = helpMenu->addAction("Check for Updates…", this, [this] { checkForUpdates(true); });
+    auto *helpMenu = menuBar()->addMenu("&Help");
+    checkUpdatesAction = helpMenu->addAction("Check for &Updates…", this, [this] { checkForUpdates(true); });
+    checkUpdatesAction->setMenuRole(QAction::ApplicationSpecificRole);
     checkUpdatesAction->setEnabled(UpdateClient::isSupported());
     helpMenu->addSeparator();
-    helpMenu->addAction("About ATIV", this, &MainWindow::showAbout);
-    helpMenu->addAction("About Qt", qApp, &QApplication::aboutQt);
+    auto *aboutAct = helpMenu->addAction("&About ATIV", this, &MainWindow::showAbout);
+    aboutAct->setMenuRole(QAction::AboutRole);
+    auto *aboutQtAct = helpMenu->addAction("About &Qt", qApp, &QApplication::aboutQt);
+    aboutQtAct->setMenuRole(QAction::AboutQtRole);
 
     connect(platform, &QComboBox::currentIndexChanged, this, &MainWindow::updateAspects);
     connect(aspect, &QComboBox::currentIndexChanged, this, &MainWindow::updateResolutions);

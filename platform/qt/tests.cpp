@@ -159,7 +159,10 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 30000); QVERIFY(reachedEncoding); QCOMPARE(done[0][0].toInt(), 130);
         QCOMPARE(contents(output), QByteArray("original destination"));
         const auto leftovers = QDir(media.path()).entryList(QDir::Files | QDir::Hidden);
-        for (const auto &name : leftovers) QVERIFY2(!name.contains(".ativ-"), qPrintable(name));
+        for (const auto &name : leftovers) {
+            QVERIFY2(!name.contains(".ativ-"), qPrintable(name));
+            QVERIFY2(!name.contains(".avid-"), qPrintable(name));
+        }
     }
     void updateBoundary() {
 #if defined(Q_OS_MACOS)

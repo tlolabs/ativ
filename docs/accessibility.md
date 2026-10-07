@@ -4,7 +4,7 @@ The current engineering review and remaining manual checks are recorded in [the 
 
 ATIV uses native controls with system text, colors, focus and scaling. The native Mac and shared Qt interfaces offer System/Light/Dark appearance, persistent audio bitrate/frame-rate preferences, keyboard file selection, a labelled preview, progress, errors and safe cancellation. Decorative icons do not replace text labels. No custom animation is required for normal operations; native controls follow platform reduced-motion behavior.
 
-On macOS, Media menu commands expose image, audio, destination and export actions. Escape stops a running export. On Windows/Linux, use the shared File menu and Tab navigation; Ctrl+I/Ctrl+O choose media, Ctrl+Shift+S chooses output, Ctrl+Return exports, and Escape cancels. All file paths are also selectable through native file pickers; drag-and-drop is an additional route.
+On macOS, Media menu commands expose image (⌘I), audio (⇧⌘A), destination (⇧⌘S) and export actions (⌘Return). Escape stops a running export. On Windows/Linux, use the shared File menu and Tab navigation; Ctrl+I/Ctrl+O choose media, Ctrl+Shift+S chooses output, Ctrl+Return exports, and Escape cancels. All file paths are also selectable through native file pickers; drag-and-drop is an additional route.
 
 Qt 6 Widgets exposes named file buttons, format controls, bitrate, FPS, preview, progress and live status/error regions through UI Automation/IAccessible2 on Windows and AT-SPI on Linux. macOS native labels and progress values remain exposed to VoiceOver. Shared preferences use standard selection controls with buddies and explicit accessible names. Scrollable content prevents vertically clipped controls at larger text sizes.
 

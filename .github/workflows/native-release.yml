@@ -283,6 +283,7 @@ jobs:
           cmake --build "build/windows-${{ matrix.arch }}/cmake" --config Release --target ativ-qt-accessibility-tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $env:QT_QPA_PLATFORM = 'offscreen'
+          if ($env:QT_ROOT_DIR) { $env:PATH = "$env:QT_ROOT_DIR\bin;$env:PATH" }
           & "build/windows-${{ matrix.arch }}/cmake/Release/ativ-qt-accessibility-tests.exe"
       - name: Native integration and extracted portable ZIP smoke tests
         if: ${{ !inputs.owner_testing }}

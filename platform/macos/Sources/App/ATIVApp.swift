@@ -56,7 +56,7 @@ struct ATIVApp: App {
                 Button("Choose Image…") { NotificationCenter.default.post(name: .ativChooseImage, object: nil) }
                     .keyboardShortcut("i", modifiers: [.command])
                 Button("Choose Audio…") { NotificationCenter.default.post(name: .ativChooseAudio, object: nil) }
-                    .keyboardShortcut("a", modifiers: [.command])
+                    .keyboardShortcut("a", modifiers: [.command, .shift])
                 Button("Choose Output…") { NotificationCenter.default.post(name: .ativChooseOutput, object: nil) }
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                 Divider()

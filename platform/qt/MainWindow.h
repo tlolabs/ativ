@@ -29,6 +29,7 @@ public:
     void cancelRender();
 
     Preferences currentPreferences() const { return preferences; }
+    void applyAppearance(const QString &theme);
 
 signals:
     void presetsReady(int count);
@@ -56,7 +57,6 @@ private:
     void suggestOutput(const QString &sourcePath);
     void showPreferences();
     void showAbout();
-    void applyAppearance(const QString &theme);
     void checkForUpdates(bool manual);
 
     static QString resolveEnginePath(const QString &specified);

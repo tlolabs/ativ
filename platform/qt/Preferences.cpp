@@ -17,9 +17,7 @@ bool Preferences::isDevelopmentBuild() {
 QString Preferences::folderPath() {
     const bool dev = isDevelopmentBuild();
 #if defined(Q_OS_WIN)
-    const QString localAppData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    // Standard path gives .../AppData/Local/<org>/<app> or .../AppData/Local/<app>
-    // In Avalonia: Path.Combine(LocalApplicationData, dev ? "ATIV Development" : "ATIV")
+    // Match standard Windows AppData/Local/ATIV location:
     const QString base = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
     return QDir(base).filePath(dev ? "ATIV Development" : "ATIV");
 #elif defined(Q_OS_LINUX)

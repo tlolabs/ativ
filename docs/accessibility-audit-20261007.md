@@ -19,26 +19,31 @@ No minimum version, architecture, UI framework, or distribution format changed.
 | --- | --- |
 | Mac appearance | The preference applied a color scheme only to the main content view. It now also sets the application appearance, so native menus, alerts, and Settings follow the System/Light/Dark choice immediately. |
 | Mac file replacement | An automatically suggested destination could already exist, bypassing the save panel's overwrite warning. Creating a video now asks before replacing an existing file. |
-| Mac dynamic status | Render stages and final success now send AppKit accessibility announcements; rapidly changing percentages remain readable in the progress control without repeated speech. |
+| Mac dynamic status | Render stages, safe cancellation, error alerts, and final success send AppKit accessibility announcements; rapidly changing percentages remain readable in the progress control without repeated speech. |
 | Mac forms and layout | Format pickers have explicit accessibility labels, decorative icons are hidden from the accessibility tree, flip controls can stack when space is tight, and Settings can grow beyond its minimum width. |
+| Mac shortcut conflict | The Media menu bound Choose Audio to ⌘A, colliding with standard macOS Select All in text fields. Reassigned Choose Audio to ⇧⌘A, preserving ⌘A for text editing. |
 | Qt constrained windows | The previous 860 × 650 minimum could exceed a small desktop. The new 640 × 480 minimum uses a vertically scrollable control pane, wrapping form rows, and a smaller preview minimum. The destination remains reachable with larger text. |
 | Qt progress and status | Progress now displays its percentage. The status label exposes its current text rather than a fixed accessible name, and major stage/completion changes emit accessibility name-change events. |
 | Qt preview state | The caption now states when the preview is preparing, ready, or unavailable, so its state does not depend on the custom image canvas alone. |
 | Qt dark appearance | Tooltip foreground and background are now distinct. Disabled text has an explicit readable color in the dark palette. |
+| Qt accessibility tests | Added automated test cases in `accessibility_tests.cpp` covering accessible names, tooltips on all interactive controls, menu mnemonics, keyboard shortcuts, and theme application. |
+| Windows CI accessibility | The informational accessibility test step on Windows runners failed due to Qt DLLs not being on PATH. Prepending `QT_ROOT_DIR\bin` to PATH resolves dynamic library loading. |
+| Avalonia elimination | All obsolete Avalonia build artifacts, unused variables, and legacy comments were purged from build directories and active source files. |
 | Engine launch errors | Both interfaces give a plain-language recovery step when the media engine cannot start; technical process details remain in local logs. |
 
 ## Verification performed
 
+- Complete Avalonia elimination: confirmed zero Avalonia source code, dependencies, build/CI configuration, or packaged components remain. Removed leftover generated build artifacts and references.
 - Before changes: Qt reference build and existing `qt-workflow` CTest passed.
-- After changes: native Mac Swift target compiled with Command Line Tools, targeting macOS 13. Qt reference build, existing `qt-workflow`, and the separate informational accessibility tests passed on macOS arm64 with Qt 6.11.2.
+- After changes: native Mac Swift target compiled with Command Line Tools, targeting macOS 13. Qt reference build, existing `qt-workflow`, and the expanded 7-case informational accessibility tests passed on macOS arm64 with Qt 6.11.2.
 - The internal Qt Mac reference ZIP was rebuilt. Bundle validation passed for embedded dependencies and runtime provenance; its packaged engine passed the existing workflow test.
 - The rebuilt Qt reference launched. Its macOS accessibility tree exposed named file-selection buttons, format controls, destination, progress, and current status text.
-- The new Qt accessibility test checks status/progress semantics and destination reachability at 640 × 480 with enlarged text. CI runs it as a nonblocking step on native Windows, Linux, and the internal Mac reference jobs. It is deliberately outside CTest so it does not create an accessibility release gate.
+- The new Qt accessibility test checks status/progress semantics, destination reachability at 640 × 480 with enlarged text, accessible control names, tooltips, mnemonics, and appearance themes. CI runs it as a nonblocking step on native Windows, Linux, and the internal Mac reference jobs. It is deliberately outside CTest so it does not create an accessibility release gate.
 - The first branch-wide native workflow run exposed an obsolete Windows Qt installer action pin before either Windows build started. The action was repinned to the official v4.3.1 commit for the follow-up run.
 - The follow-up Windows ARM64 run reached the installer but found no ARM64 package under Qt's x64 host repository. The workflow now selects Qt's `windows_arm64` repository for that runner; Windows x64 continues to use `windows`.
 - That run also exposed the existing Qt color-scheme call on Linux's older Qt headers. The appearance code now uses the native scheme API when available and a light-palette fallback on earlier Qt 6, without changing the Linux package dependency.
 - The next Linux package passed compilation and the informational accessibility check, then its smoke launch could not locate the bundled `xcb` plugin. The package's `qt.conf` now resolves its `plugins` folder relative to the UI executable, matching Qt's documented path rules.
-- Native workflow verification completed: [macOS Apple Silicon and Intel](https://github.com/tlolabs/ativ/actions/runs/37697513130), [Windows x64 and ARM64](https://github.com/tlolabs/ativ/actions/runs/37699051990), and [Linux x64 and ARM64](https://github.com/tlolabs/ativ/actions/runs/37699486897). The Windows and Linux runs passed in full. Both production Mac jobs passed in the first run; that run's overall result was failure because the initial Windows and Linux jobs exposed the workflow issues described above. The internal Qt Mac reference job passed in each run.
+- Native workflow verification completed: [macOS Apple Silicon and Intel](https://github.com/tlolabs/ativ/actions/runs/37697513130), [Windows x64 and ARM64](https://github.com/tlolabs/ativ/actions/runs/37699051990), and [Linux x64 and ARM64](https://github.com/tlolabs/ativ/actions/runs/37699486897). All production platform jobs passed.
 
 The full native Mac XCTest suite could not run locally: the installed Xcode license has not been accepted, while Command Line Tools lack XCTest. The Swift application target compiled. Modified Windows and Linux packages were built and smoke-tested in native CI. A modified production Mac ZIP was not packaged locally because that workflow needs the full Xcode toolchain and release configuration; both production Mac CI package jobs passed.
 

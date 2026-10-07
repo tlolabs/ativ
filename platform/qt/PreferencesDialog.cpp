@@ -25,27 +25,32 @@ PreferencesDialog::PreferencesDialog(const Preferences &current, QWidget *parent
     appearanceCombo->addItems({"System", "Light", "Dark"});
     appearanceCombo->setCurrentText(current.appearance);
     appearanceCombo->setAccessibleName("Appearance theme");
-    form->addRow("Appearance", appearanceCombo);
+    appearanceCombo->setToolTip("Choose system, light, or dark appearance");
+    form->addRow("&Appearance", appearanceCombo);
 
     bitrateCombo = new QComboBox;
     bitrateCombo->addItems({"128k", "192k", "256k", "320k"});
     bitrateCombo->setCurrentText(current.bitrate);
     bitrateCombo->setAccessibleName("Default audio bitrate");
-    form->addRow("Default bitrate", bitrateCombo);
+    bitrateCombo->setToolTip("Default audio bitrate for new projects");
+    form->addRow("Default &bitrate", bitrateCombo);
 
     fpsSpin = new QSpinBox;
     fpsSpin->setRange(1, 240);
     fpsSpin->setValue(current.fps);
     fpsSpin->setSuffix(" fps");
     fpsSpin->setAccessibleName("Default frames per second");
-    form->addRow("Default frame rate", fpsSpin);
+    fpsSpin->setToolTip("Default frame rate for new projects");
+    form->addRow("Default &frame rate", fpsSpin);
 
-    autoUpdateCheck = new QCheckBox("Automatically check for updates");
+    autoUpdateCheck = new QCheckBox("Automatically check for &updates");
     autoUpdateCheck->setChecked(current.automaticUpdates);
     autoUpdateCheck->setAccessibleName("Automatically check for updates");
 #if defined(Q_OS_MACOS)
     autoUpdateCheck->setEnabled(false);
     autoUpdateCheck->setToolTip("Automatic updates are disabled in internal reference builds.");
+#else
+    autoUpdateCheck->setToolTip("Check for verified application updates automatically");
 #endif
     form->addRow("", autoUpdateCheck);
 
