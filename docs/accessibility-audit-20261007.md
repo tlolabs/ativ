@@ -37,6 +37,7 @@ No minimum version, architecture, UI framework, or distribution format changed.
 - The first branch-wide native workflow run exposed an obsolete Windows Qt installer action pin before either Windows build started. The action was repinned to the official v4.3.1 commit for the follow-up run.
 - The follow-up Windows ARM64 run reached the installer but found no ARM64 package under Qt's x64 host repository. The workflow now selects Qt's `windows_arm64` repository for that runner; Windows x64 continues to use `windows`.
 - That run also exposed the existing Qt color-scheme call on Linux's older Qt headers. The appearance code now uses the native scheme API when available and a light-palette fallback on earlier Qt 6, without changing the Linux package dependency.
+- The next Linux package passed compilation and the informational accessibility check, then its smoke launch could not locate the bundled `xcb` plugin. The package's `qt.conf` now resolves its `plugins` folder relative to the UI executable, matching Qt's documented path rules.
 
 The full native Mac XCTest suite could not run locally: the installed Xcode license has not been accepted, while Command Line Tools lack XCTest. The Swift application target compiled. Modified Windows and Linux packages were not built on this Mac; their native CI jobs remain the compatibility check. A modified production Mac ZIP was not packaged locally because that workflow needs the full Xcode toolchain and release configuration.
 

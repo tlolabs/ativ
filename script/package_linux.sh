@@ -37,8 +37,8 @@ if [[ -d "${QT_PLUGINS_DIR}/platforms" ]]; then
   cp -a "${QT_PLUGINS_DIR}/platforms/"*.so "${PACKAGE_ROOT}/usr/lib/ativ/plugins/platforms/" 2>/dev/null || true
   cat > "${PACKAGE_ROOT}/usr/lib/ativ/qt.conf" <<EOF
 [Paths]
-Prefix = ..
-Plugins = lib/ativ/plugins
+Prefix = .
+Plugins = plugins
 EOF
 fi
 
