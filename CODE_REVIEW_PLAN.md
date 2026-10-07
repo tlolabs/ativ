@@ -1,4 +1,4 @@
-> Historical review of the former WinUI and GTK frontends. See [the current Avalonia migration audit](docs/avalonia-migration.md) for the active architecture.
+> Historical review of the former WinUI and GTK frontends. See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the active architecture.
 
 # ATIV Codebase Review, Repair and Optimization Plan & Final Report
 

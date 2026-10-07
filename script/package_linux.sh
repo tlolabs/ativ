@@ -20,15 +20,28 @@ RUNTIME_TARGET="linux-$ARCH"
 RUNTIME="$(python3 "$ROOT_DIR/script/ffmpeg_runtime.py" provision "$RUNTIME_TARGET")"
 
 BUILD_DIR="${ROOT_DIR}/build/linux-${ARCH}"
-DOTNET_RUNTIME=linux-x64
-if [[ "$ARCH" == aarch64 ]]; then DOTNET_RUNTIME=linux-arm64; fi
 PACKAGE_ROOT="${ROOT_DIR}/build/package-linux-${ARCH}"
 PACKAGES="${ROOT_DIR}/packages"
 rm -rf "${BUILD_DIR}" "${PACKAGE_ROOT}"
 mkdir -p "${PACKAGE_ROOT}/usr/lib/ativ" "${PACKAGE_ROOT}/usr/share/doc/ativ" "${PACKAGES}"
 
 cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked -p ativ-engine -p ativ-update
-dotnet publish "${ROOT_DIR}/platform/avalonia/ATIV.Avalonia.csproj" -c Release -r "$DOTNET_RUNTIME" --self-contained true -p:Version="$VERSION" -o "${BUILD_DIR}/managed"
+
+cmake -S "${ROOT_DIR}/platform/qt" -B "${BUILD_DIR}/cmake" -DCMAKE_BUILD_TYPE=Release
+cmake --build "${BUILD_DIR}/cmake" --parallel
+cp "${BUILD_DIR}/cmake/ATIV" "${PACKAGE_ROOT}/usr/lib/ativ/ATIV"
+
+QT_PLUGINS_DIR="$(qmake6 -query QT_INSTALL_PLUGINS 2>/dev/null || echo "/usr/lib/$(uname -m)-linux-gnu/qt6/plugins")"
+if [[ -d "${QT_PLUGINS_DIR}/platforms" ]]; then
+  mkdir -p "${PACKAGE_ROOT}/usr/lib/ativ/plugins/platforms"
+  cp -a "${QT_PLUGINS_DIR}/platforms/"*.so "${PACKAGE_ROOT}/usr/lib/ativ/plugins/platforms/" 2>/dev/null || true
+  cat > "${PACKAGE_ROOT}/usr/lib/ativ/qt.conf" <<EOF
+[Paths]
+Prefix = ..
+Plugins = lib/ativ/plugins
+EOF
+fi
+
 install -Dm755 "${ROOT_DIR}/platform/linux/ativ-launcher" "${PACKAGE_ROOT}/usr/bin/ativ"
 install -Dm644 "${ROOT_DIR}/platform/linux/data/com.tlolabs.ativ.desktop" "${PACKAGE_ROOT}/usr/share/applications/com.tlolabs.ativ.desktop"
 install -Dm644 "${ROOT_DIR}/platform/linux/data/com.tlolabs.ativ.metainfo.xml" "${PACKAGE_ROOT}/usr/share/metainfo/com.tlolabs.ativ.metainfo.xml"
@@ -38,10 +51,6 @@ cp "${ROOT_DIR}/target/release/ativ-update" "${PACKAGE_ROOT}/usr/lib/ativ/ativ-u
 python3 "$ROOT_DIR/script/configure_distribution.py" "$PACKAGE_ROOT/usr/lib/ativ" "linux-$LABEL-deb"
 python3 "$ROOT_DIR/script/ffmpeg_runtime.py" stage "$RUNTIME_TARGET" --runtime "$RUNTIME" --binary "$PACKAGE_ROOT/usr/lib/ativ"
 python3 "$ROOT_DIR/script/ffmpeg_runtime.py" finish "$RUNTIME_TARGET" --binary "$PACKAGE_ROOT/usr/lib/ativ" --metadata "$PACKAGE_ROOT/usr/lib/ativ/ffmpeg-runtime"
-cp -a "${BUILD_DIR}/managed/." "${PACKAGE_ROOT}/usr/lib/ativ/"
-# Ubuntu 24.04 ships LTTng SONAME 1; this optional .NET trace provider still
-# links SONAME 0 and prevents linuxdeploy from staging a runnable AppImage.
-rm -f "${PACKAGE_ROOT}/usr/lib/ativ/libcoreclrtraceptprovider.so"
 cp "${ROOT_DIR}/LICENSE" "${PACKAGE_ROOT}/usr/share/doc/ativ/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${PACKAGE_ROOT}/usr/share/doc/ativ/THIRD_PARTY_NOTICES.md"
 python3 "$ROOT_DIR/script/collect_licenses.py" "$PACKAGE_ROOT/usr/share/doc/ativ/licenses"

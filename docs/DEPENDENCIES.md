@@ -11,10 +11,7 @@ ATIV pins the Rust graph in `Cargo.lock` and its direct AVID Core Git revision i
 | LAME | MP3 encoder in the shared Core runtime | LGPL-2.0-or-later, statically linked into FFmpeg. |
 | zlib | Compression support, pinned upstream source archive | zlib license, statically linked into FFmpeg. |
 | Sparkle 2.9.6 | macOS GitHub Release update checks | Permissive upstream license; framework and notice bundled. |
-| Avalonia 12.1.3 | Shared Windows/Linux and internal Mac UI | MIT; [all 26 locked packages](avalonia-dependencies.json) and bundled upstream notices. |
-| SkiaSharp 3.119.4 / HarfBuzzSharp 8.3.1.3 | Avalonia rendering and text shaping | MIT; bundled license texts. |
-| ANGLE 2.1.27548.20260419 | Avalonia Windows rendering native asset | BSD-3-Clause; bundled license. |
-| .NET 8 | Self-contained cross-platform application runtime | MIT; exact RID runtime packs are acquired during publish. |
+| Qt 6 Widgets | Shared Windows/Linux presentation and internal macOS reference | LGPL-3.0 / GPL-3.0; dynamically linked libraries and plugins deployed with application. |
 | Rust crates (`serde`, `reqwest`, `ring`, etc.) | Serialization, signed updates, TLS and local file handling from crates.io | Exact versions and checksums in `Cargo.lock`; package license files are copied into releases. |
 | Python build requirements | Icon generation, update metadata signing and release tooling; pinned in `script/requirements-build.txt` | Build-time only; not shipped as an application runtime. |
 | linuxdeploy, appimagetool and runtime | Linux AppImage creation from hash-verified downloads | Build tools and AppImage runtime retain their upstream terms. |

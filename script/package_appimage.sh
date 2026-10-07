@@ -22,8 +22,13 @@ DESKTOP="$(find "$APPDIR/usr/share/applications" -name '*.desktop' -print -quit)
 sed -i 's/^Exec=ativ-development$/Exec=ativ/' "$DESKTOP"
 # The verified FFmpeg pair only links system libraries. Keep it out of
 # linuxdeploy's ELF rewriting, then restore the exact source-built bytes.
-rm "$APPDIR/usr/lib/ativ/ffmpeg" "$APPDIR/usr/lib/ativ/ffprobe"
-linuxdeploy --appdir "$APPDIR" --executable "$APPDIR/usr/lib/ativ/ATIV" --desktop-file "$DESKTOP" --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/$(basename "$DESKTOP" .desktop).png"
+EXTRA_LIBS=()
+if [[ -d "$APPDIR/usr/lib/ativ/plugins/platforms" ]]; then
+  for plugin in "$APPDIR/usr/lib/ativ/plugins/platforms"/*.so; do
+    if [[ -f "$plugin" ]]; then EXTRA_LIBS+=("-l" "$plugin"); fi
+  done
+fi
+linuxdeploy --appdir "$APPDIR" --executable "$APPDIR/usr/lib/ativ/ATIV" "${EXTRA_LIBS[@]}" --desktop-file "$DESKTOP" --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/$(basename "$DESKTOP" .desktop).png"
 cp -p "$STAGE/usr/lib/ativ/ffmpeg" "$STAGE/usr/lib/ativ/ffprobe" "$APPDIR/usr/lib/ativ/"
 # linuxdeploy-generated AppRun supplies the relocatable runtime environment.
 ARCH="$ARCH" "$TOOLS/appimagetool" --runtime-file "$TOOLS/runtime" "$APPDIR" "$ROOT_DIR/packages/ATIV-$VERSION-linux-$LABEL.AppImage"

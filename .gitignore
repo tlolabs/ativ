@@ -6,10 +6,9 @@
 /dist/
 /packages/
 /platform/macos/.build/
-/platform/windows/**/bin/
-/platform/windows/**/obj/
-/platform/avalonia/**/bin/
-/platform/avalonia/**/obj/
+# CMake and Qt output (build/ covers standard outputs)
+.qt/
+CMakeUserPresets.json
 
 # Python build-tool bytecode (the application has no Python runtime)
 __pycache__/

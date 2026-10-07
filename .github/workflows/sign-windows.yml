@@ -125,5 +125,5 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Native final signed-runtime validation failed' }
           $env:ATIV_ENGINE_PATH = "$PWD/final-native/ativ-engine.exe"
           python script/create_smoke_media.py build/native-fixtures
-          dotnet run --project platform/windows/Tests/NativeIntegration.csproj -- build/native-fixtures
+          python script/test_engine_fixtures.py build/native-fixtures
           if ($LASTEXITCODE -ne 0) { throw 'Native signed-package media integration failed' }

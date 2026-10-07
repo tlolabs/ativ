@@ -8,11 +8,11 @@ The statically linked external libraries are x264 (GPL-2.0-or-later, stable comm
 
 Core preserves the original compiler runtime notices in each runtime's `licenses/` directory. Compiler and package versions are recorded in `build.json`.
 
-## Avalonia and managed runtime
+## Qt 6 Presentation Layer
 
-Current Windows/Linux presentation uses Avalonia 12.1.3 (MIT), SkiaSharp 3.119.4 (MIT), HarfBuzzSharp 8.3.1.3 (MIT), ANGLE 2.1.27548.20260419 (BSD-3-Clause on Windows), and a self-contained .NET 8 runtime (MIT). Exact NuGet package versions, hashes, target selection and declared licenses appear in `docs/avalonia-dependencies.json`. The packages include `licenses/Avalonia.txt`, `Avalonia-notices.txt`, `SkiaSharp.txt`, `HarfBuzzSharp.txt` and `ANGLE.txt`. Preserve them on redistribution. The .NET runtime retains its upstream notices and source attribution.
+Windows and Linux presentation uses Qt 6 Widgets (dynamically linked). An internal macOS ARM64 build is provided for development and parity testing. Qt 6 is licensed under the GNU Lesser General Public License version 3 (LGPL-3.0) and GNU General Public License version 3 (GPL-3.0). Under LGPL-3.0, users are permitted to inspect, modify, and relink the Qt libraries used by the application. Source code for Qt 6 is available from https://code.qt.io/cgit/qt/qtbase.git and upstream Qt releases. Dynamically linked Qt libraries are staged alongside the application binaries in accordance with LGPL-3.0 terms.
 
-Published v0.2.4 Windows ZIPs used WinUI and Microsoft Windows App SDK; [their historical audit](docs/WINDOWS_LICENSING.md) remains available. Those components are removed from the new source packaging path. Linux GTK/libadwaita source and deployment dependencies are likewise retired.
+Published v0.2.4 Windows ZIPs used WinUI and Microsoft Windows App SDK; earlier versions used Avalonia .NET. Those components are removed from the active source tree. Linux GTK/libadwaita and Avalonia dependencies are likewise retired.
 
 ## AVID Core and Rust dependencies
 

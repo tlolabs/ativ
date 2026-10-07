@@ -1,4 +1,4 @@
-> Historical planning snapshot. Windows/Linux production UI now uses shared Avalonia; see [migration audit](avalonia-migration.md).
+> Historical planning snapshot. Windows/Linux presentation now uses shared Qt 6 Widgets; see [architecture](ARCHITECTURE.md).
 
 # Native distribution migration
 

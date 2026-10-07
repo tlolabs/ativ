@@ -9,7 +9,6 @@ $version = if ($env:ATIV_VERSION) { $env:ATIV_VERSION } else { $version }
 $numericVersion = $version -replace "-dev\.", "."
 $label = $Architecture.ToLowerInvariant()
 $rustTarget = if ($Architecture -eq "ARM64") { "aarch64-pc-windows-msvc" } else { "x86_64-pc-windows-msvc" }
-$runtime = if ($Architecture -eq "ARM64") { "win-arm64" } else { "win-x64" }
 $build = Join-Path $root "build/windows-$Architecture"
 $publish = Join-Path $build "publish"
 $packages = Join-Path $root "packages"
@@ -22,12 +21,24 @@ cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --
 if ($LASTEXITCODE -ne 0) { throw "Rust build failed" }
 if (Test-Path $build) { Remove-Item -Recurse -Force $build }
 New-Item -ItemType Directory -Force -Path $publish, $packages | Out-Null
-dotnet publish (Join-Path $root "platform/avalonia/ATIV.Avalonia.csproj") -c Release -r $runtime --self-contained true -p:Version=$version -p:AssemblyVersion=$numericVersion -p:FileVersion=$numericVersion -o (Join-Path $build "managed")
-if ($LASTEXITCODE -ne 0) { throw "Native build failed" }
 
-dotnet publish (Join-Path $root "platform/windows/PortableUpdate/PortableUpdate.csproj") -c Release -r $runtime --self-contained true -o (Join-Path $build "update-helper")
-if ($LASTEXITCODE -ne 0) { throw "Portable update helper build failed" }
-Copy-Item (Join-Path $build "update-helper/ativ-portable-update.exe") $publish
+$cmakeBuild = Join-Path $build "cmake"
+cmake -S (Join-Path $root "platform/qt") -B $cmakeBuild -DCMAKE_BUILD_TYPE=Release
+if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed" }
+cmake --build $cmakeBuild --config Release --parallel
+if ($LASTEXITCODE -ne 0) { throw "Qt build failed" }
+
+$exeDir = if (Test-Path (Join-Path $cmakeBuild "Release/ATIV.exe")) { Join-Path $cmakeBuild "Release" } else { $cmakeBuild }
+Copy-Item (Join-Path $exeDir "ATIV.exe") $publish
+Copy-Item (Join-Path $exeDir "ativ-portable-update.exe") $publish
+
+$assetsDir = Join-Path $publish "Assets"
+New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
+Copy-Item (Join-Path $root "platform/windows/Assets/ATIV.ico") (Join-Path $assetsDir "ATIV.ico")
+
+$windeployqt = if ($env:QT_DIR) { Join-Path $env:QT_DIR "bin/windeployqt.exe" } else { "windeployqt" }
+& $windeployqt --release --no-translations --no-opengl-sw (Join-Path $publish "ATIV.exe")
+if ($LASTEXITCODE -ne 0) { throw "windeployqt failed" }
 
 Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-engine.exe") $publish
 Copy-Item (Join-Path $root "target/$rustTarget/release/ativ-update.exe") $publish
@@ -38,10 +49,9 @@ if ($LASTEXITCODE -ne 0) { throw "ATIV FFmpeg runtime staging failed" }
 Copy-Item (Join-Path $root "LICENSE") $publish
 Copy-Item (Join-Path $root "THIRD_PARTY_NOTICES.md") $publish
 
-
 python (Join-Path $root "script/ffmpeg_runtime.py") finish $ffmpegTarget --binary $publish --metadata (Join-Path $publish "ffmpeg-runtime")
 if ($LASTEXITCODE -ne 0) { throw "Signed ATIV FFmpeg runtime recording failed" }
-Copy-Item (Join-Path $build "managed/*") $publish -Recurse
+
 # Core licenses remain inside its immutable metadata tree; application licenses stay separate.
 python (Join-Path $root "script/collect_licenses.py") (Join-Path $publish "licenses") --target $rustTarget
 if ($LASTEXITCODE -ne 0) { throw "License collection failed" }

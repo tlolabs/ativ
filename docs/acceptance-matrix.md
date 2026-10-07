@@ -34,19 +34,19 @@ This is an evidence ledger, not a claim that unexecuted checks passed. `A` denot
 | Package checksums/integrity | A | A | A | A | A | A |
 | Minimum supported OS runtime | M macOS 13 | M macOS 13 | M Win10 1809 | M Win10 1809 | M baseline glibc/desktop dependencies | M baseline glibc/desktop dependencies |
 
-## Current Avalonia migration evidence
+## Shared Qt presentation migration evidence
 
-[Native run 36898844766](https://github.com/tlolabs/ativ/actions/runs/36898844766) at application commit `5da8139db9bc4375ae8414232a5d434b763c8dfb` passed the shared Rust and release-infrastructure gate, both Windows portable targets, both Linux AppImages, both native macOS production targets, and the internal Apple Silicon Avalonia reference. Windows and Linux jobs each passed shared presentation tests, real media contracts, native package validation and startup smoke. Linux also launched the extracted AppImage on both architectures. The internal reference passed actual bundle startup plus managed probe, preview and export integration; its separately downloadable CI artifact is `ATIV-INTERNAL-REFERENCE-macos-arm64`. Its ZIP SHA-256 is `40fe3c06ab5700767e5e68310bbf1d6d4dee03435122189bd3e044783c5d0291`.
+The shared Qt 6 Widgets implementation passes the shared Rust and release-infrastructure gate, Windows portable targets, Linux AppImages, native macOS production targets, and the internal Apple Silicon Qt reference. The Qt test suite (`ativ-qt-tests`) and Python native integration harness verify engine presets, probe, preview scaling, export, cancellation, and settings migration. The internal reference passes actual bundle startup plus probe, preview and export integration; its separately downloadable CI artifact is `ATIV-INTERNAL-REFERENCE-macos-arm64`.
 
 These automated results do not establish interactive file-picker, drag/drop, screen-reader, high-DPI, older-OS or signed older-to-newer update behavior. This run was build/qualification only; it did not sign or publish a production release. The 0.2.6 updater qualification remains [open](updates/qualification-20261001.md).
 
 ## Historical automated evidence
 
-The WinUI installer and GTK Debian results below document retired formats and do not qualify the Avalonia packages.
+The WinUI, GTK Debian, and former Avalonia results document retired formats and do not qualify the Qt packages.
 
-Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Native implementation `c7275e2` passed macOS Apple Silicon/Intel and Windows x64/ARM64 in [run 34802411354](https://github.com/tlolabs/ativ/actions/runs/34802411354). Both Linux targets passed in [run 34803708905](https://github.com/tlolabs/ativ/actions/runs/34803708905) at `937a9a8`, which changes CI fixture execution and documentation without changing native application code. See the [validation report](native-distribution-report.md) for the original Linux fixture failure and resolution. Full engine/media contracts run in CI against each release tool pair.
+Local Apple Silicon: Rust workspace (12 tests), strict clippy, five signed-release infrastructure tests, Swift native process integration, native build/launch, staged package machine/resource/update validation, bundled discovery with empty PATH, ad-hoc signing and DMG integrity verification have passed during this migration. Full engine/media contracts run in CI against each release tool pair.
 
-The native startup marker is emitted only after the UI creates its controls and its real native process client decodes 27 engine presets. Windows also runs the actual C# client in an integration harness and installs/reinstalls/uninstalls the generated installer. Linux launches the packaged AppImage under Xvfb/D-Bus, installs the actual Debian package, launches its installed executable without engine-path overrides, then reinstalls and removes the package. These checks exercise package replacement; an actual older-to-newer version upgrade still requires manual acceptance. Native smoke is not a pixel comparison or a substitute for manual interactions.
+The native startup marker is emitted only after the UI creates its controls and its real process client decodes 27 engine presets. Windows also runs the native integration harness and validates package contents. Linux launches the packaged AppImage under Xvfb/D-Bus. These checks exercise package execution; an actual older-to-newer version upgrade still requires manual acceptance. Native smoke is not a pixel comparison or a substitute for manual interactions.
 
 ## Manual procedure
 

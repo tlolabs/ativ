@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="../avalonia/ATIV.Avalonia.csproj" />
-  <Project Path="Tests/NativeIntegration.csproj" />
-  <Project Path="PortableUpdate/PortableUpdate.csproj" />
-</Solution>

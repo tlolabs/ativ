@@ -1,4 +1,4 @@
-> Historical audit of the published v0.2.4 WinUI binaries. The Avalonia migration removes Windows App SDK from source; this report does not describe new Avalonia packages. See [current dependencies](DEPENDENCIES.md).
+> Historical audit of the published v0.2.4 WinUI binaries. Subsequent versions retired Windows App SDK and Avalonia in favor of a shared Qt 6 Widgets presentation layer. See [current dependencies](DEPENDENCIES.md).
 
 # Windows distribution licensing audit
 

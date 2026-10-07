@@ -11,12 +11,14 @@ def generate():
     light = Image.open(SOURCE / 'ATIV-light.png').convert('RGBA')
     dark = Image.open(SOURCE / 'ATIV-dark.png').convert('RGBA')
     mac = ROOT / 'platform/macos/Resources'
-    win = ROOT / 'platform/avalonia/Assets'
+    win = ROOT / 'platform/windows/Assets'
+    qt = ROOT / 'platform/qt/Assets'
     linux = ROOT / 'platform/linux/data/icons'
-    for folder in (mac, win, linux):
+    for folder in (mac, win, qt, linux):
         folder.mkdir(parents=True, exist_ok=True)
     light.save(mac / 'ATIV.icns', sizes=[(s, s) for s in (16,32,64,128,256,512,1024)])
     light.save(win / 'ATIV.ico', sizes=[(s,s) for s in (16,24,32,48,64,128,256)])
+    light.save(qt / 'ATIV.ico', sizes=[(s,s) for s in (16,24,32,48,64,128,256)])
     for size in (16,24,32,48,64,128,256,512):
         light.resize((size,size), Image.Resampling.LANCZOS).save(linux / f'{size}.png')
     catalog = mac / 'Assets.xcassets/AppIcon.appiconset'

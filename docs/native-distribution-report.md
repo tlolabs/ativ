@@ -1,4 +1,4 @@
-> Historical native-distribution evidence predating the shared Avalonia migration. See [migration audit](avalonia-migration.md) for current source.
+> Historical native-distribution evidence. Windows/Linux presentation now uses shared Qt 6 Widgets; see [architecture](ARCHITECTURE.md).
 
 # Native distribution migration report
 

@@ -21,7 +21,7 @@ Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe 
 
 All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed the release pipeline. The release notes identify incomplete builds.
 
-The interfaces use SwiftUI/AppKit on production macOS and one shared Avalonia 12 UI on Windows and Linux, respectively. They follow native appearance and control conventions, default to the system theme, and offer Light/Dark/System preferences. The same Rust media implementation powers every platform.
+The interfaces use SwiftUI/AppKit on production macOS and one shared Qt 6 Widgets UI on Windows and Linux, respectively. An internal Qt macOS ARM64 build is available for development and parity testing. They follow native appearance and control conventions, default to the system theme, and offer Light/Dark/System preferences. The same Rust media implementation powers every platform.
 
 ## Documentation
 
@@ -34,7 +34,6 @@ The interfaces use SwiftUI/AppKit on production macOS and one shared Avalonia 12
 - [Packaging, signing and release operations](docs/RELEASING.md)
 - [Accessibility and troubleshooting](docs/accessibility.md)
 - [Cross-platform acceptance matrix](docs/acceptance-matrix.md)
-- [Shared Avalonia migration and parity audit](docs/avalonia-migration.md)
 - [Historical native distribution plan and report](docs/native-distribution-plan.md)
 - [Release readiness checklist](docs/release-checklist.md)
 
