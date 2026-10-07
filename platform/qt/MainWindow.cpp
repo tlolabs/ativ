@@ -757,7 +757,9 @@ void MainWindow::showAbout() {
 
 void MainWindow::applyAppearance(const QString &theme) {
     if (theme == "Dark") {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         qApp->styleHints()->setColorScheme(Qt::ColorScheme::Dark);
+#endif
         QPalette dark;
         dark.setColor(QPalette::Window, QColor(40, 42, 48));
         dark.setColor(QPalette::WindowText, Qt::white);
@@ -779,10 +781,34 @@ void MainWindow::applyAppearance(const QString &theme) {
         }
         qApp->setPalette(dark);
     } else if (theme == "Light") {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         qApp->styleHints()->setColorScheme(Qt::ColorScheme::Light);
         qApp->setPalette(qApp->style()->standardPalette());
+#else
+        // Qt before 6.8 cannot request a platform light scheme. Preserve an
+        // explicit light preference even when the desktop's default is dark.
+        QPalette light = qApp->style()->standardPalette();
+        light.setColor(QPalette::Window, QColor(245, 245, 245));
+        light.setColor(QPalette::WindowText, QColor(24, 24, 24));
+        light.setColor(QPalette::Base, Qt::white);
+        light.setColor(QPalette::AlternateBase, QColor(245, 245, 245));
+        light.setColor(QPalette::Text, QColor(24, 24, 24));
+        light.setColor(QPalette::Button, QColor(240, 240, 240));
+        light.setColor(QPalette::ButtonText, QColor(24, 24, 24));
+        light.setColor(QPalette::ToolTipBase, Qt::white);
+        light.setColor(QPalette::ToolTipText, QColor(24, 24, 24));
+        light.setColor(QPalette::Highlight, QColor(0, 110, 200));
+        light.setColor(QPalette::HighlightedText, Qt::white);
+        light.setColor(QPalette::PlaceholderText, QColor(96, 96, 96));
+        for (const auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText}) {
+            light.setColor(QPalette::Disabled, role, QColor(105, 105, 105));
+        }
+        qApp->setPalette(light);
+#endif
     } else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
         qApp->styleHints()->setColorScheme(Qt::ColorScheme::Unknown);
+#endif
         qApp->setPalette(qApp->style()->standardPalette());
     }
 }
