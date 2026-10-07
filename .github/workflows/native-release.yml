@@ -267,7 +267,7 @@ jobs:
           cargo test --locked --all-targets
           ./script/test_engine_integration.sh windows-${{ matrix.runtime_arch }}
       - name: Install Qt 6
-        uses: jurplel/install-qt-action@112be8f75b63cfca2f51f4c718e8d8935cbbff23 # v4
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
           version: '6.8.0'
           host: 'windows'

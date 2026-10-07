@@ -34,6 +34,7 @@ No minimum version, architecture, UI framework, or distribution format changed.
 - The internal Qt Mac reference ZIP was rebuilt. Bundle validation passed for embedded dependencies and runtime provenance; its packaged engine passed the existing workflow test.
 - The rebuilt Qt reference launched. Its macOS accessibility tree exposed named file-selection buttons, format controls, destination, progress, and current status text.
 - The new Qt accessibility test checks status/progress semantics and destination reachability at 640 × 480 with enlarged text. CI runs it as a nonblocking step on native Windows, Linux, and the internal Mac reference jobs. It is deliberately outside CTest so it does not create an accessibility release gate.
+- The first branch-wide native workflow run exposed an obsolete Windows Qt installer action pin before either Windows build started. The action was repinned to the official v4.3.1 commit for the follow-up run.
 
 The full native Mac XCTest suite could not run locally: the installed Xcode license has not been accepted, while Command Line Tools lack XCTest. The Swift application target compiled. Modified Windows and Linux packages were not built on this Mac; their native CI jobs remain the compatibility check. A modified production Mac ZIP was not packaged locally because that workflow needs the full Xcode toolchain and release configuration.
 
