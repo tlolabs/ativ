@@ -276,6 +276,14 @@ jobs:
       - name: Build and package native application
         shell: pwsh
         run: ./script/package_windows.ps1 -Architecture "${{ matrix.arch }}"
+      - name: Inspect Qt accessibility semantics and compact layout (informational)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          cmake --build "build/windows-${{ matrix.arch }}/cmake" --config Release --target ativ-qt-accessibility-tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          & "build/windows-${{ matrix.arch }}/cmake/Release/ativ-qt-accessibility-tests.exe"
       - name: Native integration and extracted portable ZIP smoke tests
         if: ${{ !inputs.owner_testing }}
         shell: pwsh
@@ -355,6 +363,12 @@ jobs:
           ./script/test_engine_integration.sh linux-${{ matrix.runtime_arch }}
       - name: Build and package native application
         run: ./script/package_linux.sh "${{ matrix.arch }}"
+      - name: Inspect Qt accessibility semantics and compact layout (informational)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cmake --build "build/linux-${{ matrix.arch }}/cmake" --target ativ-qt-accessibility-tests
+          QT_QPA_PLATFORM=offscreen "build/linux-${{ matrix.arch }}/cmake/ativ-qt-accessibility-tests"
       - name: Native Qt and package smoke tests
         if: ${{ !inputs.owner_testing }}
         run: ./script/test_linux_native.sh "${{ matrix.arch }}"
@@ -396,6 +410,12 @@ jobs:
           target: macos-arm64
       - name: Build isolated internal reference artifact
         run: ./script/package_qt_reference.sh
+      - name: Inspect Qt accessibility semantics and compact layout (informational)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cmake --build build/qt-macos/cmake --target ativ-qt-accessibility-tests
+          QT_QPA_PLATFORM=offscreen build/qt-macos/cmake/ativ-qt-accessibility-tests
       - name: Launch actual internal bundle and verify shared engine protocol
         run: |
           set -euo pipefail
@@ -416,4 +436,3 @@ jobs:
           path: ATIV/build/qt-macos/ATIV-Qt-macos-arm64.zip
           retention-days: 14
           if-no-files-found: error
-

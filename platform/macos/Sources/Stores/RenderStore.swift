@@ -21,6 +21,7 @@ final class RenderStore: ObservableObject {
     @Published var status = "Loading media engine…"
     @Published var isRendering = false { didSet { ATIVSetUpdateWorkInProgress(isRendering) } }
     @Published var errorMessage: String?
+    @Published var showOverwriteConfirmation = false
     @Published var showDiagnostics = false
     @Published var diagnostics: [String] = []
 
@@ -36,6 +37,7 @@ final class RenderStore: ObservableObject {
     private var previewGeneration = 0
     private var audioGeneration = 0
     private var terminating = false
+    private var lastAnnouncedStage: String?
 
     var platforms: [String] { unique(presets.map(\.platform)) }
     var aspects: [String] { unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect)) }
@@ -66,7 +68,9 @@ final class RenderStore: ObservableObject {
 
     func chooseImage() { guard !isRendering else { return }; if let url = PanelService.chooseImage() { setImage(url) } }
     func chooseAudio() { guard !isRendering else { return }; if let url = PanelService.chooseAudio() { setAudio(url) } }
-    func chooseOutput() { guard !isRendering else { return }; if let url = PanelService.chooseOutput(suggested: suggestedOutput) { outputURL = url } }
+    func chooseOutput() { guard !isRendering else { return }; if let url = PanelService.chooseOutput(suggested: suggestedOutput) { setOutput(url) } }
+
+    func setOutput(_ url: URL) { guard !isRendering else { return }; outputURL = url }
 
     func setImage(_ url: URL) { guard !isRendering else { return }; imageURL = url; suggestOutputIfNeeded(); refreshPreview() }
     func setAudio(_ url: URL) {
@@ -93,7 +97,7 @@ final class RenderStore: ObservableObject {
     func selectionChanged() { normalizeSelection(); refreshPreview() }
     func previewOptionsChanged() { refreshPreview() }
 
-    func render() {
+    func render(replacingExisting: Bool = false) {
         guard !isRendering && !terminating else { return }
         guard let imageURL, let audioURL, let outputURL, let preset = selectedPreset else {
             errorMessage = "Choose an image, audio recording, output destination, and format."
@@ -103,6 +107,10 @@ final class RenderStore: ObservableObject {
             errorMessage = "The output destination must be separate from the image and audio source files."
             return
         }
+        if FileManager.default.fileExists(atPath: outputURL.path) && !replacingExisting {
+            showOverwriteConfirmation = true
+            return
+        }
         let validFps = max(1, min(240, fps))
         UserDefaults.standard.set(bitrate, forKey: "audioBitrate")
         UserDefaults.standard.set(validFps, forKey: "fps")
@@ -110,6 +118,8 @@ final class RenderStore: ObservableObject {
         diagnostics = []
         isRendering = true
         status = "Preparing video…"
+        lastAnnouncedStage = nil
+        announce(status)
         let exportStarted = ProcessInfo.processInfo.systemUptime
         engine.render(image: imageURL, audio: audioURL, output: outputURL, preset: preset, bitrate: bitrate, fps: validFps, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] event in
             DispatchQueue.main.async { self?.apply(event) }
@@ -124,6 +134,7 @@ final class RenderStore: ObservableObject {
                 case .success:
                     self.progress = 1
                     self.status = "Video saved as \(outputURL.lastPathComponent) in \(String(format: "%.1f", exportSeconds)) seconds."
+                    self.announce(self.status)
                     NSDocumentController.shared.noteNewRecentDocumentURL(outputURL)
                 case .failure(let error): self.fail(error)
                 }
@@ -142,6 +153,7 @@ final class RenderStore: ObservableObject {
 
     func cancel() {
         status = "Stopping safely…"
+        announce(status)
         engine.cancelRender()
         engine.cancelPreview()
         engine.cancelProbe()
@@ -200,7 +212,12 @@ final class RenderStore: ObservableObject {
 
     private func apply(_ event: EngineEvent) {
         switch event.event {
-        case "stage": status = stageText(event.stage)
+        case "stage":
+            status = stageText(event.stage)
+            if event.stage != lastAnnouncedStage {
+                lastAnnouncedStage = event.stage
+                announce(status)
+            }
         case "progress": progress = event.fraction ?? progress; status = progressText(event)
         case "error": errorMessage = event.message
         default: break
@@ -233,5 +250,12 @@ final class RenderStore: ObservableObject {
         return String(format: "%d:%02d", total / 60, total % 60)
     }
     private func fail(_ error: Error) { errorMessage = error.localizedDescription; status = "Unable to complete the operation." }
+    private func announce(_ message: String) {
+        guard let window = NSApp.mainWindow else { return }
+        NSAccessibility.post(element: window, notification: .announcementRequested, userInfo: [
+            .announcement: message,
+            .priority: NSAccessibilityPriorityLevel.medium.rawValue
+        ])
+    }
     private func unique(_ values: [String]) -> [String] { values.reduce(into: []) { if !$0.contains($1) { $0.append($1) } } }
 }

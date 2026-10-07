@@ -21,6 +21,6 @@ struct SettingsView: View {
             TextField("Default frame rate", value: $fps, format: .number)
         }
         .padding(24)
-        .frame(width: 380)
+        .frame(minWidth: 380)
     }
 }

@@ -5,12 +5,13 @@
 #include <QMimeData>
 #include <QUrl>
 #include <QStyleHints>
+#include <QAccessible>
 
 class PreviewCanvas : public QWidget {
 public:
     QImage image;
     explicit PreviewCanvas(QWidget *parent = nullptr) : QWidget(parent) {
-        setMinimumSize(260, 260);
+        setMinimumSize(180, 180);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         setAccessibleName("Video frame preview");
         setAccessibleDescription("Preview of the composited video frame using selected artwork, aspect ratio, and flip options");
@@ -72,7 +73,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     applyAppearance(preferences.appearance);
 
     resize(1020, 740);
-    setMinimumSize(860, 650);
+    setMinimumSize(640, 480);
     setAcceptDrops(true);
 
     auto *root = new QWidget;
@@ -107,7 +108,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         field->setPlaceholderText("Nothing selected");
         field->setObjectName(id);
         field->setAccessibleName("Selected " + name);
-        field->setMinimumWidth(180);
+        field->setMinimumWidth(120);
         auto *button = new QPushButton("Choose…");
         button->setAccessibleName("Choose " + name);
         connect(button, &QPushButton::clicked, this, action);
@@ -119,6 +120,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     auto *sources = new QGroupBox("Source media");
     auto *sourceForm = new QFormLayout(sources);
     sourceForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    sourceForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
     sourceForm->setLabelAlignment(Qt::AlignLeft);
     sourceForm->addRow("Image", fileRow("image", imagePath, "imagePath", &MainWindow::chooseImage));
     sourceForm->addRow("Audio", fileRow("audio", audioPath, "audioPath", &MainWindow::chooseAudio));
@@ -131,6 +133,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     auto *format = new QGroupBox("Format");
     auto *form = new QFormLayout(format);
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
     form->setLabelAlignment(Qt::AlignLeft);
 
     platform = new QComboBox;
@@ -155,7 +158,8 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     bitrate->setAccessibleName("Audio bitrate");
 
     for (auto *combo : {platform, aspect, resolution, bitrate}) {
-        combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+        combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        combo->setMinimumContentsLength(12);
         combo->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     }
 
@@ -203,7 +207,13 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     left->addWidget(destination);
     left->addStretch();
 
-    splitter->addWidget(controls);
+    auto *controlsScroll = new QScrollArea;
+    controlsScroll->setWidgetResizable(true);
+    controlsScroll->setFrameShape(QFrame::NoFrame);
+    controlsScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    controlsScroll->setMinimumWidth(300);
+    controlsScroll->setWidget(controls);
+    splitter->addWidget(controlsScroll);
 
     auto *right = new QWidget;
     auto *rightLayout = new QVBoxLayout(right);
@@ -220,6 +230,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     rightLayout->addWidget(preview, 1);
 
     previewCaption = new QLabel("Choose an image to see a styled preview.");
+    previewCaption->setObjectName("previewCaption");
     previewCaption->setAlignment(Qt::AlignCenter);
     previewCaption->setWordWrap(true);
     rightLayout->addWidget(previewCaption);
@@ -242,7 +253,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     progress = new QProgressBar;
     progress->setRange(0, 1000);
     progress->setValue(0);
-    progress->setTextVisible(false);
+    progress->setFormat("%p% complete");
     progress->setAccessibleName("Video creation progress");
     outer->addWidget(progress);
 
@@ -250,7 +261,8 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     status = new QLabel("Loading formats…");
     status->setWordWrap(true);
     status->setObjectName("status");
-    status->setAccessibleName("Application status");
+    // The current message is the accessible name of a QLabel. A fixed name
+    // would hide the actual status from screen readers.
     footer->addWidget(status, 1);
 
 #if defined(Q_OS_MACOS)
@@ -338,7 +350,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         presetsLoaded = (code == 0 && !presets.isEmpty());
         if (presetsLoaded) {
             updateAspects();
-            status->setText("Choose an image, audio, and a destination to begin.");
+            setStatus("Choose an image, audio, and a destination to begin.", true);
             emit presetsReady(presets.size());
 
             const QString smokeReport = qEnvironmentVariable("ATIV_SMOKE_REPORT");
@@ -350,7 +362,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
                 }
             }
         } else {
-            status->setText(error.isEmpty() ? "No format presets were returned." : error);
+            setStatus(error.isEmpty() ? "No format presets were returned." : error, true);
             log(status->text());
         }
         updateEnabled();
@@ -362,10 +374,13 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         if (code == 0) {
             preview->image = QImage(temporary.filePath("preview.png"));
             preview->update();
-            if (!preview->image.isNull()) emit previewReady(preview->image);
+            if (!preview->image.isNull()) {
+                previewCaption->setText("Preview ready · " + aspect->currentText() + " · " + resolution->currentText());
+                emit previewReady(preview->image);
+            }
             else previewCaption->setText("The preview could not be read.");
         } else {
-            previewCaption->setText("Preview unavailable");
+            previewCaption->setText("Preview unavailable. Check the selected image.");
             log(error);
         }
     });
@@ -402,13 +417,13 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
             const auto stage = event["stage"].toString();
             log(stage);
             if (cancel->isEnabled()) {
-                if (stage == "validating") status->setText("Checking files…");
-                else if (stage == "probing") status->setText("Reading media…");
-                else if (stage == "compositing") status->setText("Building frame…");
-                else if (stage == "encoding") status->setText("Creating video…");
-                else if (stage == "publishing") status->setText("Saving completed video…");
-                else if (stage == "complete") status->setText("Complete");
-                else status->setText(stage);
+                if (stage == "validating") setStatus("Checking files…", true);
+                else if (stage == "probing") setStatus("Reading media…", true);
+                else if (stage == "compositing") setStatus("Building frame…", true);
+                else if (stage == "encoding") setStatus("Creating video…", true);
+                else if (stage == "publishing") setStatus("Saving completed video…", true);
+                else if (stage == "complete") setStatus("Complete", true);
+                else setStatus(stage, true);
             }
         }
         if (type == "progress") {
@@ -438,12 +453,12 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         progress->setValue(code == 0 ? 1000 : 0);
         if (code == 0) {
             completedOutput = outputPath->text();
-            status->setText(QString("Video saved as %1.").arg(QFileInfo(completedOutput).fileName()));
+            setStatus(QString("Video saved as %1.").arg(QFileInfo(completedOutput).fileName()), true);
             reveal->show();
         } else if (code == 130) {
-            status->setText("Video creation stopped. Previous output preserved.");
+            setStatus("Video creation stopped. Previous output preserved.", true);
         } else {
-            status->setText(error);
+            setStatus(error, true);
             log(error);
         }
         updateEnabled();
@@ -475,6 +490,15 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 
 void MainWindow::log(const QString &message) {
     if (diagnostics) diagnostics->appendPlainText(message);
+}
+
+void MainWindow::setStatus(const QString &message, bool announce) {
+    if (status->text() == message) return;
+    status->setText(message);
+    if (announce) {
+        QAccessibleEvent changed(status, QAccessible::NameChanged);
+        QAccessible::updateAccessibility(&changed);
+    }
 }
 
 void MainWindow::suggestOutput(const QString &sourcePath) {
@@ -591,7 +615,9 @@ void MainWindow::queuePreview() {
     ++revision;
     preview->image = QImage();
     preview->update();
-    previewCaption->setText(aspect->currentText() + " · " + resolution->currentText());
+    previewCaption->setText(imagePath->text().isEmpty()
+        ? "Choose an image to see a styled preview."
+        : "Preparing preview · " + aspect->currentText() + " · " + resolution->currentText());
     if (previewJob.busy()) previewJob.cancel();
     previewDelay.start();
 }
@@ -643,7 +669,7 @@ void MainWindow::startRender() {
     rendering = true;
     reveal->hide();
     progress->setRange(0, 0);
-    status->setText("Preparing video…");
+    setStatus("Preparing video…", true);
     updateEnabled();
 
     preferences.save();
@@ -656,7 +682,7 @@ void MainWindow::startRender() {
 void MainWindow::cancelRender() {
     if (!rendering) return;
     cancel->setEnabled(false);
-    status->setText("Stopping safely…");
+    setStatus("Stopping safely…", true);
     renderJob.cancel();
 }
 
@@ -737,7 +763,7 @@ void MainWindow::applyAppearance(const QString &theme) {
         dark.setColor(QPalette::WindowText, Qt::white);
         dark.setColor(QPalette::Base, QColor(25, 26, 30));
         dark.setColor(QPalette::AlternateBase, QColor(40, 42, 48));
-        dark.setColor(QPalette::ToolTipBase, Qt::white);
+        dark.setColor(QPalette::ToolTipBase, QColor(48, 50, 56));
         dark.setColor(QPalette::ToolTipText, Qt::white);
         dark.setColor(QPalette::Text, Qt::white);
         dark.setColor(QPalette::Button, QColor(48, 50, 56));
@@ -747,6 +773,10 @@ void MainWindow::applyAppearance(const QString &theme) {
         dark.setColor(QPalette::Highlight, QColor(64, 150, 238));
         dark.setColor(QPalette::HighlightedText, Qt::black);
         dark.setColor(QPalette::PlaceholderText, QColor(160, 160, 160));
+        const QColor disabledText(170, 170, 170);
+        for (const auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText}) {
+            dark.setColor(QPalette::Disabled, role, disabledText);
+        }
         qApp->setPalette(dark);
     } else if (theme == "Light") {
         qApp->styleHints()->setColorScheme(Qt::ColorScheme::Light);

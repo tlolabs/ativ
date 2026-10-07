@@ -58,4 +58,9 @@ if(TARGET Qt6::Test)
     target_link_libraries(ativ-qt-tests PRIVATE ativ-qt-ui Qt6::Test)
     add_test(NAME qt-workflow COMMAND ativ-qt-tests)
     set_tests_properties(qt-workflow PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 180)
+
+    # Kept outside CTest: CI runs these best-effort checks without a release gate.
+    qt_add_executable(ativ-qt-accessibility-tests accessibility_tests.cpp)
+    target_link_libraries(ativ-qt-accessibility-tests PRIVATE ativ-qt-ui Qt6::Test)
+    set_target_properties(ativ-qt-accessibility-tests PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()

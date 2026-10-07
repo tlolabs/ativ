@@ -52,6 +52,7 @@ private:
     void beginProbe();
     QStringList compositionArguments(bool forExport = false) const;
     void log(const QString &message);
+    void setStatus(const QString &message, bool announce = false);
     void suggestOutput(const QString &sourcePath);
     void showPreferences();
     void showAbout();

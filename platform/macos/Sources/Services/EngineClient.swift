@@ -2,13 +2,14 @@ import Foundation
 
 enum EngineClientError: LocalizedError {
     case missingEngine
-    case launchFailed(String)
+    case launchFailed
     case operationFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .missingEngine: return "The ATIV media engine is missing. Reinstall the application."
-        case .launchFailed(let detail), .operationFailed(let detail): return detail
+        case .launchFailed: return "The ATIV media engine could not start. Reinstall the complete application and try again."
+        case .operationFailed(let detail): return detail
         }
     }
 }
@@ -94,8 +95,9 @@ final class EngineClient {
             process.standardInput = stdin
             self.lock.lock(); self.renderProcess = process; self.lock.unlock()
             do { try process.run() } catch {
+                NSLog("ATIV media engine launch failed: %@", error.localizedDescription)
                 self.clear(process)
-                completion(.failure(EngineClientError.launchFailed("Could not start the media engine: \(error.localizedDescription)")))
+                completion(.failure(EngineClientError.launchFailed))
                 return
             }
             var lastError: String?
@@ -130,8 +132,9 @@ final class EngineClient {
             process.standardInput = stdin
             if let assign { assign(process) }
             do { try process.run() } catch {
+                NSLog("ATIV media engine launch failed: %@", error.localizedDescription)
                 if let clear { clear(process) }
-                completion(.failure(EngineClientError.launchFailed("Could not start the media engine: \(error.localizedDescription)"))); return
+                completion(.failure(EngineClientError.launchFailed)); return
             }
             let data = output.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()

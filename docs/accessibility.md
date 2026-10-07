@@ -1,5 +1,7 @@
 # Accessibility and troubleshooting
 
+The current engineering review and remaining manual checks are recorded in [the 2026-10-07 accessibility audit](accessibility-audit-20261007.md).
+
 ATIV uses native controls with system text, colors, focus and scaling. The native Mac and shared Qt interfaces offer System/Light/Dark appearance, persistent audio bitrate/frame-rate preferences, keyboard file selection, a labelled preview, progress, errors and safe cancellation. Decorative icons do not replace text labels. No custom animation is required for normal operations; native controls follow platform reduced-motion behavior.
 
 On macOS, Media menu commands expose image, audio, destination and export actions. Escape stops a running export. On Windows/Linux, use the shared File menu and Tab navigation; Ctrl+I/Ctrl+O choose media, Ctrl+Shift+S chooses output, Ctrl+Return exports, and Escape cancels. All file paths are also selectable through native file pickers; drag-and-drop is an additional route.

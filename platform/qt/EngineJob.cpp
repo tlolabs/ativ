@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "EngineJob.h"
 #include <QJsonDocument>
+#include <QDebug>
 
 EngineJob::EngineJob(QString enginePath, QObject *parent)
     : QObject(parent), engine(std::move(enginePath)) {
@@ -13,7 +14,8 @@ EngineJob::EngineJob(QString enginePath, QObject *parent)
     });
     connect(&process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) {
-            failure = "The ATIV media engine could not start: " + process.errorString();
+            qWarning().noquote() << "ATIV media engine launch failed:" << process.errorString();
+            failure = "The ATIV media engine could not start. Reinstall the complete application and try again.";
             complete(-1);
         }
     });
@@ -73,8 +75,10 @@ void EngineJob::readOutput(bool flush) {
 void EngineJob::complete(int code) {
     if (!active) return;
     deadline.stop(); killDeadline.stop(); active = false;
-    if (code != 0 && failure.isEmpty())
-        failure = stderrTail.isEmpty() ? "The media operation could not finish." : QString::fromUtf8(stderrTail);
+    if (code != 0 && failure.isEmpty()) {
+        if (!stderrTail.isEmpty()) qWarning().noquote() << "ATIV media engine error:" << QString::fromUtf8(stderrTail);
+        failure = "The media operation could not finish. Check the selected files and destination, then try again.";
+    }
     if (code == 0 && !failure.isEmpty()) code = -1;
     emit finished(code, failure);
 }

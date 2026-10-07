@@ -32,7 +32,11 @@ struct ATIVApp: App {
     var body: some Scene {
         WindowGroup("ATIV", id: "main") {
             ContentView(store: store)
-                .onAppear { AppDelegate.requestTermination = { store.requestTermination() } }
+                .onAppear {
+                    AppDelegate.requestTermination = { store.requestTermination() }
+                    applyAppearance()
+                }
+                .onChange(of: appearance) { _ in applyAppearance() }
                 .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
                 .frame(minWidth: 720, idealWidth: 1040, minHeight: 520, idealHeight: 720)
         }
@@ -61,6 +65,18 @@ struct ATIVApp: App {
             }
         }
 
-        Settings { SettingsView() }
+        Settings {
+            SettingsView()
+                .onAppear { applyAppearance() }
+                .onChange(of: appearance) { _ in applyAppearance() }
+        }
+    }
+
+    private func applyAppearance() {
+        switch appearance {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        default: NSApp.appearance = nil
+        }
     }
 }

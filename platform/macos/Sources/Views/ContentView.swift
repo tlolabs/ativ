@@ -27,6 +27,12 @@ struct ContentView: View {
         .alert("ATIV couldn’t complete the operation", isPresented: Binding(get: { store.errorMessage != nil }, set: { if !$0 { store.errorMessage = nil } })) {
             Button("OK") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "Unknown error") }
+        .confirmationDialog("Replace existing video?", isPresented: $store.showOverwriteConfirmation) {
+            Button("Replace Video", role: .destructive) { store.render(replacingExisting: true) }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("The existing video at this destination will be replaced after export succeeds.")
+        }
         .onReceive(NotificationCenter.default.publisher(for: .ativChooseImage)) { _ in store.chooseImage() }
         .onReceive(NotificationCenter.default.publisher(for: .ativChooseAudio)) { _ in store.chooseAudio() }
         .onReceive(NotificationCenter.default.publisher(for: .ativChooseOutput)) { _ in store.chooseOutput() }
@@ -52,15 +58,15 @@ struct ContentView: View {
                 VStack(spacing: 12) {
                     FormatRow(label: "Outlet") {
                         Picker("Outlet", selection: $store.selectedPlatform) { ForEach(store.platforms, id: \.self) { Text($0) } }
-                            .labelsHidden().onChange(of: store.selectedPlatform) { _ in store.selectionChanged() }
+                            .labelsHidden().accessibilityLabel("Outlet").onChange(of: store.selectedPlatform) { _ in store.selectionChanged() }
                     }
                     FormatRow(label: "Aspect ratio") {
                         Picker("Aspect ratio", selection: $store.selectedAspect) { ForEach(store.aspects, id: \.self) { Text($0) } }
-                            .labelsHidden().onChange(of: store.selectedAspect) { _ in store.selectionChanged() }
+                            .labelsHidden().accessibilityLabel("Aspect ratio").onChange(of: store.selectedAspect) { _ in store.selectionChanged() }
                     }
                     FormatRow(label: "Resolution") {
                         Picker("Resolution", selection: $store.selectedPreset) { ForEach(store.resolutions) { Text($0.resolution).tag(Optional($0)) } }
-                            .labelsHidden().onChange(of: store.selectedPreset) { _ in store.previewOptionsChanged() }
+                            .labelsHidden().accessibilityLabel("Resolution").onChange(of: store.selectedPreset) { _ in store.previewOptionsChanged() }
                     }
                     FormatRow(label: "Audio bitrate") {
                         TextField("Audio bitrate", text: $store.bitrate).frame(width: 110).accessibilityHint("Enter a value such as 128k")
@@ -72,14 +78,14 @@ struct ContentView: View {
             }
 
             GroupBox("Image options") {
-                HStack(spacing: 20) {
-                    Toggle("Flip horizontally", isOn: $store.flipHorizontal).onChange(of: store.flipHorizontal) { _ in store.previewOptionsChanged() }
-                    Toggle("Flip vertically", isOn: $store.flipVertical).onChange(of: store.flipVertical) { _ in store.previewOptionsChanged() }
+                ViewThatFits(in: .horizontal) {
+                    flipOptions
+                    flipOptionsVertical
                 }.padding(8)
             }
 
             GroupBox("Destination") {
-                FileSelectionRow(title: "MP4 video", systemImage: "film", url: store.outputURL, action: store.chooseOutput, onDrop: { store.outputURL = $0 })
+                FileSelectionRow(title: "MP4 video", systemImage: "film", url: store.outputURL, action: store.chooseOutput, onDrop: store.setOutput)
                     .padding(8)
             }
 
@@ -87,7 +93,7 @@ struct ContentView: View {
                 Button(role: .destructive, action: store.cancel) { Label("Stop Video Creation", systemImage: "stop.fill").frame(maxWidth: .infinity) }
                     .controlSize(.large).keyboardShortcut(.escape, modifiers: [])
             } else {
-                Button(action: store.render) { Label("Create Video", systemImage: "play.fill").frame(maxWidth: .infinity) }
+                Button(action: { store.render() }) { Label("Create Video", systemImage: "play.fill").frame(maxWidth: .infinity) }
                     .buttonStyle(.borderedProminent).controlSize(.large).disabled(!store.canRender)
                     .help("Create an MP4 video (⌘Return)")
             }
@@ -103,7 +109,7 @@ struct ContentView: View {
                     Image(nsImage: image).resizable().scaledToFit().padding(18).accessibilityLabel("Video frame preview")
                 } else {
                     VStack(spacing: 10) {
-                        Image(systemName: "photo.on.rectangle").font(.system(size: 42)).foregroundStyle(.secondary)
+                        Image(systemName: "photo.on.rectangle").font(.system(size: 42)).foregroundStyle(.secondary).accessibilityHidden(true)
                         Text("Choose an image").font(.headline)
                         Text("A styled frame preview will appear here.").foregroundStyle(.secondary)
                     }.accessibilityElement(children: .combine)
@@ -115,6 +121,30 @@ struct ContentView: View {
                     .frame(height: 110)
             }.padding(.horizontal)
         }.padding(24)
+    }
+
+    private var flipOptions: some View {
+        HStack(spacing: 20) {
+            flipHorizontalToggle
+            flipVerticalToggle
+        }
+    }
+
+    private var flipOptionsVertical: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            flipHorizontalToggle
+            flipVerticalToggle
+        }
+    }
+
+    private var flipHorizontalToggle: some View {
+        Toggle("Flip horizontally", isOn: $store.flipHorizontal)
+            .onChange(of: store.flipHorizontal) { _ in store.previewOptionsChanged() }
+    }
+
+    private var flipVerticalToggle: some View {
+        Toggle("Flip vertically", isOn: $store.flipVertical)
+            .onChange(of: store.flipVertical) { _ in store.previewOptionsChanged() }
     }
 
     private var statusBar: some View {
@@ -161,7 +191,7 @@ private struct FileSelectionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: systemImage).font(.title2).foregroundStyle(.secondary).frame(width: 28)
+            Image(systemName: systemImage).font(.title2).foregroundStyle(.secondary).frame(width: 28).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
                 Text(url?.lastPathComponent ?? "Nothing selected").foregroundStyle(url == nil ? .secondary : .primary).lineLimit(1).truncationMode(.middle)
