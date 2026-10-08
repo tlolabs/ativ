@@ -111,6 +111,39 @@ private slots:
 
         window.close(); QTRY_VERIFY_WITH_TIMEOUT(!window.isVisible(), 10000);
     }
+    void disclosureSections() {
+        MainWindow window(engine);
+        window.show();
+        auto *source = window.findChild<QToolButton *>("sourceMediaDisclosure");
+        auto *format = window.findChild<QToolButton *>("formatDisclosure");
+        auto *destination = window.findChild<QToolButton *>("destinationDisclosure");
+        auto *sourceSummary = window.findChild<QLabel *>("sourceMediaDisclosureSummary");
+        auto *destinationSummary = window.findChild<QLabel *>("destinationDisclosureSummary");
+        auto *createButton = window.findChild<QPushButton *>("createVideo");
+        QVERIFY(source && format && destination && sourceSummary && destinationSummary && createButton);
+        QVERIFY(source->isChecked());
+        QVERIFY(!format->isChecked());
+        QVERIFY(!destination->isChecked());
+        QVERIFY(createButton->isVisible());
+
+        source->click();
+        QVERIFY(sourceSummary->isVisible());
+        QVERIFY(!window.findChild<QLineEdit *>("imagePath")->isVisible());
+        window.setImage(image);
+        QVERIFY(sourceSummary->text().contains(QFileInfo(image).fileName()));
+        source->click();
+        QVERIFY(window.findChild<QLineEdit *>("imagePath")->isVisible());
+
+        format->click();
+        QVERIFY(window.findChild<QComboBox *>("platform")->isVisible());
+        destination->click();
+        QVERIFY(window.findChild<QLineEdit *>("outputPath")->isVisible());
+        destination->click();
+        QVERIFY(destinationSummary->isVisible());
+        QVERIFY(destinationSummary->text().endsWith(".mp4"));
+        QVERIFY(createButton->isVisible());
+        window.close();
+    }
     void exportThroughWindow() {
         MainWindow window(engine); QSignalSpy ready(&window, &MainWindow::presetsReady);
         QSignalSpy done(&window, &MainWindow::renderFinished);

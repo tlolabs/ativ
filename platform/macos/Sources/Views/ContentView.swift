@@ -3,6 +3,9 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @ObservedObject var store: RenderStore
+    @SceneStorage("sourceMediaExpanded") private var sourceMediaExpanded = true
+    @SceneStorage("formatExpanded") private var formatExpanded = false
+    @SceneStorage("destinationExpanded") private var destinationExpanded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,6 +15,10 @@ struct ContentView: View {
                 preview
                     .frame(minWidth: 260, maxWidth: .infinity, maxHeight: .infinity)
             }
+            Divider()
+            renderButton
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
             Divider()
             statusBar
         }
@@ -46,49 +53,66 @@ struct ContentView: View {
                 Text("Combine one image with an audio recording for social media distribution.").foregroundStyle(.secondary)
             }
 
-            GroupBox("Source media") {
-                VStack(spacing: 12) {
-                    FileSelectionRow(title: "Image", systemImage: "photo", url: store.imageURL, action: store.chooseImage, onDrop: store.setImage)
-                    Divider()
-                    FileSelectionRow(title: "Audio", systemImage: "waveform", url: store.audioURL, detail: store.duration.map(durationText), action: store.chooseAudio, onDrop: store.setAudio)
-                }.padding(8)
+            GroupBox {
+                DisclosureGroup(isExpanded: $sourceMediaExpanded) {
+                    VStack(spacing: 12) {
+                        FileSelectionRow(title: "Image", systemImage: "photo", url: store.imageURL, action: store.chooseImage, onDrop: store.setImage)
+                        Divider()
+                        FileSelectionRow(title: "Audio", systemImage: "waveform", url: store.audioURL, detail: store.duration.map(durationText), action: store.chooseAudio, onDrop: store.setAudio)
+                        Divider()
+                        ViewThatFits(in: .horizontal) {
+                            flipOptions
+                            flipOptionsVertical
+                        }
+                    }.padding(.top, 12)
+                } label: {
+                    sectionLabel("Source Media", summary: sourceMediaSummary, expanded: sourceMediaExpanded)
+                }
+                .padding(8)
             }
 
-            GroupBox("Format") {
-                VStack(spacing: 12) {
-                    FormatRow(label: "Outlet") {
-                        Picker("Outlet", selection: $store.selectedPlatform) { ForEach(store.platforms, id: \.self) { Text($0) } }
-                            .labelsHidden().accessibilityLabel("Outlet").onChange(of: store.selectedPlatform) { _ in store.selectionChanged() }
-                    }
-                    FormatRow(label: "Aspect ratio") {
-                        Picker("Aspect ratio", selection: $store.selectedAspect) { ForEach(store.aspects, id: \.self) { Text($0) } }
-                            .labelsHidden().accessibilityLabel("Aspect ratio").onChange(of: store.selectedAspect) { _ in store.selectionChanged() }
-                    }
-                    FormatRow(label: "Resolution") {
-                        Picker("Resolution", selection: $store.selectedPreset) { ForEach(store.resolutions) { Text($0.resolution).tag(Optional($0)) } }
-                            .labelsHidden().accessibilityLabel("Resolution").onChange(of: store.selectedPreset) { _ in store.previewOptionsChanged() }
-                    }
-                    FormatRow(label: "Audio bitrate") {
-                        TextField("Audio bitrate", text: $store.bitrate).frame(width: 110).accessibilityHint("Enter a value such as 128k")
-                    }
-                    FormatRow(label: "Frame rate") {
-                        TextField("Frame rate", value: $store.fps, format: .number).frame(width: 110).accessibilityLabel("Frames per second")
-                    }
-                }.padding(8)
+            GroupBox {
+                DisclosureGroup(isExpanded: $formatExpanded) {
+                    VStack(spacing: 12) {
+                        FormatRow(label: "Outlet") {
+                            Picker("Outlet", selection: $store.selectedPlatform) { ForEach(store.platforms, id: \.self) { Text($0) } }
+                                .labelsHidden().accessibilityLabel("Outlet").onChange(of: store.selectedPlatform) { _ in store.selectionChanged() }
+                        }
+                        FormatRow(label: "Aspect ratio") {
+                            Picker("Aspect ratio", selection: $store.selectedAspect) { ForEach(store.aspects, id: \.self) { Text($0) } }
+                                .labelsHidden().accessibilityLabel("Aspect ratio").onChange(of: store.selectedAspect) { _ in store.selectionChanged() }
+                        }
+                        FormatRow(label: "Resolution") {
+                            Picker("Resolution", selection: $store.selectedPreset) { ForEach(store.resolutions) { Text($0.resolution).tag(Optional($0)) } }
+                                .labelsHidden().accessibilityLabel("Resolution").onChange(of: store.selectedPreset) { _ in store.previewOptionsChanged() }
+                        }
+                        FormatRow(label: "Audio bitrate") {
+                            TextField("Audio bitrate", text: $store.bitrate).frame(width: 110).accessibilityHint("Enter a value such as 128k")
+                        }
+                        FormatRow(label: "Frame rate") {
+                            TextField("Frame rate", value: $store.fps, format: .number).frame(width: 110).accessibilityLabel("Frames per second")
+                        }
+                    }.padding(.top, 12)
+                } label: {
+                    sectionLabel("Format", summary: formatSummary, expanded: formatExpanded)
+                }
+                .padding(8)
             }
 
-            GroupBox("Image options") {
-                ViewThatFits(in: .horizontal) {
-                    flipOptions
-                    flipOptionsVertical
-                }.padding(8)
+            GroupBox {
+                DisclosureGroup(isExpanded: $destinationExpanded) {
+                    FileSelectionRow(title: "MP4 video", systemImage: "film", url: store.outputURL, action: store.chooseOutput, onDrop: store.setOutput)
+                        .padding(.top, 12)
+                } label: {
+                    sectionLabel("Destination", summary: destinationSummary, expanded: destinationExpanded)
+                }
+                .padding(8)
             }
+        }
+    }
 
-            GroupBox("Destination") {
-                FileSelectionRow(title: "MP4 video", systemImage: "film", url: store.outputURL, action: store.chooseOutput, onDrop: store.setOutput)
-                    .padding(8)
-            }
-
+    private var renderButton: some View {
+        HStack {
             if store.isRendering {
                 Button(role: .destructive, action: store.cancel) { Label("Stop Video Creation", systemImage: "stop.fill").frame(maxWidth: .infinity) }
                     .controlSize(.large).keyboardShortcut(.escape, modifiers: [])
@@ -98,6 +122,32 @@ struct ContentView: View {
                     .help("Create an MP4 video (⌘Return)")
             }
         }
+        .frame(maxWidth: 520)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func sectionLabel(_ title: String, summary: String, expanded: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.headline)
+            if !expanded {
+                Text(summary).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            }
+        }
+    }
+
+    private var sourceMediaSummary: String {
+        let image = store.imageURL?.lastPathComponent ?? "Choose image"
+        let audio = store.audioURL?.lastPathComponent ?? "choose audio"
+        let flips = [store.flipHorizontal ? "horizontal flip" : nil, store.flipVertical ? "vertical flip" : nil].compactMap { $0 }
+        return ([image, audio] + flips).joined(separator: " · ")
+    }
+
+    private var formatSummary: String {
+        [store.selectedPlatform, store.selectedAspect, store.selectedPreset?.resolution].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private var destinationSummary: String {
+        store.outputURL?.lastPathComponent ?? "Choose MP4 destination"
     }
 
     private var preview: some View {

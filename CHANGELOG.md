@@ -4,6 +4,7 @@ Notable changes to ATIV are recorded here using a [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+- Add collapsible Source Media, Format, and Destination controls with live summaries, and keep Create Video visible while scrolling.
 - Standardized authenticated stable updates; corrected the Sparkle manual update command and active-export shutdown coordination. Version 0.2.5 is the local updater bridge; 0.2.6 is the next release candidate.
 
 - Preserve cancellation status when a media operation is stopped before tool discovery begins.

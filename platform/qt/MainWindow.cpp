@@ -7,6 +7,55 @@
 #include <QStyleHints>
 #include <QAccessible>
 
+class DisclosureSection : public QFrame {
+public:
+    DisclosureSection(const QString &title, const QString &id, QWidget *content, bool expanded) {
+        setFrameShape(QFrame::StyledPanel);
+        auto *layout = new QVBoxLayout(this);
+        layout->setContentsMargins(12, 10, 12, 10);
+        layout->setSpacing(6);
+
+        toggle = new QToolButton;
+        toggle->setObjectName(id);
+        toggle->setText(title);
+        toggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        toggle->setCheckable(true);
+        toggle->setAutoRaise(true);
+        toggle->setAccessibleName(title);
+        QFont heading = toggle->font();
+        heading.setBold(true);
+        toggle->setFont(heading);
+        layout->addWidget(toggle, 0, Qt::AlignLeft);
+
+        summary = new QLabel;
+        summary->setObjectName(id + "Summary");
+        summary->setWordWrap(false);
+        summary->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        summary->setStyleSheet("color: palette(mid);");
+        layout->addWidget(summary);
+        layout->addWidget(content);
+
+        auto showExpanded = [this, content](bool open) {
+            toggle->setArrowType(open ? Qt::DownArrow : Qt::RightArrow);
+            summary->setVisible(!open);
+            content->setVisible(open);
+        };
+        connect(toggle, &QToolButton::toggled, this, showExpanded);
+        toggle->setChecked(expanded);
+        showExpanded(expanded);
+    }
+
+    void setSummary(const QString &text) {
+        summary->setText(text);
+        summary->setToolTip(text);
+        toggle->setAccessibleDescription(text);
+    }
+
+private:
+    QToolButton *toggle;
+    QLabel *summary;
+};
+
 class PreviewCanvas : public QWidget {
 public:
     QImage image;
@@ -129,7 +178,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         return row;
     };
 
-    auto *sources = new QGroupBox("Source media");
+    auto *sources = new QWidget;
     auto *sourceForm = new QFormLayout(sources);
     sourceForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     sourceForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
@@ -140,9 +189,10 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     duration->setObjectName("duration");
     duration->setAccessibleName("Audio recording duration");
     sourceForm->addRow("", duration);
-    left->addWidget(sources);
+    auto *sourceSection = new DisclosureSection("Source Media", "sourceMediaDisclosure", sources, true);
+    left->addWidget(sourceSection);
 
-    auto *format = new QGroupBox("Format");
+    auto *format = new QWidget;
     auto *form = new QFormLayout(format);
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     form->setRowWrapPolicy(QFormLayout::WrapLongRows);
@@ -204,10 +254,12 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
             }
         }
     }
-    left->addWidget(format);
+    auto *formatSection = new DisclosureSection("Format", "formatDisclosure", format, false);
+    left->addWidget(formatSection);
 
-    auto *flips = new QGroupBox("Image options");
+    auto *flips = new QWidget;
     auto *flipLayout = new QHBoxLayout(flips);
+    flipLayout->setContentsMargins(0, 0, 0, 0);
     flipH = new QCheckBox("Flip horizontally");
     flipH->setObjectName("flipHorizontal");
     flipH->setAccessibleName("Flip image horizontally");
@@ -218,12 +270,47 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     flipV->setToolTip("Flip artwork vertically");
     flipLayout->addWidget(flipH);
     flipLayout->addWidget(flipV);
-    left->addWidget(flips);
+    sourceForm->addRow("Image options", flips);
 
-    auto *destination = new QGroupBox("Destination");
+    auto *destination = new QWidget;
     auto *destLayout = new QVBoxLayout(destination);
+    destLayout->setContentsMargins(0, 0, 0, 0);
     destLayout->addWidget(fileRow("MP4 video destination", outputPath, "outputPath", &MainWindow::chooseOutput));
-    left->addWidget(destination);
+    auto *destinationSection = new DisclosureSection("Destination", "destinationDisclosure", destination, false);
+    left->addWidget(destinationSection);
+
+    auto updateSourceSummary = [this, sourceSection] {
+        QStringList parts{
+            imagePath->text().isEmpty() ? "Choose image" : QFileInfo(imagePath->text()).fileName(),
+            audioPath->text().isEmpty() ? "choose audio" : QFileInfo(audioPath->text()).fileName()
+        };
+        if (flipH->isChecked()) parts << "horizontal flip";
+        if (flipV->isChecked()) parts << "vertical flip";
+        sourceSection->setSummary(parts.join(" · "));
+    };
+    connect(imagePath, &QLineEdit::textChanged, this, updateSourceSummary);
+    connect(audioPath, &QLineEdit::textChanged, this, updateSourceSummary);
+    connect(flipH, &QCheckBox::toggled, this, updateSourceSummary);
+    connect(flipV, &QCheckBox::toggled, this, updateSourceSummary);
+    updateSourceSummary();
+
+    auto updateFormatSummary = [this, formatSection] {
+        QStringList parts;
+        for (auto *combo : {platform, aspect, resolution}) {
+            if (!combo->currentText().isEmpty()) parts << combo->currentText();
+        }
+        formatSection->setSummary(parts.isEmpty() ? "Loading formats…" : parts.join(" · "));
+    };
+    for (auto *combo : {platform, aspect, resolution}) {
+        connect(combo, &QComboBox::currentTextChanged, this, updateFormatSummary);
+    }
+    updateFormatSummary();
+
+    connect(outputPath, &QLineEdit::textChanged, this, [this, destinationSection] {
+        destinationSection->setSummary(outputPath->text().isEmpty()
+            ? "Choose MP4 destination" : QFileInfo(outputPath->text()).fileName());
+    });
+    destinationSection->setSummary("Choose MP4 destination");
     left->addStretch();
 
     auto *controlsScroll = new QScrollArea;
