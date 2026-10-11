@@ -6,14 +6,10 @@ fn main() {
     for name in ["Cargo.toml", "Cargo.lock"] {
         println!("cargo:rerun-if-changed={}", root.join(name).display());
     }
-    let manifest: toml::Value = fs::read_to_string(root.join("Cargo.toml"))
-        .unwrap()
-        .parse()
-        .unwrap();
-    let lock: toml::Value = fs::read_to_string(root.join("Cargo.lock"))
-        .unwrap()
-        .parse()
-        .unwrap();
+    let manifest: toml::Value =
+        toml::from_str(&fs::read_to_string(root.join("Cargo.toml")).unwrap()).unwrap();
+    let lock: toml::Value =
+        toml::from_str(&fs::read_to_string(root.join("Cargo.lock")).unwrap()).unwrap();
     let pin = &manifest["workspace"]["dependencies"]["avid-core"];
     let packages: Vec<_> = lock["package"]
         .as_array()
