@@ -27,7 +27,8 @@ def configure(stage,target):
     stage.mkdir(parents=True,exist_ok=True)
     config_dir = stage.parent / "Resources" if target.startswith("macos-") else stage
     config_dir.mkdir(parents=True, exist_ok=True)
-    (config_dir/'update-config.json').write_text(json.dumps(dict(application_id="com.tlolabs.ativ",repository="tlolabs/ativ",version=version,channel=channel,target=target,public_key=key),indent=2)+'\n')
+    app_id='com.tlolabs.ativ' + ('.development' if channel=='development' else '')
+    (config_dir/'update-config.json').write_text(json.dumps(dict(application_id=app_id,repository="tlolabs/ativ",version=version,channel=channel,target=target,public_key=key),indent=2)+'\n')
     if channel=='development' and not target.startswith('macos-'): (stage/'development-build').touch()
     if target.startswith('macos-'):
         path=stage.parent/'Info.plist';info=plistlib.loads(path.read_bytes())

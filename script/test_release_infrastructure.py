@@ -36,6 +36,7 @@ class ReleaseTests(unittest.TestCase):
 
     def test_development_package_is_distinct_from_authenticated_stable_release(self):
         from configure_distribution import ROOT, configure
+        from validate_package import validate_identity
         import re
         base=re.search(r'^version = "([^"]+)"',(ROOT/'Cargo.toml').read_text(),re.M)[1]
         stage=self.root/'usr/lib/ativ'
@@ -44,6 +45,17 @@ class ReleaseTests(unittest.TestCase):
         config=json.loads((stage/'update-config.json').read_text())
         self.assertEqual((config['version'],config['channel']),(base+'-dev.42','development'))
         self.assertTrue((stage/'development-build').exists())
+        with patch.dict(os.environ,{'ATIV_CHANNEL':'development','ATIV_VERSION':base+'-dev.42'},clear=True):
+            validate_identity(config,'linux-arm64-deb')
+        with patch.dict(os.environ,{'ATIV_CHANNEL':'stable','ATIV_VERSION':base},clear=True):
+            with self.assertRaises(AssertionError):validate_identity(config,'linux-arm64-deb')
+        macos=self.root/'ATIV.app/Contents/MacOS'
+        macos.mkdir(parents=True)
+        (macos.parent/'Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'com.tlolabs.ativ'}))
+        with patch.dict(os.environ,{'ATIV_CHANNEL':'development','ATIV_VERSION':base+'-dev.42'},clear=True):
+            configure(macos,'macos-arm64')
+            mac_config=json.loads((macos.parent/'Resources/update-config.json').read_text())
+            validate_identity(mac_config,'macos-arm64',plistlib.loads((macos.parent/'Info.plist').read_bytes()))
         for channel,version in [('stable',base+'-dev.42'),('development',base),('development',base+'-dev.0'),('preview',base)]:
             with patch.dict(os.environ,{'ATIV_CHANNEL':channel,'ATIV_VERSION':version},clear=True):
                 with self.assertRaises(ValueError):configure(stage,'linux-arm64-deb')

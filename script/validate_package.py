@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate staged resources, target machine types, identity and bundled discovery."""
-import argparse,json,os,plistlib,struct,subprocess,tomllib
+import argparse,json,os,plistlib,re,struct,subprocess,tomllib
 from pathlib import Path
 from ffmpeg_runtime import validate as validate_runtime
 
@@ -18,6 +18,28 @@ def machine(path,target):
     else:
         assert data[:4]==b'\xcf\xfa\xed\xfe',f'{path}: not Mach-O64'
         assert struct.unpack_from('<I',data,4)[0]==(0x100000c if expected_arm else 0x1000007),f'{path}: wrong Mach-O machine'
+
+def validate_identity(config,target,info=None):
+    base=tomllib.loads((Path(__file__).resolve().parents[1]/'Cargo.toml').read_text())['workspace']['package']['version']
+    channel=os.environ.get('ATIV_CHANNEL','stable')
+    version=os.environ.get('ATIV_VERSION',base)
+    assert channel in ('stable','development')
+    if channel=='stable':
+        assert version==base, 'Stable package version differs from workspace'
+    else:
+        assert re.fullmatch(re.escape(base)+r'-dev\.[1-9][0-9]*',version), 'Invalid development package version'
+    assert config['target']==target and config['channel']==channel
+    assert config['version']==version, 'Packaged updater version differs from build identity'
+    app_id='com.tlolabs.ativ' + ('.development' if channel=='development' else '')
+    assert config['application_id']==app_id and config['repository']=='tlolabs/ativ'
+    if info is not None:
+        assert info['ATIVDistributionVersion']==version
+        assert info['CFBundleShortVersionString']==base
+        assert info['CFBundleVersion']==(version.split('-dev.')[1] if channel=='development' else base)
+        assert info['CFBundleIdentifier']==app_id
+        assert info['SUEnableAutomaticChecks'] and info['SUVerifyUpdateBeforeExtraction']
+        suffix='latest/download' if channel=='stable' else 'download/development'
+        assert info['SUFeedURL'].endswith(f'{suffix}/appcast-{target}.xml')
 
 def validate(root,target):
     if target.startswith('macos'):
@@ -39,15 +61,8 @@ def validate(root,target):
     assert icons and all(p.is_file() and p.stat().st_size>100 for p in icons),'Missing native icons'
     for name in names: machine(binary/name,target)
     config_path=(contents/'Resources/update-config.json') if target.startswith('macos') else (binary/'update-config.json')
-    config=json.loads(config_path.read_text()); assert config['target']==target
-    assert config['channel']=='stable'
-    expected=tomllib.loads((Path(__file__).resolve().parents[1]/'Cargo.toml').read_text())['workspace']['package']['version']
-    assert config['version']==expected, 'Packaged updater version differs from workspace'
-    assert config['application_id']=='com.tlolabs.ativ' and config['repository']=='tlolabs/ativ'
-    if target.startswith('macos'):
-        assert config['version']==info['ATIVDistributionVersion']==info['CFBundleVersion']==info['CFBundleShortVersionString']
-        assert info['SUEnableAutomaticChecks'] and info['SUVerifyUpdateBeforeExtraction']
-        assert info['SUFeedURL'].endswith(f'appcast-{target}.xml')
+    config=json.loads(config_path.read_text())
+    validate_identity(config,target,info if target.startswith('macos') else None)
     # Run in isolation so PATH cannot hide missing bundle dependencies.
     engine=binary/('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
     env=os.environ.copy();env['PATH']=''
