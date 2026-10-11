@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QShortcut>
+#include <QToolButton>
 #include <QtTest>
 
 class AccessibilityTests : public QObject {
@@ -31,8 +32,14 @@ private slots:
         auto *destination = window.findChild<QLineEdit *>("outputPath");
         QVERIFY(scroll);
         QVERIFY(destination);
+        auto *section = window.findChild<QToolButton *>("destinationDisclosure");
+        QVERIFY(section);
+        section->setChecked(true);
+        QCoreApplication::processEvents();
         QVERIFY(scroll->verticalScrollBar()->maximum() > 0);
-        scroll->ensureWidgetVisible(destination);
+        scroll->verticalScrollBar()->setValue(scroll->verticalScrollBar()->maximum());
+        QCoreApplication::processEvents();
+        scroll->verticalScrollBar()->setValue(scroll->verticalScrollBar()->maximum());
         QCoreApplication::processEvents();
         const QPoint center = destination->mapTo(scroll->viewport(), destination->rect().center());
         QVERIFY(scroll->viewport()->rect().contains(center));

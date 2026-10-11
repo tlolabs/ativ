@@ -1,9 +1,9 @@
 # Contributing to ATIV
 
-Outside contributions are welcome. Thomas Lothian is the sole maintainer and final release authority. Start with an issue for substantial changes, then submit a focused pull request to `main`.
+Outside contributions are welcome. Thomas Lothian is the sole maintainer and final release authority. For substantial changes, an issue or focused pull request helps discussion, but direct commits and pushes to `main` are permitted.
 
 Run the checks described in [docs/TESTING.md](docs/TESTING.md), update relevant documentation, and identify the platforms you actually tested. Preserve third-party notices and disclose any new dependency or asset license. Contributions to original ATIV code and assets must be compatible with GPL-3.0-or-later. The pinned AVID Core library also declares GPL-3.0-or-later; other redistributed components retain their own licenses.
 
-The project uses the [Developer Certificate of Origin 1.1](https://developercertificate.org/). Add `Signed-off-by: Your Name <your-address>` to each contributed commit, for example with `git commit -s`. This certifies that you have the right to submit the contribution under the applicable licenses. Cryptographic commit signing is optional; contributions and owner test builds do not require signing keys. A CLA is not required.
+The project uses the [Developer Certificate of Origin 1.1](https://developercertificate.org/) as a voluntary convention. Add `Signed-off-by: Your Name <your-address>` with `git commit -s` when practical; no DCO check blocks development. Cryptographic commit signing is optional; contributions and owner test builds do not require signing keys. A CLA is not required.
 
 Use concise, descriptive, imperative commit subjects. Do not include secrets, personal machine paths, or generated build output.

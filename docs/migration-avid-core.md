@@ -1,3 +1,5 @@
+> Historical migration evidence. The release gates described below are not prerequisites for current direct-download publication; see [releasing](RELEASING.md).
+
 # ATIV migration to AVID Core
 
 > Historical first extraction report. Current integration and verification: [Core 0.3.0 migration](core-runtime-migration.md). Paths, versions and blockers below describe the original work only.

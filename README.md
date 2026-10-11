@@ -17,7 +17,7 @@ ATIV processes media locally. No accounts, analytics, hosted crash reports, uplo
 | Windows (x64/ARM64) | Windows 10 1809 | Portable ZIP |
 | Linux (x64/ARM64) | Ubuntu 24.04 packaging baseline | AppImage |
 
-Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Check each release's notes for artifacts omitted because a platform job failed. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for its pending qualification gates.
+Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Check each release's notes for artifacts omitted because a platform job failed. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for target verification and publication rules.
 
 All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed the release pipeline. The release notes identify incomplete builds.
 

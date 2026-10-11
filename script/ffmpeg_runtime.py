@@ -85,7 +85,7 @@ def provision(target):
         raise ValueError('Candidate qualification is limited to deliberate local/manual qualification; never releases or PR artifacts')
     plan = json.loads((ROOT / 'runtime/core-candidate.json').read_text()) if qualification else PIN
     if not qualification and PIN.get('qualification_only'):
-        raise ValueError('Core production release is not published/pinned yet; complete its release gates first')
+        raise ValueError('Core runtime release is not published and pinned yet')
     selected = os.environ.get('ATIV_FFMPEG_RUNTIME')
     if selected:
         runtime = Path(selected).resolve()

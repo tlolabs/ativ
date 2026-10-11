@@ -1,0 +1,42 @@
+name: Publish recovered platform artifacts
+
+on:
+  workflow_run:
+    workflows: [Native build, test, and package]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  attestations: read
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.run_attempt > 1 &&
+      github.event.workflow_run.event == 'push' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact verified source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Download completed platform artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: ATIV-*
+          path: release-inputs
+          merge-multiple: true
+          if-no-artifact-found: warn
+      - name: Publish recovered verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ATIV_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          ATIV_SOURCE_REF: refs/tags/${{ github.event.workflow_run.head_branch }}
+          RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: python3 script/publish_verified_artifacts.py "$RELEASE_TAG" release-inputs

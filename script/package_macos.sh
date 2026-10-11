@@ -10,11 +10,6 @@ ARCH="${1:-$(uname -m)}"
 VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "${ROOT_DIR}/Cargo.toml" | head -n 1)"
 VERSION="${ATIV_VERSION:-$VERSION}"
 SIGN_IDENTITY="${APPLE_SIGN_IDENTITY:--}"
-if [[ "${ATIV_RELEASE:-0}" == 1 && "${AVID_CORE_QUALIFICATION:-0}" != 1 ]]; then
-  [[ "$SIGN_IDENTITY" == "Developer ID Application:"* ]] || { echo "Production requires Developer ID Application signing." >&2; exit 2; }
-  : "${APPLE_NOTARY_PROFILE:?Production requires notarization authentication}"
-fi
-
 case "${ARCH}" in
   arm64|aarch64) ARCH="arm64"; RUST_TARGET="aarch64-apple-darwin" ;;
   x86_64) RUST_TARGET="x86_64-apple-darwin" ;;

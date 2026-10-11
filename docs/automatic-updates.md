@@ -81,7 +81,7 @@ Keep the existing native build, platform signing, notarization and attestation w
 2. Package native production artifacts and authenticate them under the existing platform policy.
 3. Obtain exact-artifact older-to-newer native qualification evidence. Record every target, including unperformed targets.
 4. Generate `update-manifest.json`, compatibility `latest.json`, Sparkle appcasts and `SHA256SUMS` with the deployed update key. `script/release_metadata.py` is ATIV's compatibility entry point; shared implementation is `script/tlo_update_release.py`.
-5. Independently verify metadata against actual packaged artifacts; run `script/qualify_updates.py --assets <directory>`. Existing application qualification gates still apply.
+5. Independently verify metadata against actual packaged artifacts; run `script/qualify_updates.py --assets <directory>`. Authenticated update eligibility still requires target-specific signature and upgrade verification; direct-download publication is independent.
 6. Create a new draft for the verified annotated tag. Upload immutable artifacts and metadata, download them again, verify hashes/applicable signatures/attestations and appcast agreement.
 7. Publish without replacing existing assets or tags. Run `script/qualify_updates.py --assets <verified-downloads> --published`, which invokes the same Rust verification code against the public latest URL and actual downloaded artifact for each trusted old configuration. Failure fails CI qualification; do not silently rewrite published bytes.
 
@@ -97,7 +97,7 @@ For each native architecture, use an isolated installation of an authenticated o
 
 For legacy configs without `application_id` or `repository`, the native qualification harness must add those constants only after verifying the old signed package identity; never take them from unverified network metadata.
 
-Store reports under `docs/updates/`, with exact previous and new package hashes, versions, target, previous packaged `update-config.json`, host, tested timestamp, reviewer and case results. `script/qualify_updates.py` defines the required fields. Hash the report into `runtime/updater-qualification.json`. Never mark a check passed merely to open publication gates.
+Store reports under `docs/updates/`, with exact previous and new package hashes, versions, target, previous packaged `update-config.json`, host, tested timestamp, reviewer and case results. `script/qualify_updates.py` defines the required fields. Hash the report into `runtime/updater-qualification.json`. Never mark a check passed without exact package evidence.
 
 ATIV's existing schema-1 `latest.json` and per-architecture Sparkle feeds remain signed with the installed key for a bridge release. New clients exclusively read schema 2 under a different filename. EnCAP's object-payload signature serialization is retained for legacy ZIP readers. Existing EnCAP Linux tar distributions need an explicit manual bridge to AppImage; do not advertise an AppImage as a tar archive. Existing development installations are not production update sources and must move to an authenticated stable package manually. Retain old feed support until installed-version qualification proves migration; do not delete EnCAP's legacy generator while another process is integrating it.
 

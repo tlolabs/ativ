@@ -1,3 +1,5 @@
+> Historical acceptance evidence. Manual acceptance entries remain useful for authenticated update qualification but do not gate independently verified direct downloads.
+
 > Current release integration: the automated results below are historical unless tied to the new exact application commit, Core pair and final package. The next Windows package is a portable ZIP and Linux package an AppImage. Installer/deb/DMG results do not qualify them. Local Apple credentials are now usable; no Azure account exists. New real upgrades and manual acceptance remain awaiting evidence. Core uses the approved hosted-runner OS policy; older OS rows below are untested compatibility claims, not proof from deployment targets.
 
 # Cross-platform acceptance matrix

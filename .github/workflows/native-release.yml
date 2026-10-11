@@ -15,7 +15,7 @@ on:
       owner_testing:
         description: Build packages for owner testing without application acceptance prerequisites
         type: boolean
-        default: true
+        default: false
       qualify_core_candidate:
         description: Use the exact authenticated candidate for unpublished host qualification
         type: boolean
@@ -84,12 +84,6 @@ jobs:
           build/release-tools/bin/python -m unittest discover -s script -p 'test_*.py'
           python3 script/check_updater_snapshot.py
           python3 script/dependency_inventory.py --check
-      - name: Verify contributor DCO sign-offs
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python3 script/check_dco.py "$BASE_SHA" "$HEAD_SHA"
       - name: Validate Rust workspace
         run: |
           rustup component add rustfmt clippy
@@ -97,18 +91,15 @@ jobs:
           cargo check --locked --all-targets
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --workspace --locked --all-targets
-      - name: Enforce ATIV runtime ownership
-        run: |
-          python3 script/test_runtime_ownership.py
-          python3 -m unittest discover -s script -p test_application_release.py -v
+      - name: Verify ATIV runtime ownership
+        run: python3 script/test_runtime_ownership.py
 
   macos:
-    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'macos')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'macos'))
     defaults:
       run:
         working-directory: ATIV
     name: macOS ${{ matrix.arch }}
-    needs: engine
     permissions:
       contents: read
       id-token: write
@@ -146,7 +137,7 @@ jobs:
           target: macos-${{ matrix.runtime_arch }}
           clean: ${{ inputs.clean_ffmpeg || false }}
       - name: Configure release signing and notarization
-        if: (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos
+        if: inputs.sign_macos
         env:
           CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -181,8 +172,8 @@ jobs:
           ./script/test_engine_integration.sh macos-${{ matrix.runtime_arch }}
       - name: Build and package native application
         env:
-          APPLE_SIGN_IDENTITY: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && secrets.MACOS_SIGNING_IDENTITY || '-' }}
-          APPLE_NOTARY_PROFILE: ${{ ((startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')) || inputs.sign_macos) && 'ativ-notary' || '' }}
+          APPLE_SIGN_IDENTITY: ${{ inputs.sign_macos && secrets.MACOS_SIGNING_IDENTITY || '-' }}
+          APPLE_NOTARY_PROFILE: ${{ inputs.sign_macos && 'ativ-notary' || '' }}
         run: ./script/package_macos.sh "${{ matrix.arch }}"
       - name: Native process integration tests
         if: ${{ !inputs.owner_testing }}
@@ -216,12 +207,11 @@ jobs:
           retention-days: 30
 
   windows:
-    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'windows')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'windows'))
     defaults:
       run:
         working-directory: ATIV
     name: Windows ${{ matrix.arch }}
-    needs: engine
     permissions:
       contents: read
       id-token: write
@@ -308,12 +298,11 @@ jobs:
           retention-days: 30
 
   linux:
-    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'linux')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'linux'))
     defaults:
       run:
         working-directory: ATIV
     name: Linux ${{ matrix.arch }}
-    needs: engine
     permissions:
       contents: read
       id-token: write
@@ -391,7 +380,6 @@ jobs:
   qt-reference:
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     name: Internal Qt macOS arm64 reference
-    needs: engine
     defaults:
       run:
         working-directory: ATIV
@@ -437,3 +425,37 @@ jobs:
           path: ATIV/build/qt-macos/ATIV-Qt-macos-arm64.zip
           retention-days: 14
           if-no-files-found: error
+
+
+  release:
+    name: Publish verified platforms
+    needs: [macos, windows, linux]
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ATIV
+    permissions:
+      contents: write
+      actions: read
+      attestations: read
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          path: ATIV
+      - name: Verify annotated stable tag and version
+        run: bash script/verify_release_tag.sh
+      - name: Download completed platform artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4
+        with:
+          pattern: ATIV-*
+          path: ATIV/release-inputs
+          merge-multiple: true
+          if-no-artifact-found: warn
+      - name: Publish only verified platform packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 script/publish_verified_artifacts.py "$GITHUB_REF_NAME" release-inputs

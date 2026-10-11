@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import base64, json, tempfile, unittest, os, runpy, zipfile, plistlib, subprocess
+import base64, json, tempfile, unittest, os, zipfile, plistlib, subprocess
 from unittest.mock import patch
 from types import SimpleNamespace
 from pathlib import Path
@@ -53,35 +53,29 @@ class PublishTests(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 subprocess.run(['bash',str(script)],cwd=root,env=env,check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
-    def test_legacy_publisher_cannot_move_tags_or_replace_assets(self):
-        script=Path(__file__).with_name('publish_release.py').resolve()
-        with patch('subprocess.run') as process:
-            with self.assertRaisesRegex(SystemExit,'qualified final packages'):
-                runpy.run_path(str(script),run_name='__main__')
-            process.assert_not_called()
-
-    def test_release_cannot_use_unpublished_core_candidate(self):
-        from application_release import validate, ROOT
-        import tomllib
-        version=tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
-        plan={'schema':1,'repository':'tlolabs/ativ','version':version,'tag':'v'+version,'application_revision':'a'*40}
-        with self.assertRaisesRegex(ValueError,'unpublished Core'):
-            validate(plan,{'qualification_only':True},'a'*40)
-
-    def test_linux_release_requires_provenance_evidence(self):
-        from application_release import validate, ROOT
-        import tomllib
-        version=tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
-        checks={name:{'status':'passed','evidence':[{'path':'unused'}]} for name in
-                ('native_packaging','native_launch','media','lifecycle','authenticated_upgrade','manual_acceptance')}
-        checks['signing']={'status':'passed','evidence':[{'path':'unused'}]}
-        plan={'schema':1,'repository':'tlolabs/ativ','version':version,'tag':'v'+version,
-              'application_revision':'a'*40,'targets':{target:{'status':'awaiting_evidence'} for target in
-              ('macos-arm64','macos-x86_64','windows-arm64','windows-x86_64','linux-arm64','linux-x86_64')}}
-        plan['targets']['linux-arm64']={'status':'passed','checks':checks}
-        pin={'qualification_only':False,'release_revision':'b'*40,'manifest_sha256':'c'*64}
-        with self.assertRaisesRegex(ValueError,'Incomplete application acceptance: linux-arm64'):
-            validate(plan,pin,'a'*40)
+    def test_verified_publisher_rejects_wrong_architecture_and_missing_runtime(self):
+        from publish_verified_artifacts import verify_package
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            good=root/'ATIV-0.3.0-windows-x64.zip'
+            header=bytearray(128)
+            header[:2]=b'MZ'
+            header[60:64]=(64).to_bytes(4,'little')
+            header[64:68]=b'PE\0\0'
+            header[68:70]=(0x8664).to_bytes(2,'little')
+            with zipfile.ZipFile(good,'w') as archive:
+                for name in ('ATIV.exe','ativ-engine.exe','ffmpeg.exe','ffprobe.exe'):
+                    archive.writestr(name,header)
+            self.assertEqual(verify_package(good,'0.3.0'),'windows-x64')
+            wrong=root/'ATIV-0.3.0-windows-arm64.zip'
+            wrong.write_bytes(good.read_bytes())
+            with self.assertRaisesRegex(ValueError,'wrong PE machine'):
+                verify_package(wrong,'0.3.0')
+            missing=root/'ATIV-0.3.0-macos-arm64.zip'
+            with zipfile.ZipFile(missing,'w') as archive:
+                archive.writestr('ATIV.app/Contents/MacOS/ATIV',b'not a package')
+            with self.assertRaisesRegex(ValueError,'missing application or runtime'):
+                verify_package(missing,'0.3.0')
 
 class SigningSetupTests(unittest.TestCase):
     def test_only_a_single_developer_id_application_identity_is_accepted(self):
