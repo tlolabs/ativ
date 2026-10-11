@@ -7,7 +7,10 @@ use std::time::Instant;
 fn original_hash(path: &Path) -> (String, usize) {
     let bytes = fs::read(path).unwrap();
     let len = bytes.len();
-    let hash = format!("{:x}", Sha256::digest(&bytes));
+    let hash = Sha256::digest(&bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
     (hash, len)
 }
 
@@ -24,7 +27,14 @@ fn streaming_hash(path: &Path) -> (String, usize) {
         total += n;
         hasher.update(&buffer[..n]);
     }
-    (format!("{:x}", hasher.finalize()), total)
+    (
+        hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect(),
+        total,
+    )
 }
 
 #[test]

@@ -35,7 +35,11 @@ fn hash(path: &Path) -> ativ_core::Result<String> {
         }
         digest.update(&buffer[..count]);
     }
-    Ok(format!("{:x}", digest.finalize()))
+    Ok(digest
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
 }
 fn check_tree(
     root: &Path,
