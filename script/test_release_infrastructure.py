@@ -34,6 +34,22 @@ class ReleaseTests(unittest.TestCase):
     def test_empty_release_fails(self):
         with self.assertRaises(ValueError):build(self.root,'0.3.0','stable','v0.3.0',self.seed,self.public)
 
+    def test_development_package_is_distinct_from_authenticated_stable_release(self):
+        from configure_distribution import ROOT, configure
+        import re
+        base=re.search(r'^version = "([^"]+)"',(ROOT/'Cargo.toml').read_text(),re.M)[1]
+        stage=self.root/'usr/lib/ativ'
+        with patch.dict(os.environ,{'ATIV_CHANNEL':'development','ATIV_VERSION':base+'-dev.42'},clear=True):
+            configure(stage,'linux-arm64-deb')
+        config=json.loads((stage/'update-config.json').read_text())
+        self.assertEqual((config['version'],config['channel']),(base+'-dev.42','development'))
+        self.assertTrue((stage/'development-build').exists())
+        for channel,version in [('stable',base+'-dev.42'),('development',base),('development',base+'-dev.0'),('preview',base)]:
+            with patch.dict(os.environ,{'ATIV_CHANNEL':channel,'ATIV_VERSION':version},clear=True):
+                with self.assertRaises(ValueError):configure(stage,'linux-arm64-deb')
+        with patch.dict(os.environ,{'ATIV_CHANNEL':'development','ATIV_VERSION':base+'-dev.42','ATIV_RELEASE':'1'},clear=True):
+            with self.assertRaises(ValueError):configure(stage,'linux-arm64-deb')
+
 class PublishTests(unittest.TestCase):
     def test_annotated_stable_tag_needs_no_cryptographic_signature(self):
         script=Path(__file__).with_name('verify_release_tag.sh').resolve()

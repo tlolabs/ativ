@@ -10,15 +10,20 @@ def identity():
     base=re.search(r'^version = "([^"]+)"',(ROOT/'Cargo.toml').read_text(),re.M)[1]
     channel=os.environ.get('ATIV_CHANNEL','stable')
     version=os.environ.get('ATIV_VERSION',base)
-    if channel != 'stable' or version != base: raise ValueError('Production updates require the authoritative stable workspace version')
-    if not re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)',version): raise ValueError('Invalid stable version')
-    if (channel=='development') != ('-dev.' in version): raise ValueError('Version must match channel')
+    if channel == 'stable':
+        if version != base or not re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)',version):
+            raise ValueError('Production updates require the authoritative stable workspace version')
+    elif channel == 'development':
+        if not re.fullmatch(re.escape(base)+r'-dev\.[1-9][0-9]*',version):
+            raise ValueError('Development version must extend the authoritative workspace version')
+    else:
+        raise ValueError('Invalid distribution channel')
     return version,channel
 
 def configure(stage,target):
     version,channel=identity();key=os.environ.get('ATIV_UPDATE_PUBLIC_KEY','')
     if key and len(base64.b64decode(key,validate=True))!=32: raise ValueError('Invalid update public key')
-    if os.environ.get('ATIV_RELEASE')=='1' and not key: raise ValueError('Release requires ATIV_UPDATE_PUBLIC_KEY')
+    if os.environ.get('ATIV_RELEASE')=='1' and (channel!='stable' or not key): raise ValueError('Release requires a stable channel and ATIV_UPDATE_PUBLIC_KEY')
     stage.mkdir(parents=True,exist_ok=True)
     config_dir = stage.parent / "Resources" if target.startswith("macos-") else stage
     config_dir.mkdir(parents=True, exist_ok=True)
