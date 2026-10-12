@@ -59,6 +59,8 @@ class PlatformRuntimeTests(unittest.TestCase):
                                'expired': False, 'digest': 'sha256:' + record['artifact_zip_sha256'],
                                'workflow_run': {'id': run, 'head_sha': record['build_revision']}}]}}
         runtime.verify_origin(self.target, record, response.__getitem__)
+        durable = {key: value for key, value in response.items() if '/actions/' not in key}
+        runtime.verify_origin(self.target, record, durable.__getitem__, audit_live_build=False)
         changed = copy.deepcopy(response)
         changed[f'repos/{runtime.REPOSITORY}/releases/tags/{tag}']['immutable'] = False
         with self.assertRaisesRegex(ValueError, 'mutable'):

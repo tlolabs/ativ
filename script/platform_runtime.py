@@ -49,8 +49,12 @@ def record_for(target, pins=None):
     return record, base
 
 
-def verify_origin(target, record, get=api):
-    """Bind an immutable release to one successful native build job, not a matrix."""
+def verify_origin(target, record, get=api, audit_live_build=True):
+    """Check the immutable release; optionally audit its ephemeral Actions records.
+
+    The attested provenance binds the build identity for repeat acquisitions after
+    GitHub's temporary Actions artifacts and logs have expired.
+    """
     release = get(f'repos/{REPOSITORY}/releases/tags/{record["release_tag"]}')
     require(release['id'] == record['release_id'] and release['tag_name'] == record['release_tag']
             and release.get('immutable') is True and not release['draft'] and not release['prerelease'],
@@ -66,6 +70,8 @@ def verify_origin(target, record, get=api):
     ref = get(f'repos/{REPOSITORY}/git/ref/tags/{record["release_tag"]}')
     require(ref['object']['type'] == 'commit' and ref['object']['sha'] == record['release_revision'],
             'Release tag changed')
+    if not audit_live_build:
+        return
     run_id = record['build_run']
     run = get(f'repos/{REPOSITORY}/actions/runs/{run_id}')
     require(run['id'] == run_id and run['run_attempt'] == record['build_attempt']
@@ -144,7 +150,7 @@ def acquire(target, destination):
     record, base = record_for(target)
     destination = Path(destination)
     require(not destination.exists(), 'Fresh platform acquisition destination required')
-    verify_origin(target, record)
+    verify_origin(target, record, audit_live_build=False)
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.platform-runtime-', dir=destination.parent))
     try:
