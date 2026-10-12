@@ -1,42 +1,47 @@
-name: Publish recovered platform artifacts
+name: Publish independently verified native platforms
 
 on:
   workflow_run:
     workflows: [Native build, test, and package]
-    types: [completed]
+    types: [requested, completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: First-party native push run to publish or recover
+        type: string
+        required: true
 
 permissions:
-  actions: read
-  contents: write
-  attestations: read
+  contents: read
+
+concurrency:
+  group: native-publisher-${{ github.event.workflow_run.id || inputs.source_run_id }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.run_attempt > 1 &&
-      github.event.workflow_run.event == 'push' &&
-      startsWith(github.event.workflow_run.head_branch, 'v')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == 'tlolabs/ativ')
     runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      actions: read
+      contents: write
+      attestations: read
     steps:
-      - name: Check out exact verified source
+      - name: Check out publisher from main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-      - name: Download completed platform artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
-          pattern: ATIV-*
-          path: release-inputs
-          merge-multiple: true
-          if-no-artifact-found: warn
-      - name: Publish recovered verified packages
+          fetch-depth: 0
+      - name: Publish each native target after its own verification
         env:
           GH_TOKEN: ${{ github.token }}
-          ATIV_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
-          ATIV_SOURCE_REF: refs/tags/${{ github.event.workflow_run.head_branch }}
-          RELEASE_TAG: ${{ github.event.workflow_run.head_branch }}
-        run: python3 script/publish_verified_artifacts.py "$RELEASE_TAG" release-inputs
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.source_run_id }}
+          WAIT_MINUTES: ${{ github.event.action == 'requested' && '150' || '5' }}
+        run: >-
+          python3 script/publish_native_platforms.py
+          --run-id "$SOURCE_RUN_ID"
+          --wait-minutes "$WAIT_MINUTES"

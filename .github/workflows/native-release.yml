@@ -425,37 +425,3 @@ jobs:
           path: ATIV/build/qt-macos/ATIV-Qt-macos-arm64.zip
           retention-days: 14
           if-no-files-found: error
-
-
-  release:
-    name: Publish verified platforms
-    needs: [macos, windows, linux]
-    if: ${{ always() && startsWith(github.ref, 'refs/tags/v') }}
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: ATIV
-    permissions:
-      contents: write
-      actions: read
-      attestations: read
-    steps:
-      - name: Check out tagged source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-          path: ATIV
-      - name: Verify annotated stable tag and version
-        run: bash script/verify_release_tag.sh
-      - name: Download completed platform artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4
-        with:
-          pattern: ATIV-*
-          path: ATIV/release-inputs
-          merge-multiple: true
-          if-no-artifact-found: warn
-      - name: Publish only verified platform packages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 script/publish_verified_artifacts.py "$GITHUB_REF_NAME" release-inputs

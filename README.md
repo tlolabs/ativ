@@ -7,7 +7,7 @@ ATIV combines one still image and one audio track into an H.264/AAC MP4. Choose 
 
 A TLO Labs open-source project maintained by Thomas Lothian.
 
-**[Download the latest stable release](https://github.com/tlolabs/ativ/releases/latest)** · [Development builds](https://github.com/tlolabs/ativ/releases/tag/development)
+**[Download the latest stable release](https://github.com/tlolabs/ativ/releases/latest)** · [Verified development builds](https://github.com/tlolabs/ativ/releases)
 
 ATIV processes media locally. No accounts, analytics, hosted crash reports, uploads, cloud processing, or project format. Network access is used for application updates; automatic checks can be disabled in native preferences.
 
@@ -17,9 +17,9 @@ ATIV processes media locally. No accounts, analytics, hosted crash reports, uplo
 | Windows (x64/ARM64) | Windows 10 1809 | Portable ZIP |
 | Linux (x64/ARM64) | Ubuntu 24.04 packaging baseline | AppImage |
 
-Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Check each release's notes for artifacts omitted because a platform job failed. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for target verification and publication rules.
+Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Release assets show verified platforms; GitHub Actions and the consolidated CI/CD issue show failed or pending targets. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for target verification and publication rules.
 
-All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed the release pipeline. The release notes identify incomplete builds.
+All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed native verification.
 
 The interfaces use SwiftUI/AppKit on production macOS and one shared Qt 6 Widgets UI on Windows and Linux, respectively. An internal Qt macOS ARM64 build is available for development and parity testing. They follow native appearance and control conventions, default to the system theme, and offer Light/Dark/System preferences. The same Rust media implementation powers every platform.
 

@@ -1,10 +1,10 @@
 # Release readiness checklist
 
-- Confirm the annotated tag matches the workspace version and leaves existing tags and assets unchanged.
+- For a stable release, confirm the annotated tag matches the workspace version. Main pushes use an immutable development tag created by the dedicated publisher.
 - Confirm the pinned AVID Core runtime is authenticated and packaged with matching FFmpeg and FFprobe.
 - Review Rust, native UI, accessibility, dependency, and security checks. Track unresolved failures without blocking unrelated development.
 - For each target, require native build, package-integrity, architecture, runtime discovery, launch, and functional smoke checks before its artifact is uploaded or published.
-- Confirm the release job verifies same-run artifact provenance and downloaded bytes. Publish successful targets independently and identify omitted targets in release notes.
+- Confirm the dedicated publisher verifies each native job's successful package, launch, media and host-evidence steps, the same-run artifact digest, package bytes and downloadable release asset. Publish each target as soon as its own checks complete; leave failed targets absent and visible in the consolidated CI/CD issue.
 - Record whether each direct download is unsigned, ad-hoc signed, Developer ID signed, notarized, or Authenticode signed. These distribution signatures are optional until configured.
 - Keep unsigned direct downloads off authenticated update feeds. Any update feed requires the installed verification key, signed metadata, exact package identity, and native upgrade validation.
 - Test rollback and preservation of user media before promoting an authenticated update. Never replace a published artifact or move its tag.
