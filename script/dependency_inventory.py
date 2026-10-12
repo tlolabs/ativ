@@ -14,9 +14,8 @@ INVENTORY = ROOT / "docs/dependency-inventory.json"
 def inventory():
     cargo = tomllib.loads((ROOT / "Cargo.lock").read_text())
     workspace = tomllib.loads((ROOT / "Cargo.toml").read_text())
-    ffmpeg = json.loads((ROOT / "runtime/core-runtime.json").read_text())
-    candidate = json.loads((ROOT / "runtime/core-candidate.json").read_text())
-    sample = candidate["targets"]["macos-arm64"]
+    ffmpeg = json.loads((ROOT / "runtime/platform-runtimes.json").read_text())
+    sample = ffmpeg["targets"]["macos-arm64"]
     prior = json.loads(INVENTORY.read_text()) if INVENTORY.exists() else {}
     license_by_key = {(p["name"], p["version"]): p.get("license") for p in prior.get("lockedRustPackages", [])}
     try:
@@ -40,11 +39,11 @@ def inventory():
         "schema": 1,
         "project": "ATIV",
         "projectVersion": workspace["workspace"]["package"]["version"],
-        "source": {"cargo": "Cargo.lock", "ffmpeg": "runtime/core-runtime.json"},
+        "source": {"cargo": "Cargo.lock", "ffmpeg": "runtime/platform-runtimes.json"},
         "lockedRustPackages": packages,
         "nativeInputs": [
-            {"name": "AVID Core FFmpeg runtime", "version": sample["version"] + "-r" + str(sample["recipe"]), "license": "GPL-2.0-or-later", "source": ffmpeg["repository"] + "@" + ffmpeg["build_revision"]},
-            *({"name": "Core runtime " + target, "version": record["version"], "license": "GPL-2.0-or-later", "sha256": record["sha256"]} for target, record in candidate["targets"].items()),
+            {"name": "AVID Core FFmpeg runtime", "version": sample["version"] + "-r" + str(sample["recipe"]), "license": "GPL-2.0-or-later", "source": ffmpeg["repository"]},
+            *({"name": "Core runtime " + target, "version": record["version"], "license": "GPL-2.0-or-later", "sha256": record["assets"][f'avid-ffmpeg-{record["version"]}-r{record["recipe"]}-{target}.tar.gz']["sha256"]} for target, record in ffmpeg["targets"].items()),
             {"name": "Sparkle", "version": "2.9.6", "license": "upstream permissive license", "source": "script/prepare_sparkle.sh"},
             {"name": "Qt 6 Widgets", "version": "6.8+", "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only", "source": "platform/qt/CMakeLists.txt"},
         ],

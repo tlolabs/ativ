@@ -13,24 +13,25 @@ import os
 from pathlib import Path
 import platform
 import subprocess
-from core_runtime import digest, obj, pair, require, verify_directory
+from core_runtime import digest, obj, require
+from ffmpeg_runtime import selected_plan, verify
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--application',choices=['ativ','encap'],required=True)
     p.add_argument('--target',required=True)
-    p.add_argument('--pin',type=Path,required=True)
     p.add_argument('--binary',type=Path,required=True)
     p.add_argument('--metadata',type=Path,required=True)
     p.add_argument('--packages',nargs='+',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
-    a=p.parse_args();pin=obj(a.pin)
+    a=p.parse_args()
     machine=platform.machine().lower();machine={'aarch64':'arm64','amd64':'x86_64'}.get(machine,machine)
     system={'darwin':'macos'}.get(platform.system().lower(),platform.system().lower())
     require(a.target==system+'-'+machine,'Host evidence requires actual native target execution')
     derivative=obj(a.metadata/'signed-payload.json')
-    verify_directory(pin,a.target,a.metadata,binary=a.binary,signed=derivative)
+    pin=selected_plan(a.target,signed=derivative)
+    verify(a.metadata,a.target,binary=a.binary,signed=True)
     engine=a.binary/(a.application+'-engine'+('.exe' if system=='windows' else ''))
     identity=json.loads(subprocess.check_output([str(engine.resolve()),'build-info']))
     subprocess.run([str(engine.resolve()),'check' if a.application=='ativ' else 'validate-tools'],env=dict(os.environ,PATH=''),check=True)

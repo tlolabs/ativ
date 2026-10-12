@@ -15,6 +15,34 @@ ROOT = Path(__file__).resolve().parents[1]
 PIN = json.loads((ROOT / 'runtime/core-runtime.json').read_text())
 
 
+def platform_plan(target):
+    from platform_runtime import plan_for
+    return plan_for(target)
+
+
+def selected_plan(target, runtime=None, signed=None):
+    """Select only an explicitly pinned platform or legacy archive identity."""
+    target = target_id(target)
+    platform = platform_plan(target)
+    current = platform['targets'][target]
+    legacy = PIN['targets'][target]
+    if signed is not None:
+        archive_hash = signed['original_runtime_archive_sha256']
+        if archive_hash == current['sha256']:
+            return platform
+        if archive_hash == legacy['sha256']:
+            return PIN
+        raise ValueError('Packaged runtime archive is not pinned for this target')
+    if runtime is not None:
+        checksum_hash = digest(Path(runtime) / 'SHA256SUMS')
+        if checksum_hash == current['checksums_sha256']:
+            return platform
+        if checksum_hash == legacy['checksums_sha256']:
+            return PIN
+        raise ValueError('Runtime checksum manifest is not pinned for this target')
+    return platform
+
+
 def digest(path):
     with path.open('rb') as file:
         return hashlib.file_digest(file, 'sha256').hexdigest()
@@ -53,7 +81,7 @@ def machine(path, target):
 
 def checked_files(metadata, target):
     path = metadata / 'SHA256SUMS'
-    if digest(path) != PIN['targets'][target]['checksums_sha256']:
+    if digest(path) != selected_plan(target, runtime=metadata)['targets'][target]['checksums_sha256']:
         raise ValueError('Core checksum manifest differs from pinned artifact')
     files = {}
     for line in path.read_text().splitlines():
@@ -68,10 +96,14 @@ def verify(runtime, target, binary=None, signed=False):
     from core_runtime import verify_directory
     target = target_id(target)
     derivative=json.loads((runtime / 'signed-payload.json').read_text()) if signed else None
-    info=verify_directory(PIN, target, runtime, binary=binary, signed=derivative)
-    source=runtime / 'corresponding-source.tar.gz' if signed else runtime.parent / PIN['targets'][target]['source_archive']
-    if digest(source) != PIN['targets'][target]['source_sha256']:
+    plan=selected_plan(target, runtime=runtime, signed=derivative)
+    info=verify_directory(plan, target, runtime, binary=binary, signed=derivative)
+    source=runtime / 'corresponding-source.tar.gz' if signed else runtime.parent / plan['targets'][target]['source_archive']
+    if digest(source) != plan['targets'][target]['source_sha256']:
         raise ValueError('Core corresponding source mismatch')
+    if not signed and plan is not PIN:
+        from platform_runtime import verify_cached
+        verify_cached(target, runtime.parent)
     return info
 
 
@@ -83,19 +115,27 @@ def provision(target):
     qualification = os.environ.get('AVID_CORE_QUALIFICATION') == '1'
     if qualification and os.environ.get('GITHUB_EVENT_NAME') in ('push', 'pull_request', 'pull_request_target'):
         raise ValueError('Candidate qualification is limited to deliberate local/manual qualification; never releases or PR artifacts')
-    plan = json.loads((ROOT / 'runtime/core-candidate.json').read_text()) if qualification else PIN
+    source = os.environ.get('ATIV_CORE_RUNTIME_SOURCE', 'platform')
+    require(source in ('platform', 'legacy'), 'Unknown Core runtime source')
+    plan = json.loads((ROOT / 'runtime/core-candidate.json').read_text()) if qualification else PIN if source == 'legacy' else platform_plan(target)
+    if source == 'legacy' and not qualification:
+        print('AVID Core compatibility fallback selected explicitly: ' + PIN['release_tag'], file=__import__('sys').stderr)
     if not qualification and PIN.get('qualification_only'):
         raise ValueError('Core runtime release is not published and pinned yet')
     selected = os.environ.get('ATIV_FFMPEG_RUNTIME')
     if selected:
         runtime = Path(selected).resolve()
         verify(runtime, target)
-        return verify_receipt(plan,target,runtime,qualification)
-    destination = ROOT / 'build/core-acquisition' / ('qualification' if qualification else PIN['release_tag']) / target
+        require(selected_plan(target, runtime=runtime)['targets'][target]['sha256'] == plan['targets'][target]['sha256'],
+                'Selected local runtime differs from requested source')
+        return verify_receipt(plan,target,runtime,qualification) if qualification or source == 'legacy' else runtime
+    from platform_runtime import record_for, acquire, verify_cached
+    tag = 'qualification' if qualification else PIN['release_tag'] if source == 'legacy' else record_for(target)[0]['release_tag']
+    destination = ROOT / 'build/core-acquisition' / tag / target
     if destination.exists():
         runtime = destination / plan['targets'][target]['archive'].removesuffix('.tar.gz')
-        return verify_receipt(plan,target,runtime,qualification)
-    return candidate(plan, target, destination, qualification=True) if qualification else release(PIN, target, destination)
+        return verify_receipt(plan,target,runtime,qualification) if qualification or source == 'legacy' else verify_cached(target, destination)
+    return candidate(plan, target, destination, qualification=True) if qualification else release(PIN, target, destination) if source == 'legacy' else acquire(target, destination)
 
 
 def core_identity():
@@ -119,6 +159,7 @@ def engine_identity(binary, target):
 def stage(target, runtime, binary):
     target = target_id(target)
     verify(runtime, target)
+    plan = selected_plan(target, runtime=runtime)
     engine = binary / ('ativ-engine.exe' if target.startswith('windows') else 'ativ-engine')
     subprocess.run([str(engine.resolve()), 'validate-core-runtime', '--runtime', str(runtime.resolve())], check=True, timeout=60)
     binary.mkdir(parents=True, exist_ok=True)
@@ -130,7 +171,7 @@ def stage(target, runtime, binary):
             shutil.copytree(item, destination)
         else:
             shutil.copy2(item, destination)
-    shutil.copy2(runtime.parent / PIN['targets'][target]['source_archive'], binary / 'corresponding-source.tar.gz')
+    shutil.copy2(runtime.parent / plan['targets'][target]['source_archive'], binary / 'corresponding-source.tar.gz')
     identity = engine_identity(binary, target)
     write_json(binary / 'ativ-runtime.json', {'schema': 1, 'owner': 'AVID Core', **identity, 'target': target})
 
@@ -138,13 +179,14 @@ def stage(target, runtime, binary):
 def finish(target, binary, metadata):
     target = target_id(target)
     original = binary if (binary / 'SHA256SUMS').exists() else metadata
+    plan = selected_plan(target, runtime=original)
     files = checked_files(original, target)
     write_json(original / 'signed-payload.json', {'schema': 1, 'target': target,
                'original_binary_sha256': {name: files[name] for name in pair(target)},
                'signed_binary_sha256': {name: digest(binary / name) for name in pair(target)},
                'transformation': 'platform code signing or identity-preserving staging',
                'signing_identity': os.environ.get('APPLE_SIGN_IDENTITY') or os.environ.get('ENCAP_SIGN_IDENTITY') or os.environ.get('AZURE_SIGNING_ACCOUNT') or 'unconfigured',
-               'original_runtime_archive_sha256': PIN['targets'][target]['sha256']})
+               'original_runtime_archive_sha256': plan['targets'][target]['sha256']})
     if original.resolve() != metadata.resolve():
         metadata.mkdir(parents=True, exist_ok=True)
         names = {Path(name).parts[0] for name in files} - set(pair(target))
@@ -182,7 +224,8 @@ if __name__ == '__main__':
     if args.mode == 'provision':
         print(provision(args.target))
     elif args.mode == 'key':
-        print(PIN['targets'][target_id(args.target)]['sha256'])
+        target = target_id(args.target)
+        print((PIN if os.environ.get('ATIV_CORE_RUNTIME_SOURCE') == 'legacy' else platform_plan(target))['targets'][target]['sha256'])
     elif args.binary is None:
         parser.error('--binary is required')
     elif args.mode == 'stage':

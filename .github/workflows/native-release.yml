@@ -193,7 +193,7 @@ jobs:
         if: ${{ !inputs.owner_testing }}
         run: |
           label="${{ matrix.arch }}"; [[ "$label" != x86_64 ]] || label=intel
-          python3 script/host_evidence.py --application ativ --target "macos-${{ matrix.arch }}" --pin runtime/core-runtime.json --binary "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS" --metadata "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/Resources/FFmpeg" --packages packages/*.zip --output "packages/host-macos-${{ matrix.arch }}.json"
+          python3 script/host_evidence.py --application ativ --target "macos-${{ matrix.arch }}" --binary "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/MacOS" --metadata "build/package-macos-${{ matrix.arch }}/ATIV.app/Contents/Resources/FFmpeg" --packages packages/*.zip --output "packages/host-macos-${{ matrix.arch }}.json"
       - name: Attest stable macOS packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -284,7 +284,7 @@ jobs:
         shell: pwsh
         run: |
           $packages = (Get-ChildItem packages -Filter '*.zip').FullName
-          python script/host_evidence.py --application ativ --target 'windows-${{ matrix.runtime_arch }}' --pin runtime/core-runtime.json --binary 'build/windows-${{ matrix.arch }}/publish' --metadata 'build/windows-${{ matrix.arch }}/publish/ffmpeg-runtime' --packages $packages --output 'packages/host-windows-${{ matrix.runtime_arch }}.json'
+          python script/host_evidence.py --application ativ --target 'windows-${{ matrix.runtime_arch }}' --binary 'build/windows-${{ matrix.arch }}/publish' --metadata 'build/windows-${{ matrix.arch }}/publish/ffmpeg-runtime' --packages $packages --output 'packages/host-windows-${{ matrix.runtime_arch }}.json'
       - name: Attest stable Windows packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -365,7 +365,7 @@ jobs:
       - name: Record exact native host evidence
         if: ${{ !inputs.owner_testing }}
         run: |
-          python3 script/host_evidence.py --application ativ --target "linux-${{ matrix.runtime_arch }}" --pin runtime/core-runtime.json --binary "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ" --metadata "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ/ffmpeg-runtime" --packages packages/*.AppImage --output "packages/host-linux-${{ matrix.runtime_arch }}.json"
+          python3 script/host_evidence.py --application ativ --target "linux-${{ matrix.runtime_arch }}" --binary "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ" --metadata "build/ATIV-${{ matrix.arch }}.AppDir/usr/lib/ativ/ffmpeg-runtime" --packages packages/*.AppImage --output "packages/host-linux-${{ matrix.runtime_arch }}.json"
       - name: Attest stable Linux packages
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2

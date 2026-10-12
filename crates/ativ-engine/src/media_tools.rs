@@ -10,7 +10,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const PIN: &str = include_str!("../../../runtime/core-runtime.json");
+const LEGACY_PIN: &str = include_str!("../../../runtime/core-runtime.json");
+const PLATFORM_PINS: &str = include_str!("../../../runtime/platform-runtimes.json");
 
 fn unavailable() -> AtivError {
     AtivError::RuntimeUnavailable
@@ -94,8 +95,40 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         std::env::consts::ARCH
     };
     let target = format!("{os}-{arch}");
-    let pin: Value = serde_json::from_str(PIN).expect("checked-in Core runtime pins");
-    let record = &pin["targets"][&target];
+    let legacy: Value =
+        serde_json::from_str(LEGACY_PIN).expect("checked-in legacy Core runtime pins");
+    let platforms: Value =
+        serde_json::from_str(PLATFORM_PINS).expect("checked-in platform Core runtime pins");
+    let signed = read_json(&metadata.join("signed-payload.json"))?;
+    let platform = &platforms["targets"][&target];
+    let archive = format!(
+        "avid-ffmpeg-{}-r{}-{target}.tar.gz",
+        platform["version"].as_str().ok_or_else(unavailable)?,
+        platform["recipe"].as_u64().ok_or_else(unavailable)?
+    );
+    let source = format!(
+        "avid-ffmpeg-{}-r{}-{target}-sources.tar.gz",
+        platform["version"].as_str().ok_or_else(unavailable)?,
+        platform["recipe"].as_u64().ok_or_else(unavailable)?
+    );
+    let legacy_record = &legacy["targets"][&target];
+    let platform_archive = &platform["assets"][&archive]["sha256"];
+    let (record, build_revision, source_sha256) =
+        if signed["original_runtime_archive_sha256"] == *platform_archive {
+            (
+                platform,
+                &platform["build_revision"],
+                &platform["assets"][&source]["sha256"],
+            )
+        } else if signed["original_runtime_archive_sha256"] == legacy_record["sha256"] {
+            (
+                legacy_record,
+                &legacy["build_revision"],
+                &legacy_record["source_sha256"],
+            )
+        } else {
+            return Err(unavailable());
+        };
     if hash(&metadata.join("SHA256SUMS"))?
         != record["checksums_sha256"]
             .as_str()
@@ -135,17 +168,16 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         serde_json::from_str(ativ_core::FFMPEG_RUNTIME_SPECIFICATION).expect("Core specification");
     let build = read_json(&metadata.join("build.json"))?;
     let provenance = read_json(&metadata.join("ativ-runtime.json"))?;
-    let signed = read_json(&metadata.join("signed-payload.json"))?;
     if spec != core_spec
         || build["target"] != target
-        || build["core_revision"] != pin["revision"]
+        || build["core_revision"] != *build_revision
         || build["core_worktree_modified"] != false
         || provenance
             != serde_json::json!({"schema":1,"owner":"AVID Core","ativ_version":ativ_core::VERSION,"avid_core":{"version":ativ_core::CORE_VERSION,"revision":ativ_core::CORE_REVISION,"source":ativ_core::CORE_SOURCE},"target":target})
         || signed["schema"] != 1
         || signed["target"] != target
         || hash(&metadata.join("corresponding-source.tar.gz"))?
-            != record["source_sha256"].as_str().ok_or_else(unavailable)?
+            != source_sha256.as_str().ok_or_else(unavailable)?
     {
         return Err(unavailable());
     }

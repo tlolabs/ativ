@@ -22,6 +22,9 @@ class PlatformRuntimeTests(unittest.TestCase):
             record, base = runtime.record_for(target, pins)
             self.assertIn(target, record['release_tag'])
             self.assertIn(target, base)
+            self.assertEqual(record['build_run'], 38185320964)
+            self.assertEqual(runtime.plan_for(target)['targets'][target]['checksums_sha256'],
+                             record['checksums_sha256'])
         changed = copy.deepcopy(pins)
         changed['targets']['windows-arm64']['version'] = '10.0.0'
         with self.assertRaisesRegex(ValueError, 'Unsupported runtime specification'):
@@ -85,6 +88,23 @@ class PlatformRuntimeTests(unittest.TestCase):
             (directory / name).write_text('{}')
             with self.assertRaisesRegex(ValueError, 'differs from pin'):
                 runtime.verify_provenance(self.target, self.record, self.base, directory / name)
+            authentic = {'schema': 1, 'kind': 'direct-download-platform',
+                         'repository': runtime.REPOSITORY, 'target': self.target,
+                         'build_run': self.record['build_run'], 'build_attempt': self.record['build_attempt'],
+                         'build_revision': self.record['build_revision'],
+                         'native_job_id': self.record['native_job_id'], 'artifact_id': self.record['artifact_id'],
+                         'artifact_zip_sha256': self.record['artifact_zip_sha256'],
+                         'spec_sha256': self.record['spec_sha256'],
+                         'runtime_archive': self.base + '.tar.gz',
+                         'runtime_sha256': self.record['assets'][self.base + '.tar.gz']['sha256'],
+                         'source_archive': self.base + '-sources.tar.gz',
+                         'source_sha256': self.record['assets'][self.base + '-sources.tar.gz']['sha256']}
+            for field, value in [('target', 'windows-arm64'), ('build_revision', '0' * 40),
+                                 ('build_run', 0), ('runtime_sha256', '0' * 64)]:
+                altered = dict(authentic, **{field: value})
+                (directory / name).write_text(__import__('json').dumps(altered))
+                with self.assertRaisesRegex(ValueError, 'differs from pin'):
+                    runtime.verify_provenance(self.target, self.record, self.base, directory / name)
             for asset_name in self.record['assets']:
                 (directory / asset_name).write_bytes(b'corrupt')
             with self.assertRaisesRegex(ValueError, 'differs from pin'):

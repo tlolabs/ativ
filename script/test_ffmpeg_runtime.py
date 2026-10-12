@@ -27,6 +27,7 @@ def test(engine,runtime,target):
             ('ativ-runtime.json', lambda data: data.replace(b'"revision": "', b'"revision": "wrong-')),
             ('build.json', lambda data: data + b' '),
             ('signed-payload.json', lambda data: data.replace(b'"target": "', b'"target": "wrong-')),
+            ('signed-payload.json', lambda data: data.replace(b'"original_runtime_archive_sha256": "', b'"original_runtime_archive_sha256": "wrong-')),
         ]:
             path = staged/'ffmpeg-runtime'/name
             original = path.read_bytes()

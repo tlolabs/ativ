@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Acquire one pinned AVID Core platform release after provider attestation.
-
-This is deliberately separate from the production six-target acquirer. Current
-platform releases have no attestation, so they fail before a runtime download.
-"""
+"""Acquire one pinned AVID Core platform release after provider attestation."""
 import argparse
 import json
 import os
@@ -13,7 +9,7 @@ import shutil
 import subprocess
 import tempfile
 
-from core_runtime import digest, obj, require, safe_name, verify_directory
+from core_runtime import digest, obj, pair, require, safe_name, verify_directory
 
 ROOT = Path(__file__).resolve().parents[1]
 PINS = ROOT / 'runtime/platform-runtimes.json'
@@ -46,7 +42,21 @@ def record_for(target, pins=None):
         require(safe_name(name).name == name and isinstance(asset['id'], int) and asset['id'] > 0
                 and isinstance(asset['size'], int) and asset['size'] > 0
                 and re.fullmatch('[0-9a-f]{64}', asset['sha256']), 'Invalid asset pin')
+    require(re.fullmatch('[0-9a-f]{64}', record['checksums_sha256'])
+            and set(record['binary_sha256']) == set(pair(target))
+            and all(re.fullmatch('[0-9a-f]{64}', value) for value in record['binary_sha256'].values()),
+            'Invalid runtime content pin')
     return record, base
+
+
+def plan_for(target, record=None):
+    record, base = record_for(target) if record is None else (record, f'avid-ffmpeg-{record["version"]}-r{record["recipe"]}-{target}')
+    archive, source = base + '.tar.gz', base + '-sources.tar.gz'
+    return {'build_revision': record['build_revision'], 'build_run': record['build_run'],
+            'targets': {target: {'archive': archive, 'sha256': record['assets'][archive]['sha256'],
+                                 'source_archive': source, 'source_sha256': record['assets'][source]['sha256'],
+                                 'checksums_sha256': record['checksums_sha256'],
+                                 'binary_sha256': record['binary_sha256']}}}
 
 
 def verify_origin(target, record, get=api, audit_live_build=True):
@@ -168,10 +178,7 @@ def acquire(target, destination):
         from core_runtime import extract_runtime
         extract_runtime(staging / archive, staging, base)
         runtime = staging / base
-        plan = {'build_revision': record['build_revision'], 'targets': {target: {
-            'archive': archive, 'sha256': record['assets'][archive]['sha256'],
-            'source_archive': source, 'source_sha256': record['assets'][source]['sha256'],
-            'checksums_sha256': digest(runtime / 'SHA256SUMS')}}}
+        plan = plan_for(target, record)
         verify_directory(plan, target, runtime)
         require(obj(runtime / 'SOURCE.json')['sha256'] == digest(staging / source),
                 'Corresponding source differs from runtime metadata')
@@ -184,6 +191,30 @@ def acquire(target, destination):
     finally:
         if staging.exists():
             shutil.rmtree(staging)
+
+
+def verify_cached(target, destination):
+    """Recheck cached bytes and the provider attestation before using a runtime."""
+    record, base = record_for(target)
+    destination = Path(destination)
+    verify_origin(target, record, audit_live_build=False)
+    provenance = checked_asset(record, 'platform-release.json', destination)
+    verify_attestation(record, provenance)
+    verify_provenance(target, record, base, provenance)
+    for name in record['assets']:
+        checked_asset(record, name, destination)
+    verify_checksums(record, base, destination)
+    receipt = obj(destination / 'platform-verification.json')
+    require(receipt == {'schema': 1, 'target': target, 'release_tag': record['release_tag'],
+                       'release_revision': record['release_revision'],
+                       'runtime_sha256': record['assets'][base + '.tar.gz']['sha256'],
+                       'version': record['version'], 'recipe': record['recipe']},
+            'Cached platform release receipt differs from pin')
+    runtime = destination / base
+    verify_directory(plan_for(target, record), target, runtime)
+    require(obj(runtime / 'SOURCE.json')['sha256'] == digest(destination / (base + '-sources.tar.gz')),
+            'Cached corresponding source mismatch')
+    return runtime
 
 
 if __name__ == '__main__':
