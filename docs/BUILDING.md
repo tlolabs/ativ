@@ -22,6 +22,8 @@ Python is build/test tooling only; no Python runtime ships in ATIV. The maintain
 
 AVID Core owns source selection and builds for FFmpeg and ffprobe. ATIV acquires its exact matched runtime from the published `ffmpeg-9.0.1-r7.1` release through the shared authenticated verifier. Install GitHub CLI and authenticate it before provisioning; the verifier checks the release manifest's artifact attestation. See [runtime acquisition](ffmpeg-source-runtime.md). No FFmpeg compiler toolchain or sibling Core checkout is required.
 
+The separately pinned per-platform acquisition path is in `script/platform_runtime.py`. Current AVID Core direct-download releases lack the attestation it requires, so it is not used by application packaging. This does not block the established development publisher or other platform builds; see the provider requirements in [runtime acquisition](ffmpeg-source-runtime.md).
+
 ```sh
 python3 script/ffmpeg_runtime.py provision macos-arm64
 ./script/build_and_run.sh --verify

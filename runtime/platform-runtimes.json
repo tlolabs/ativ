@@ -1,0 +1,254 @@
+{
+  "authentication": "github-attestation",
+  "repository": "tlolabs/avid-core",
+  "schema": 1,
+  "signer_workflow": ".github/workflows/platform-publisher.yml",
+  "targets": {
+    "linux-arm64": {
+      "artifact_id": 11718433642,
+      "artifact_zip_sha256": "674021b8fe048637c39d800ca03aee8495d0ba3e9017e69b5fb0ba1dc6880188",
+      "assets": {
+        "SHA256SUMS": {
+          "id": 632117250,
+          "sha256": "059c023ac4bc5a74cbbc5b2480e32f92f6fd74aacda703c5834d49221d7569b2",
+          "size": 421
+        },
+        "avid-ffmpeg-9.0.1-r7-linux-arm64-sources.tar.gz": {
+          "id": 632117278,
+          "sha256": "640c0e963df3b3071084014313578c1680e2fa53dea651ce1d176c397a678227",
+          "size": 19001165
+        },
+        "avid-ffmpeg-9.0.1-r7-linux-arm64.tar.gz": {
+          "id": 632117331,
+          "sha256": "9190d33c8fc0e0a09d0d9ac005b84ef405ba05efbe9fa412e7eec3d48b8e234e",
+          "size": 23766287
+        },
+        "avid-ffmpeg-9.0.1-r7-linux-arm64.tar.gz.sha256": {
+          "id": 632117411,
+          "sha256": "8003231863d28e7ccda682a54429a286c15d601446a4ead559adbda178fd9624",
+          "size": 106
+        },
+        "platform-release.json": {
+          "id": 632117385,
+          "sha256": "8613b4c53b882447766a5cdce7ee9d8b01171e1b49cbbb70d392adeca3d370aa",
+          "size": 785
+        }
+      },
+      "build_attempt": 1,
+      "build_revision": "cb07b459534cd89dcff094ac4af63fcd6e7a7689",
+      "build_run": 38182234949,
+      "native_job_id": 114597681642,
+      "recipe": 7,
+      "release_id": 409994050,
+      "release_revision": "a8820a9d66ae6102a6f9536157a71728323f7c42",
+      "release_tag": "platform-ffmpeg-9.0.1-r7-linux-arm64-run38182234949",
+      "spec_sha256": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+      "version": "9.0.1"
+    },
+    "linux-x86_64": {
+      "artifact_id": 11717948612,
+      "artifact_zip_sha256": "dbd47c5544f95133eae75ea59df63355de7be1e428e1692b6132c8e314ae7cab",
+      "assets": {
+        "SHA256SUMS": {
+          "id": 632117147,
+          "sha256": "b6f2b04a302772961d4a4d2c82dab675198ca7060b7be7211beae000823784aa",
+          "size": 424
+        },
+        "avid-ffmpeg-9.0.1-r7-linux-x86_64-sources.tar.gz": {
+          "id": 632117236,
+          "sha256": "640c0e963df3b3071084014313578c1680e2fa53dea651ce1d176c397a678227",
+          "size": 19001165
+        },
+        "avid-ffmpeg-9.0.1-r7-linux-x86_64.tar.gz": {
+          "id": 632117187,
+          "sha256": "760b2442f3e7165c6b06b187fcaf0c5b51cf6665705a703011a54893c4eedb2a",
+          "size": 23837997
+        },
+        "avid-ffmpeg-9.0.1-r7-linux-x86_64.tar.gz.sha256": {
+          "id": 632117136,
+          "sha256": "1f05329193a0b61d30999a59cb444e1cb20b4e58ba46b7643213471330030514",
+          "size": 107
+        },
+        "platform-release.json": {
+          "id": 632117166,
+          "sha256": "8c305f14f62808929f3c8333f316db9c6d86345d34e8a456f25002feb09e0513",
+          "size": 788
+        }
+      },
+      "build_attempt": 1,
+      "build_revision": "cb07b459534cd89dcff094ac4af63fcd6e7a7689",
+      "build_run": 38182234949,
+      "native_job_id": 114597681645,
+      "recipe": 7,
+      "release_id": 409994027,
+      "release_revision": "a8820a9d66ae6102a6f9536157a71728323f7c42",
+      "release_tag": "platform-ffmpeg-9.0.1-r7-linux-x86_64-run38182234949",
+      "spec_sha256": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+      "version": "9.0.1"
+    },
+    "macos-arm64": {
+      "artifact_id": 11719013683,
+      "artifact_zip_sha256": "5053742b7b4c39e0243b1901688b0581004d0ef2a6f850eb074275202823e056",
+      "assets": {
+        "SHA256SUMS": {
+          "id": 632120781,
+          "sha256": "a7aa330dcec6b06adaf622b9578467df22e12088f1ecacf7d24dfc30258e1f41",
+          "size": 421
+        },
+        "avid-ffmpeg-9.0.1-r7-macos-arm64-sources.tar.gz": {
+          "id": 632120733,
+          "sha256": "640c0e963df3b3071084014313578c1680e2fa53dea651ce1d176c397a678227",
+          "size": 19001165
+        },
+        "avid-ffmpeg-9.0.1-r7-macos-arm64.tar.gz": {
+          "id": 632120842,
+          "sha256": "93a95cc7232e2faf51c16d906e0378e913ba6a9f5e554a9cd243e83b935bce00",
+          "size": 19792027
+        },
+        "avid-ffmpeg-9.0.1-r7-macos-arm64.tar.gz.sha256": {
+          "id": 632120798,
+          "sha256": "f61d5215859ce3139e91328e5dce5c818b2ce3f60f6fb30de9917eb0902c8f60",
+          "size": 106
+        },
+        "platform-release.json": {
+          "id": 632120903,
+          "sha256": "fc9825c6115934383d9185bb963b7c3fef99089ab34a62c3b7db419e90761520",
+          "size": 785
+        }
+      },
+      "build_attempt": 1,
+      "build_revision": "cb07b459534cd89dcff094ac4af63fcd6e7a7689",
+      "build_run": 38182234949,
+      "native_job_id": 114597681552,
+      "recipe": 7,
+      "release_id": 409994630,
+      "release_revision": "aeb940bebaf89c6474d2398a42e89957fc3930a2",
+      "release_tag": "platform-ffmpeg-9.0.1-r7-macos-arm64-run38182234949",
+      "spec_sha256": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+      "version": "9.0.1"
+    },
+    "macos-x86_64": {
+      "artifact_id": 11719249943,
+      "artifact_zip_sha256": "f6df770eebe6585426ddd24837a387c47751978c01fc0ba47a45801ca05da9c9",
+      "assets": {
+        "SHA256SUMS": {
+          "id": 632140285,
+          "sha256": "05160c36b3227b7c95bd2f82d8438e16a554421e2906b430825dcd8ce35babc6",
+          "size": 424
+        },
+        "avid-ffmpeg-9.0.1-r7-macos-x86_64-sources.tar.gz": {
+          "id": 632140230,
+          "sha256": "640c0e963df3b3071084014313578c1680e2fa53dea651ce1d176c397a678227",
+          "size": 19001165
+        },
+        "avid-ffmpeg-9.0.1-r7-macos-x86_64.tar.gz": {
+          "id": 632140335,
+          "sha256": "dbafc34c8f3f20c3140f80b177569699960c02c45628b7502dfd3eadcd5d26bf",
+          "size": 21870370
+        },
+        "avid-ffmpeg-9.0.1-r7-macos-x86_64.tar.gz.sha256": {
+          "id": 632140263,
+          "sha256": "62952ccfea98cdf39a542079e4270bd5fe9fe5ac63dee2619891f64f41300864",
+          "size": 107
+        },
+        "platform-release.json": {
+          "id": 632140310,
+          "sha256": "ae9e3a426146863197cd74f00909290fa569e956f797286109b88ea922dcf2c6",
+          "size": 788
+        }
+      },
+      "build_attempt": 1,
+      "build_revision": "cb07b459534cd89dcff094ac4af63fcd6e7a7689",
+      "build_run": 38182234949,
+      "native_job_id": 114597681546,
+      "recipe": 7,
+      "release_id": 409999526,
+      "release_revision": "aeb940bebaf89c6474d2398a42e89957fc3930a2",
+      "release_tag": "platform-ffmpeg-9.0.1-r7-macos-x86_64-run38182234949",
+      "spec_sha256": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+      "version": "9.0.1"
+    },
+    "windows-arm64": {
+      "artifact_id": 11718787371,
+      "artifact_zip_sha256": "2fb3f3aa5598918493883105fc85c0be6a1a9c4c2e6cff5a5b9a067cfd7eb675",
+      "assets": {
+        "SHA256SUMS": {
+          "id": 632117230,
+          "sha256": "01ab592ec6ede479f6d3ac4bbe0f237f0c48fcb2bcd0876129a5fbcca0c07425",
+          "size": 427
+        },
+        "avid-ffmpeg-9.0.1-r7-windows-arm64-sources.tar.gz": {
+          "id": 632117182,
+          "sha256": "16e593dae7fcfcc8e549e3a64696a8d412430d71b2b51f17130151e3032e3ef3",
+          "size": 19019895
+        },
+        "avid-ffmpeg-9.0.1-r7-windows-arm64.tar.gz": {
+          "id": 632117285,
+          "sha256": "975872d212833580ac00e82b80298bb7632cdd534435567f098b0658f11dae64",
+          "size": 19727160
+        },
+        "avid-ffmpeg-9.0.1-r7-windows-arm64.tar.gz.sha256": {
+          "id": 632117265,
+          "sha256": "c95c00143cc91e6a9d10b03cd56d96df16124c6e220448fa365f00a86a2f7454",
+          "size": 108
+        },
+        "platform-release.json": {
+          "id": 632117335,
+          "sha256": "770100daf7a9d92f806a4f3fede27c0e8a4aa788c2862b7e78ecf28a94009a31",
+          "size": 791
+        }
+      },
+      "build_attempt": 1,
+      "build_revision": "cb07b459534cd89dcff094ac4af63fcd6e7a7689",
+      "build_run": 38182234949,
+      "native_job_id": 114597681522,
+      "recipe": 7,
+      "release_id": 409994038,
+      "release_revision": "a8820a9d66ae6102a6f9536157a71728323f7c42",
+      "release_tag": "platform-ffmpeg-9.0.1-r7-windows-arm64-run38182234949",
+      "spec_sha256": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+      "version": "9.0.1"
+    },
+    "windows-x86_64": {
+      "artifact_id": 11718871228,
+      "artifact_zip_sha256": "3fecd8f45e39c31ff95e89469349a37f7cf5ecd14ab7af8926bd986b3fc1be12",
+      "assets": {
+        "SHA256SUMS": {
+          "id": 632117292,
+          "sha256": "220b82ece01707db0663affd95fdda80086c4810fdac7b266d2fd98b109faab6",
+          "size": 430
+        },
+        "avid-ffmpeg-9.0.1-r7-windows-x86_64-sources.tar.gz": {
+          "id": 632117386,
+          "sha256": "16e593dae7fcfcc8e549e3a64696a8d412430d71b2b51f17130151e3032e3ef3",
+          "size": 19019895
+        },
+        "avid-ffmpeg-9.0.1-r7-windows-x86_64.tar.gz": {
+          "id": 632117324,
+          "sha256": "54c910bd64da76fe0ed7d6c42f38bf23885219289ae590ecc7d867467b228dcd",
+          "size": 21596160
+        },
+        "avid-ffmpeg-9.0.1-r7-windows-x86_64.tar.gz.sha256": {
+          "id": 632117439,
+          "sha256": "545b4a30fdfc9e75b0dc072984015605ca32fb785cda7de6933ac2026f319a04",
+          "size": 109
+        },
+        "platform-release.json": {
+          "id": 632117456,
+          "sha256": "da55d9d4644c5cdfc1091825909481c3719168abc1f5ac1ceb05384481f5cab8",
+          "size": 794
+        }
+      },
+      "build_attempt": 1,
+      "build_revision": "cb07b459534cd89dcff094ac4af63fcd6e7a7689",
+      "build_run": 38182234949,
+      "native_job_id": 114597681665,
+      "recipe": 7,
+      "release_id": 409994058,
+      "release_revision": "a8820a9d66ae6102a6f9536157a71728323f7c42",
+      "release_tag": "platform-ffmpeg-9.0.1-r7-windows-x86_64-run38182234949",
+      "spec_sha256": "0d5a568452cd28e79022d933e642731b8f86183a4c474ce83b97b49ac7900763",
+      "version": "9.0.1"
+    }
+  }
+}
