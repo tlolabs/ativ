@@ -40,6 +40,14 @@ TARGETS = {
     "linux-arm64": ("Linux aarch64", "ATIV-linux-aarch64", ".AppImage",
                     ("Native Qt and package smoke tests",)),
 }
+EVIDENCE_TARGETS = {
+    "macos-arm64": "macos-arm64",
+    "macos-intel": "macos-x86_64",
+    "windows-x64": "windows-x86_64",
+    "windows-arm64": "windows-arm64",
+    "linux-x64": "linux-x86_64",
+    "linux-arm64": "linux-arm64",
+}
 COMMON_STEPS = {
     "Configure build identity",
     "Acquire the exact authenticated Core runtime",
@@ -173,11 +181,7 @@ def read_candidate(artifact, run, target, version, directory):
     require(sha256(archive) == artifact["digest"].removeprefix("sha256:"),
             "Actions artifact archive digest mismatch")
     package_name = f"ATIV-{version}-{target}{TARGETS[target][2]}"
-    evidence_target = {
-        "macos-intel": "macos-x86_64",
-        "windows-arm64": "windows-arm64",
-        "linux-arm64": "linux-arm64",
-    }.get(target, target)
+    evidence_target = EVIDENCE_TARGETS[target]
     evidence_name = f"host-{evidence_target}.json"
     with zipfile.ZipFile(archive) as zipped:
         names = {item.filename for item in zipped.infolist() if not item.is_dir()}

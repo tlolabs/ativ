@@ -47,6 +47,12 @@ class NativePublisherTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "lacks native tests"):
             publisher.native_job([job], "macos-arm64")
 
+    def test_package_labels_map_to_native_host_evidence(self):
+        self.assertEqual(set(publisher.EVIDENCE_TARGETS), set(publisher.TARGETS))
+        self.assertEqual(publisher.EVIDENCE_TARGETS["macos-intel"], "macos-x86_64")
+        self.assertEqual(publisher.EVIDENCE_TARGETS["windows-x64"], "windows-x86_64")
+        self.assertEqual(publisher.EVIDENCE_TARGETS["linux-x64"], "linux-x86_64")
+
     def test_artifact_digest_and_host_report_bind_exact_package(self):
         version = "0.2.6-dev.118"
         package_name = f"ATIV-{version}-macos-arm64.zip"
