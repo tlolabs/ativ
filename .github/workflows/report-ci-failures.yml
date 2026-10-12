@@ -9,7 +9,7 @@ on:
       - Attest and verify native Linux AppImages
       - CodeQL
       - Retry failed verification workflows
-      - Publish recovered platform artifacts
+      - Publish independently verified native platforms
     types: [completed]
   schedule:
     - cron: "17 6 * * *"

@@ -53,6 +53,18 @@ class NativePublisherTests(unittest.TestCase):
         self.assertEqual(publisher.EVIDENCE_TARGETS["windows-x64"], "windows-x86_64")
         self.assertEqual(publisher.EVIDENCE_TARGETS["linux-x64"], "linux-x86_64")
 
+    def test_push_finds_only_the_matching_native_run(self):
+        listing = {"workflow_runs": [
+            {"id": 12, "head_sha": "b" * 40, "head_branch": "main",
+             "path": publisher.WORKFLOW},
+            {"id": 13, "head_sha": self.run["head_sha"], "head_branch": "main",
+             "path": publisher.WORKFLOW},
+        ]}
+        with patch.object(publisher, "api", return_value=listing):
+            self.assertEqual(publisher.find_source_run(self.run["head_sha"], "main", 0), 13)
+        with self.assertRaisesRegex(ValueError, "unexpected source ref"):
+            publisher.find_source_run(self.run["head_sha"], "feature", 0)
+
     def test_artifact_digest_and_host_report_bind_exact_package(self):
         version = "0.2.6-dev.118"
         package_name = f"ATIV-{version}-macos-arm64.zip"

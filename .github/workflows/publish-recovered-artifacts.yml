@@ -1,6 +1,9 @@
 name: Publish independently verified native platforms
 
 on:
+  push:
+    branches: [main]
+    tags: ["v*"]
   workflow_run:
     workflows: [Native build, test, and package]
     types: [requested, completed]
@@ -15,12 +18,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: native-publisher-${{ github.event.workflow_run.id || inputs.source_run_id }}
+  group: native-publisher-${{ github.event.workflow_run.head_sha || inputs.source_run_id || github.sha }}
   cancel-in-progress: false
 
 jobs:
   publish:
     if: >-
+      github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_repository.full_name == 'tlolabs/ativ')
@@ -40,8 +44,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ github.event.workflow_run.id || inputs.source_run_id }}
-          WAIT_MINUTES: ${{ github.event.action == 'requested' && '150' || '5' }}
-        run: >-
-          python3 script/publish_native_platforms.py
-          --run-id "$SOURCE_RUN_ID"
-          --wait-minutes "$WAIT_MINUTES"
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          WAIT_MINUTES: ${{ (github.event_name == 'push' || github.event.action == 'requested') && '150' || '5' }}
+        run: |
+          if [[ "${{ github.event_name }}" == push ]]; then
+            python3 script/publish_native_platforms.py --source-sha "$SOURCE_SHA" --source-branch "$SOURCE_BRANCH" --wait-minutes "$WAIT_MINUTES"
+          else
+            python3 script/publish_native_platforms.py --run-id "$SOURCE_RUN_ID" --wait-minutes "$WAIT_MINUTES"
+          fi

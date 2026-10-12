@@ -370,9 +370,34 @@ def run_publisher(run_id, wait_minutes):
     require(not failures, "One or more platform artifacts remain unpublished")
 
 
+def find_source_run(revision, branch, wait_minutes=5):
+    require(SHA.fullmatch(revision) is not None and
+            (branch == "main" or re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", branch)),
+            "Publisher push has an unexpected source ref")
+    deadline = time.monotonic() + wait_minutes * 60
+    while True:
+        data = api("GET", f"repos/{REPO}/actions/workflows/native-release.yml/runs?event=push&per_page=100")
+        matches = [item for item in data["workflow_runs"] if
+                   item["head_sha"] == revision and item["head_branch"] == branch and
+                   item["path"] == WORKFLOW]
+        require(len(matches) <= 1, "Multiple native runs match this source push")
+        if matches:
+            return matches[0]["id"]
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Matching native verification run was not created")
+        time.sleep(5)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-id", type=int, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--run-id", type=int)
+    source.add_argument("--source-sha")
+    parser.add_argument("--source-branch")
     parser.add_argument("--wait-minutes", type=int, default=0)
     args = parser.parse_args()
-    run_publisher(args.run_id, args.wait_minutes)
+    require(args.source_sha is None or args.source_branch,
+            "--source-branch is required with --source-sha")
+    run_id = args.run_id if args.run_id is not None else find_source_run(
+        args.source_sha, args.source_branch)
+    run_publisher(run_id, args.wait_minutes)
