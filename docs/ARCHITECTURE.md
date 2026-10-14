@@ -44,6 +44,20 @@ Errors retain `cancelled`, `invalid_input`, `media_tools_unavailable`, `media_to
 - Packaged media tools are version-checked by avid-core before use; mismatched version identifiers are rejected. Each platform/architecture uses one Core-built 9.0.1 pair for all modes. ATIV verifies the authenticated release, preserves Core's original metadata and records the hashes after platform signing.
 - Diagnostics remain local; ATIV has no telemetry or automatic diagnostic upload.
 
+## Trust boundary and runtime integrity
+
+ATIV distinguishes package authentication from local checksum verification:
+
+1. **Package Authentication and Supply Chain Roots**:
+   - Initial acquisition of AVID Core media runtimes is authenticated through GitHub release attestations bound to the Core publisher workflow, exact source commit SHA, and pinned target hashes in `runtime/platform-runtimes.json`.
+   - Production updates are cryptographically authenticated before execution or staging (Ed25519 signatures in Sparkle for macOS, cryptographic update manifest verification in `ativ-update` for Windows/Linux). Unsigned downloads are never permitted in authenticated feeds.
+   - Operating system platform trust roots provide distribution-level integrity: Apple Developer ID / Gatekeeper and notarization on macOS; Microsoft Authenticode on Windows; and AppImage SHA-256 digests and release provenance on Linux.
+
+2. **Local Checksum Verification and Boundaries**:
+   - `ativ-engine` performs local checksum validation against compile-time pinned constants (`PLATFORMS`, `LEGACY`, `CORE_SPEC`, checksum manifests) and package metadata (`SHA256SUMS`, `signed-payload.json`, `ativ-runtime.json`).
+   - Local verification guards against accidental file corruption, incomplete installation, partial upgrades, unexpected tool drift, and unintended PATH fallback.
+   - *Threat Boundary Limitation*: Local checksum verification does not protect against a hostile local attacker who has already obtained write access to the application directory and can overwrite the `ativ-engine` binary itself. Genuine protection against local file tampering on the user's system relies on operating-system protections (e.g., macOS Gatekeeper, code directory sealing under `_CodeSignature/CodeResources`, System Integrity Protection, and standard administrative filesystem ACLs on `/Applications` or `Program Files`).
+
 ## Platform support
 
 - **macOS:** macOS 13 or later, Apple Silicon and Intel.

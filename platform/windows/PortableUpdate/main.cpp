@@ -69,6 +69,26 @@ static std::string sha256File(const fs::path &path) {
     return ss.str();
 }
 
+static std::wstring getSystemPowerShell() {
+    wchar_t sysDir[MAX_PATH] = {0};
+    UINT len = GetSystemDirectoryW(sysDir, MAX_PATH);
+    if (len > 0 && len < MAX_PATH) {
+        fs::path p = fs::path(sysDir) / L"WindowsPowerShell" / L"v1.0" / L"powershell.exe";
+        if (fs::exists(p)) {
+            return p.wstring();
+        }
+    }
+    wchar_t winDir[MAX_PATH] = {0};
+    len = GetWindowsDirectoryW(winDir, MAX_PATH);
+    if (len > 0 && len < MAX_PATH) {
+        fs::path p = fs::path(winDir) / L"System32" / L"WindowsPowerShell" / L"v1.0" / L"powershell.exe";
+        if (fs::exists(p)) {
+            return p.wstring();
+        }
+    }
+    return L"powershell.exe";
+}
+
 static int runProcess(const std::wstring &cmd, const std::vector<std::pair<std::wstring, std::wstring>> &envExtra = {}) {
     STARTUPINFOW si{};
     si.cb = sizeof(si);
@@ -172,10 +192,14 @@ int wmain(int argc, wchar_t *argv[]) {
         backup = parent / (".ativ-backup-" + randomId());
         fs::create_directories(stage);
 
-        // Extract package using PowerShell Expand-Archive or tar
-        std::wstring extractCmd = L"powershell.exe -NoProfile -NonInteractive -Command \"Expand-Archive -LiteralPath '"
-            + package.wstring() + L"' -DestinationPath '" + stage.wstring() + L"' -Force\"";
-        if (runProcess(extractCmd) != 0) {
+        // Extract package using PowerShell Expand-Archive with paths passed via environment variables
+        std::wstring psExe = getSystemPowerShell();
+        std::wstring extractCmd = L"\"" + psExe + L"\" -NoProfile -NonInteractive -Command \"$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath $env:ATIV_EXTRACT_SRC -DestinationPath $env:ATIV_EXTRACT_DST -Force\"";
+        std::vector<std::pair<std::wstring, std::wstring>> extractEnv = {
+            {L"ATIV_EXTRACT_SRC", package.wstring()},
+            {L"ATIV_EXTRACT_DST", stage.wstring()}
+        };
+        if (runProcess(extractCmd, extractEnv) != 0) {
             throw std::runtime_error("Failed to extract portable update package.");
         }
 
@@ -216,7 +240,7 @@ int wmain(int argc, wchar_t *argv[]) {
         }
 
         // Verify Authenticode signatures
-        std::wstring verifyCmd = L"powershell.exe -NoProfile -NonInteractive -Command "
+        std::wstring verifyCmd = L"\"" + psExe + L"\" -NoProfile -NonInteractive -Command "
             L"\"$ErrorActionPreference='Stop'; "
             L"$orig=(Get-AuthenticodeSignature -LiteralPath $env:ATIV_ORIGINAL_EXE).SignerCertificate.Subject; "
             L"Get-ChildItem -LiteralPath $env:ATIV_VERIFY_DIR -Recurse -Filter '*.exe' | ForEach-Object { "
