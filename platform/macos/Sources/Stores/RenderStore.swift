@@ -17,6 +17,8 @@ final class RenderStore: ObservableObject {
     @Published var fps = UserDefaults.standard.integer(forKey: "fps") == 0 ? 30 : UserDefaults.standard.integer(forKey: "fps")
     @Published var duration: Double?
     @Published var previewImage: NSImage?
+    @Published var isPreviewLoading = false
+    @Published var previewFailed = false
     @Published var progress = 0.0
     @Published var status = "Loading media engine…"
     @Published var isRendering = false { didSet { ATIVSetUpdateWorkInProgress(isRendering) } }
@@ -173,6 +175,8 @@ final class RenderStore: ObservableObject {
         guard let imageURL, let preset = selectedPreset else {
             lastPreviewKey = nil
             previewImage = nil
+            isPreviewLoading = false
+            previewFailed = false
             return
         }
         let ratio = Double(preset.width) / Double(preset.height)
@@ -185,16 +189,32 @@ final class RenderStore: ObservableObject {
         lastPreviewKey = key
         previewGeneration += 1
         let generation = previewGeneration
+
+        previewImage = nil
+        isPreviewLoading = true
+        previewFailed = false
+
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-preview-\(UUID().uuidString).png")
         engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] result in
             DispatchQueue.main.async {
                 defer { try? FileManager.default.removeItem(at: output) }
                 guard let self, generation == self.previewGeneration else { return }
+                self.isPreviewLoading = false
                 switch result {
                 case .success(let url):
+                    self.previewFailed = false
                     self.previewImage = NSImage(contentsOf: url)
+                    if self.previewImage == nil {
+                        self.previewFailed = true
+                    }
                 case .failure(let error):
-                    self.fail(error)
+                    self.previewImage = nil
+                    self.previewFailed = true
+                    if case EngineClientError.cancelled = error {
+                        // Superseded preview cancellation is normal
+                    } else {
+                        self.fail(error)
+                    }
                 }
             }
         }

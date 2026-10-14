@@ -7,6 +7,10 @@
 #include <QStyleHints>
 #include <QAccessible>
 
+static QString plainToolTip(const QString &text) {
+    return Qt::mightBeRichText(text) ? text.toHtmlEscaped() : text;
+}
+
 class DisclosureSection : public QFrame {
 public:
     DisclosureSection(const QString &title, const QString &id, QWidget *content, bool expanded) {
@@ -29,6 +33,7 @@ public:
 
         summary = new QLabel;
         summary->setObjectName(id + "Summary");
+        summary->setTextFormat(Qt::PlainText);
         summary->setWordWrap(false);
         summary->setTextInteractionFlags(Qt::TextSelectableByMouse);
         summary->setStyleSheet("color: palette(mid);");
@@ -47,7 +52,7 @@ public:
 
     void setSummary(const QString &text) {
         summary->setText(text);
-        summary->setToolTip(text);
+        summary->setToolTip(plainToolTip(text));
         toggle->setAccessibleDescription(text);
     }
 
@@ -64,6 +69,11 @@ public:
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         setAccessibleName("Video frame preview");
         setAccessibleDescription("Preview of the composited video frame using selected artwork, aspect ratio, and flip options");
+    }
+    void updateDescription(const QString &desc) {
+        setAccessibleDescription(desc);
+        QAccessibleEvent ev(this, QAccessible::DescriptionChanged);
+        QAccessible::updateAccessibility(&ev);
     }
     void paintEvent(QPaintEvent *) override {
         QPainter painter(this);
@@ -186,6 +196,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     sourceForm->addRow("Image", fileRow("image", imagePath, "imagePath", &MainWindow::chooseImage));
     sourceForm->addRow("Audio", fileRow("audio", audioPath, "audioPath", &MainWindow::chooseAudio));
     duration = new QLabel("Choose an audio recording");
+    duration->setTextFormat(Qt::PlainText);
     duration->setObjectName("duration");
     duration->setAccessibleName("Audio recording duration");
     sourceForm->addRow("", duration);
@@ -214,6 +225,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     resolution->setToolTip("Select video resolution");
 
     bitrate = new QComboBox;
+    bitrate->setObjectName("bitrate");
     bitrate->addItems({"128k", "192k", "256k", "320k"});
     if (bitrate->findText(preferences.bitrate) >= 0) {
         bitrate->setCurrentText(preferences.bitrate);
@@ -236,6 +248,18 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     fps->setObjectName("fps");
     fps->setAccessibleName("Frames per second");
     fps->setToolTip("Select video frame rate (1-240 fps)");
+
+    connect(bitrate, &QComboBox::currentTextChanged, this, [this](const QString &text) {
+        if (!text.isEmpty()) {
+            preferences.bitrate = text;
+            preferences.save();
+        }
+    });
+
+    connect(fps, qOverload<int>(&QSpinBox::valueChanged), this, [this](int value) {
+        preferences.fps = value;
+        preferences.save();
+    });
 
     form->addRow("Social media outlet", platform);
     form->addRow("Aspect ratio", aspect);
@@ -336,6 +360,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     rightLayout->addWidget(preview, 1);
 
     previewCaption = new QLabel("Choose an image to see a styled preview.");
+    previewCaption->setTextFormat(Qt::PlainText);
     previewCaption->setObjectName("previewCaption");
     previewCaption->setAlignment(Qt::AlignCenter);
     previewCaption->setWordWrap(true);
@@ -366,6 +391,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 
     auto *footer = new QHBoxLayout;
     status = new QLabel("Loading formats…");
+    status->setTextFormat(Qt::PlainText);
     status->setWordWrap(true);
     status->setObjectName("status");
     // The current message is the accessible name of a QLabel. A fixed name
@@ -492,12 +518,24 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
             preview->image = QImage(temporary.filePath("preview.png"));
             preview->update();
             if (!preview->image.isNull()) {
-                previewCaption->setText("Preview ready · " + aspect->currentText() + " · " + resolution->currentText());
+                const QString caption = "Preview ready · " + aspect->currentText() + " · " + resolution->currentText();
+                previewCaption->setText(caption);
+                QString accDesc = QString("Preview frame for %1 at %2 (%3)%4%5")
+                    .arg(QFileInfo(imagePath->text()).fileName())
+                    .arg(aspect->currentText())
+                    .arg(resolution->currentText())
+                    .arg(flipH->isChecked() ? ", flipped horizontally" : "")
+                    .arg(flipV->isChecked() ? ", flipped vertically" : "");
+                preview->updateDescription(accDesc);
                 emit previewReady(preview->image);
+            } else {
+                previewCaption->setText("The preview could not be read.");
+                preview->updateDescription("The preview frame could not be read.");
             }
-            else previewCaption->setText("The preview could not be read.");
         } else {
             previewCaption->setText("Preview unavailable. Check the selected image.");
+            preview->updateDescription("Preview unavailable for selected image.");
+            setStatus("Preview unavailable. Check the selected image.", true);
             log(error);
         }
     });
@@ -525,7 +563,11 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     connect(&probeJob, &EngineJob::finished, this, [this](int code, const QString &error) {
         if (closing) { close(); return; }
         if (probedPath != audioPath->text()) { beginProbe(); return; }
-        if (code != 0) { duration->setText("Could not read audio"); log(error); }
+        if (code != 0) {
+            duration->setText("Could not read audio");
+            setStatus("Could not read audio recording.", true);
+            log(error);
+        }
     });
 
     connect(&renderJob, &EngineJob::eventReceived, this, [this](const QJsonObject &event) {
@@ -565,6 +607,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     });
 
     connect(&renderJob, &EngineJob::finished, this, [this](int code, const QString &error) {
+        const bool focusWasOnCancel = (focusWidget() == cancel || cancel->hasFocus());
         rendering = false;
         progress->setRange(0, 1000);
         progress->setValue(code == 0 ? 1000 : 0);
@@ -575,10 +618,17 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
         } else if (code == 130) {
             setStatus("Video creation stopped. Previous output preserved.", true);
         } else {
-            setStatus(error, true);
+            setStatus(error.isEmpty() ? "Video creation failed." : error, true);
             log(error);
         }
         updateEnabled();
+        if (focusWasOnCancel) {
+            if (create->isVisible() && create->isEnabled()) {
+                create->setFocus(Qt::OtherFocusReason);
+            } else if (reveal->isVisible()) {
+                reveal->setFocus(Qt::OtherFocusReason);
+            }
+        }
         emit renderFinished(code);
         if (closing) close();
     });
@@ -610,9 +660,14 @@ void MainWindow::log(const QString &message) {
 }
 
 void MainWindow::setStatus(const QString &message, bool announce) {
-    if (status->text() == message) return;
+    if (status->text() == message && !announce) return;
     status->setText(message);
     if (announce) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+        QAccessibleAnnouncementEvent event(status, message);
+        event.setPoliteness(QAccessible::AnnouncementPoliteness::Polite);
+        QAccessible::updateAccessibility(&event);
+#endif
         QAccessibleEvent changed(status, QAccessible::NameChanged);
         QAccessible::updateAccessibility(&changed);
     }
@@ -628,13 +683,13 @@ void MainWindow::suggestOutput(const QString &sourcePath) {
         suggested = info.dir().filePath(info.completeBaseName() + ".mp4");
     }
     outputPath->setText(suggested);
-    outputPath->setToolTip(suggested);
+    outputPath->setToolTip(plainToolTip(suggested));
 }
 
 void MainWindow::setImage(const QString &path) {
     if (rendering || updating || path.isEmpty()) return;
     imagePath->setText(path);
-    imagePath->setToolTip(path);
+    imagePath->setToolTip(plainToolTip(path));
     suggestOutput(path);
     queuePreview();
     updateEnabled();
@@ -643,7 +698,7 @@ void MainWindow::setImage(const QString &path) {
 void MainWindow::setAudio(const QString &path) {
     if (rendering || updating || path.isEmpty()) return;
     audioPath->setText(path);
-    audioPath->setToolTip(path);
+    audioPath->setToolTip(plainToolTip(path));
     duration->setText("Reading duration…");
     suggestOutput(path);
     if (probeJob.busy()) probeJob.cancel();
@@ -654,7 +709,7 @@ void MainWindow::setAudio(const QString &path) {
 void MainWindow::setOutput(const QString &path) {
     if (rendering || updating) return;
     outputPath->setText(path);
-    outputPath->setToolTip(path);
+    outputPath->setToolTip(plainToolTip(path));
     reveal->hide();
     updateEnabled();
 }
@@ -739,9 +794,16 @@ void MainWindow::queuePreview() {
     ++revision;
     preview->image = QImage();
     preview->update();
-    previewCaption->setText(imagePath->text().isEmpty()
+    const QString caption = imagePath->text().isEmpty()
         ? "Choose an image to see a styled preview."
-        : "Preparing preview · " + aspect->currentText() + " · " + resolution->currentText());
+        : "Preparing preview · " + aspect->currentText() + " · " + resolution->currentText();
+    previewCaption->setText(caption);
+    preview->updateDescription(imagePath->text().isEmpty()
+        ? "No artwork selected. Choose an image to preview."
+        : QString("Preparing preview for %1 (%2 %3)…")
+            .arg(QFileInfo(imagePath->text()).fileName())
+            .arg(aspect->currentText())
+            .arg(resolution->currentText()));
     if (previewJob.busy()) previewJob.cancel();
     previewDelay.start();
 }
@@ -795,6 +857,7 @@ void MainWindow::startRender() {
     progress->setRange(0, 0);
     setStatus("Preparing video…", true);
     updateEnabled();
+    cancel->setFocus(Qt::OtherFocusReason);
 
     preferences.save();
 
@@ -874,9 +937,12 @@ void MainWindow::showPreferences() {
 }
 
 void MainWindow::showAbout() {
+    const QString version = !QCoreApplication::applicationVersion().isEmpty()
+        ? QCoreApplication::applicationVersion()
+        : Preferences::authoritativeVersion();
     QMessageBox::about(this, "About ATIV",
         QString("ATIV %1\n\nArtwork + Tracks Into Video\nLocal media processing. No telemetry.\n\nA TLO Labs project · GPL-3.0-or-later\nQt %2 Widgets + ATIV Rust engine")
-            .arg(QCoreApplication::applicationVersion(), QT_VERSION_STR));
+            .arg(version, QT_VERSION_STR));
 }
 
 void MainWindow::applyAppearance(const QString &theme) {

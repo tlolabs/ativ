@@ -129,3 +129,33 @@ bool Preferences::save() const {
     file.write(data);
     return file.commit();
 }
+
+QString Preferences::authoritativeVersion() {
+    const QStringList candidatePaths = {
+        QCoreApplication::applicationDirPath() + "/update-config.json",
+        QCoreApplication::applicationDirPath() + "/../Resources/update-config.json",
+        QCoreApplication::applicationDirPath() + "/../update-config.json"
+    };
+    for (const QString &path : candidatePaths) {
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly)) {
+            const auto doc = QJsonDocument::fromJson(file.readAll());
+            if (doc.isObject()) {
+                const auto obj = doc.object();
+                if (obj.contains("version") && !obj["version"].toString().trimmed().isEmpty()) {
+                    return obj["version"].toString().trimmed();
+                }
+            }
+        }
+    }
+
+#if defined(ATIV_VERSION_STRING)
+    QString version = ATIV_VERSION_STRING;
+#else
+    QString version = "0.2.6";
+#endif
+    if (isDevelopmentBuild() && !version.contains("-dev")) {
+        version += "-dev";
+    }
+    return version;
+}

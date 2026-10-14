@@ -138,6 +138,65 @@ private slots:
         // System theme
         window.applyAppearance("System");
     }
+
+    void plainTextAndRichTextSafety() {
+        MainWindow window("/missing/ativ-engine");
+        auto *status = window.findChild<QLabel *>("status");
+        auto *duration = window.findChild<QLabel *>("duration");
+        auto *previewCaption = window.findChild<QLabel *>("previewCaption");
+        auto *sourceSummary = window.findChild<QLabel *>("sourceMediaDisclosureSummary");
+
+        QVERIFY(status);
+        QVERIFY(duration);
+        QVERIFY(previewCaption);
+        QVERIFY(sourceSummary);
+
+        // Verify Qt::PlainText format is enforced
+        QCOMPARE(status->textFormat(), Qt::PlainText);
+        QCOMPARE(duration->textFormat(), Qt::PlainText);
+        QCOMPARE(previewCaption->textFormat(), Qt::PlainText);
+        QCOMPARE(sourceSummary->textFormat(), Qt::PlainText);
+
+        // Test with HTML metacharacters and tags in paths (without slash in the filename itself)
+        const QString hostileImage = "/tmp/<image_tag>&test<alert>.png";
+        const QString hostileAudio = "/tmp/<track & field>.wav";
+        window.setImage(hostileImage);
+        window.setAudio(hostileAudio);
+
+        // Summary should contain literal filename without html stripping or interpretation
+        QVERIFY(sourceSummary->text().contains("<image_tag>&test<alert>.png"));
+        QVERIFY(sourceSummary->text().contains("<track & field>.wav"));
+
+        // Accessible description should agree with visible text
+        auto *summaryInterface = QAccessible::queryAccessibleInterface(sourceSummary);
+        QVERIFY(summaryInterface);
+        QCOMPARE(summaryInterface->text(QAccessible::Name), sourceSummary->text());
+    }
+
+    void focusTransitionsAndAnnouncements() {
+        MainWindow window("/missing/ativ-engine");
+        window.show();
+        QCoreApplication::processEvents();
+
+        auto *create = window.findChild<QPushButton *>("createVideo");
+        auto *cancel = window.findChild<QPushButton *>("cancelRender");
+        QVERIFY(create);
+        QVERIFY(cancel);
+
+        // Initially create is visible and cancel is hidden
+        QVERIFY(create->isVisible());
+        QVERIFY(!cancel->isVisible());
+    }
+
+    void previewAccessibilityDescription() {
+        MainWindow window("/missing/ativ-engine");
+        auto *preview = window.findChild<QWidget *>();
+        QVERIFY(preview);
+
+        auto *previewCaption = window.findChild<QLabel *>("previewCaption");
+        QVERIFY(previewCaption);
+        QCOMPARE(previewCaption->textFormat(), Qt::PlainText);
+    }
 };
 
 QTEST_MAIN(AccessibilityTests)

@@ -217,6 +217,121 @@ private slots:
         qunsetenv("ATIV_SMOKE_REPORT");
         window.close(); QTRY_VERIFY_WITH_TIMEOUT(!window.isVisible(), 10000);
     }
+    void updateClientStartupFailures() {
+        qputenv("ATIV_TEST_UPDATE_SUPPORTED", "1");
+        UpdateClient client;
+
+        // 1. Nonexistent helper
+        qputenv("ATIV_UPDATE_PATH", "/nonexistent/path/to/ativ-update");
+        int callbackCount = 0;
+        QString lastError;
+        client.checkForUpdates(true, [&](bool available, const QString &, const QString &error) {
+            Q_UNUSED(available);
+            ++callbackCount;
+            lastError = error;
+        });
+        QTRY_COMPARE_WITH_TIMEOUT(callbackCount, 1, 3000);
+        QVERIFY(!client.isBusy());
+        QVERIFY(!lastError.isEmpty());
+
+        // 2. Non-executable helper
+        const QString nonExec = media.filePath("non_exec_helper.sh");
+        {
+            QFile f(nonExec);
+            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+            f.write("#!/bin/sh\necho test\n");
+            f.close();
+            f.setPermissions(QFile::ReadOwner | QFile::ReadUser);
+        }
+        qputenv("ATIV_UPDATE_PATH", nonExec.toUtf8());
+        callbackCount = 0;
+        lastError.clear();
+        client.checkForUpdates(true, [&](bool available, const QString &, const QString &error) {
+            Q_UNUSED(available);
+            ++callbackCount;
+            lastError = error;
+        });
+        QTRY_COMPARE_WITH_TIMEOUT(callbackCount, 1, 3000);
+        QVERIFY(!client.isBusy());
+        QVERIFY(!lastError.isEmpty());
+
+        // 3. Crashing / failing helper
+        const QString crashScript = media.filePath("crash_helper.sh");
+        {
+            QFile f(crashScript);
+            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+            f.write("#!/bin/sh\nexit 1\n");
+            f.close();
+            f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner | QFile::ReadUser | QFile::ExeUser);
+        }
+        qputenv("ATIV_UPDATE_PATH", crashScript.toUtf8());
+        callbackCount = 0;
+        lastError.clear();
+        client.checkForUpdates(true, [&](bool available, const QString &, const QString &error) {
+            Q_UNUSED(available);
+            ++callbackCount;
+            lastError = error;
+        });
+        QTRY_COMPARE_WITH_TIMEOUT(callbackCount, 1, 3000);
+        QVERIFY(!client.isBusy());
+        QVERIFY(!lastError.isEmpty());
+
+        // 4. Hanging helper with bounded timeout
+        const QString hangScript = media.filePath("hang_helper.sh");
+        {
+            QFile f(hangScript);
+            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
+            f.write("#!/bin/sh\nsleep 30\n");
+            f.close();
+            f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner | QFile::ReadUser | QFile::ExeUser);
+        }
+        qputenv("ATIV_UPDATE_PATH", hangScript.toUtf8());
+        qputenv("ATIV_UPDATE_TIMEOUT_MS", "150");
+        callbackCount = 0;
+        lastError.clear();
+        client.checkForUpdates(true, [&](bool available, const QString &, const QString &error) {
+            Q_UNUSED(available);
+            ++callbackCount;
+            lastError = error;
+        });
+        QTRY_COMPARE_WITH_TIMEOUT(callbackCount, 1, 3000);
+        QVERIFY(!client.isBusy());
+        QVERIFY(lastError.contains("timed out", Qt::CaseInsensitive));
+
+        // 5. Subsequent call succeeds in starting
+        callbackCount = 0;
+        client.checkForUpdates(true, [&](bool, const QString &, const QString &) {
+            ++callbackCount;
+        });
+        QTRY_COMPARE_WITH_TIMEOUT(callbackCount, 1, 3000);
+        QVERIFY(!client.isBusy());
+
+        qunsetenv("ATIV_TEST_UPDATE_SUPPORTED");
+        qunsetenv("ATIV_UPDATE_PATH");
+        qunsetenv("ATIV_UPDATE_TIMEOUT_MS");
+    }
+    void bitrateAndFpsPersistence() {
+        MainWindow window(engine);
+        auto *bitrateCombo = window.findChild<QComboBox *>("bitrate");
+        auto *fpsSpin = window.findChild<QSpinBox *>("fps");
+        QVERIFY(bitrateCombo);
+        QVERIFY(fpsSpin);
+
+        bitrateCombo->setCurrentText("256k");
+        fpsSpin->setValue(60);
+
+        QCOMPARE(window.currentPreferences().bitrate, QString("256k"));
+        QCOMPARE(window.currentPreferences().fps, 60);
+
+        const Preferences loaded = Preferences::load();
+        QCOMPARE(loaded.bitrate, QString("256k"));
+        QCOMPARE(loaded.fps, 60);
+    }
+    void authoritativeVersion() {
+        const QString ver = Preferences::authoritativeVersion();
+        QVERIFY(!ver.isEmpty());
+        QCOMPARE(ver, QString("0.2.6"));
+    }
 };
 QTEST_MAIN(WorkflowTests)
 #include "tests.moc"

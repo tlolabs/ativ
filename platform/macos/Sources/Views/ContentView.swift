@@ -7,6 +7,12 @@ struct ContentView: View {
     @SceneStorage("formatExpanded") private var formatExpanded = false
     @SceneStorage("destinationExpanded") private var destinationExpanded = false
 
+    @FocusState private var focusedButton: ButtonFocus?
+    private enum ButtonFocus: Hashable {
+        case create
+        case cancel
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HSplitView {
@@ -116,14 +122,29 @@ struct ContentView: View {
             if store.isRendering {
                 Button(role: .destructive, action: store.cancel) { Label("Stop Video Creation", systemImage: "stop.fill").frame(maxWidth: .infinity) }
                     .controlSize(.large).keyboardShortcut(.escape, modifiers: [])
+                    .focused($focusedButton, equals: .cancel)
+                    .accessibilityLabel("Stop video creation")
+                    .accessibilityHint("Safely cancel video export and preserve previous file")
             } else {
                 Button(action: { store.render() }) { Label("Create Video", systemImage: "play.fill").frame(maxWidth: .infinity) }
                     .buttonStyle(.borderedProminent).controlSize(.large).disabled(!store.canRender)
+                    .focused($focusedButton, equals: .create)
                     .help("Create an MP4 video (⌘Return)")
+                    .accessibilityLabel("Create video")
+                    .accessibilityHint("Start combining artwork and audio into video")
             }
         }
         .frame(maxWidth: 520)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onChange(of: store.isRendering) { rendering in
+            if rendering {
+                focusedButton = .cancel
+            } else {
+                if focusedButton == .cancel {
+                    focusedButton = .create
+                }
+            }
+        }
     }
 
     private func sectionLabel(_ title: String, summary: String, expanded: Bool) -> some View {
@@ -156,21 +177,56 @@ struct ContentView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 14).fill(.quaternary)
                 if let image = store.previewImage {
-                    Image(nsImage: image).resizable().scaledToFit().padding(18).accessibilityLabel("Video frame preview")
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(18)
+                        .accessibilityLabel(previewAccessibilityLabel)
+                } else if store.isPreviewLoading {
+                    VStack(spacing: 10) {
+                        ProgressView()
+                        Text("Preparing preview…").font(.headline).foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Preparing frame preview")
+                } else if store.previewFailed {
+                    VStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 42))
+                            .foregroundStyle(.secondary)
+                        Text("Preview unavailable").font(.headline)
+                        Text("Check the selected image file.").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Preview unavailable for selected image")
                 } else {
                     VStack(spacing: 10) {
                         Image(systemName: "photo.on.rectangle").font(.system(size: 42)).foregroundStyle(.secondary).accessibilityHidden(true)
                         Text("Choose an image").font(.headline)
                         Text("A styled frame preview will appear here.").foregroundStyle(.secondary)
-                    }.accessibilityElement(children: .combine)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Choose artwork to preview your video")
                 }
-            }.frame(maxWidth: 440, maxHeight: 440)
+            }
+            .frame(maxWidth: 440, maxHeight: 440)
             if let preset = store.selectedPreset { Text("\(preset.aspect) · \(preset.resolution)").foregroundStyle(.secondary) }
             DisclosureGroup("Diagnostics", isExpanded: $store.showDiagnostics) {
                 ScrollView { Text(store.diagnostics.joined(separator: "\n")).font(.system(.caption, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                     .frame(height: 110)
             }.padding(.horizontal)
         }.padding(24)
+    }
+
+    private var previewAccessibilityLabel: String {
+        let name = store.imageURL?.lastPathComponent ?? "artwork"
+        let aspect = store.selectedAspect
+        let res = store.selectedPreset?.resolution ?? ""
+        var flips: [String] = []
+        if store.flipHorizontal { flips.append("horizontally flipped") }
+        if store.flipVertical { flips.append("vertically flipped") }
+        let flipsText = flips.isEmpty ? "" : ", \(flips.joined(separator: ", "))"
+        return "Video frame preview for \(name) at \(aspect) (\(res))\(flipsText)"
     }
 
     private var flipOptions: some View {

@@ -8,12 +8,17 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
+#include <QTimer>
 #include <QUrl>
 #include <QUuid>
+#include <memory>
 
 UpdateClient::UpdateClient(QObject *parent) : QObject(parent) {}
 
 bool UpdateClient::isSupported() {
+    if (qEnvironmentVariableIsSet("ATIV_TEST_UPDATE_SUPPORTED")) {
+        return true;
+    }
 #if defined(Q_OS_MACOS)
     // macOS reference build must never enter production update channel.
     return false;
@@ -23,6 +28,9 @@ bool UpdateClient::isSupported() {
 }
 
 bool UpdateClient::canInstallDirectly() {
+    if (qEnvironmentVariableIsSet("ATIV_TEST_UPDATE_SUPPORTED")) {
+        return true;
+    }
 #if defined(Q_OS_WIN)
     return true;
 #elif defined(Q_OS_LINUX)
@@ -45,6 +53,72 @@ QString UpdateClient::updateBinaryPath() {
     return binary;
 }
 
+static void runProcessSafely(QObject *parent,
+                             bool &busyFlag,
+                             const QString &program,
+                             const QStringList &args,
+                             int timeoutMs,
+                             const QString &timeoutMsg,
+                             std::function<void(int exitCode,
+                                                QProcess::ExitStatus exitStatus,
+                                                QProcess::ProcessError error,
+                                                const QByteArray &stdoutData,
+                                                const QByteArray &stderrData,
+                                                const QString &customError)> onResult) {
+    auto *process = new QProcess(parent);
+    process->setProgram(program);
+    process->setArguments(args);
+
+    auto *timer = new QTimer(process);
+    timer->setSingleShot(true);
+
+    auto invoked = std::make_shared<bool>(false);
+
+    auto finish = [&busyFlag, process, timer, invoked, onResult](int exitCode,
+                                                                 QProcess::ExitStatus exitStatus,
+                                                                 QProcess::ProcessError error,
+                                                                 const QByteArray &stdoutData,
+                                                                 const QByteArray &stderrData,
+                                                                 const QString &customError) {
+        if (*invoked) return;
+        *invoked = true;
+        busyFlag = false;
+
+        timer->stop();
+        if (process->state() != QProcess::NotRunning) {
+            process->kill();
+            process->waitForFinished(500);
+        }
+        process->deleteLater();
+
+        onResult(exitCode, exitStatus, error, stdoutData, stderrData, customError);
+    };
+
+    QObject::connect(timer, &QTimer::timeout, process, [finish, timeoutMsg]() {
+        finish(-1, QProcess::CrashExit, QProcess::Timedout, {}, {}, timeoutMsg);
+    });
+
+    QObject::connect(process, &QProcess::errorOccurred, process, [finish](QProcess::ProcessError err) {
+        if (err == QProcess::FailedToStart) {
+            finish(-1, QProcess::NormalExit, err, {}, {}, "The update helper failed to start.");
+        } else if (err == QProcess::Crashed) {
+            finish(-1, QProcess::CrashExit, err, {}, {}, "The update helper crashed unexpectedly.");
+        } else if (err == QProcess::Timedout) {
+            finish(-1, QProcess::CrashExit, err, {}, {}, "The update operation timed out.");
+        }
+    });
+
+    QObject::connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), process,
+                     [process, finish](int code, QProcess::ExitStatus status) {
+        const QByteArray stdoutData = process->readAllStandardOutput();
+        const QByteArray stderrData = process->readAllStandardError();
+        finish(code, status, QProcess::UnknownError, stdoutData, stderrData, QString());
+    });
+
+    timer->start(timeoutMs);
+    process->start();
+}
+
 void UpdateClient::checkForUpdates(bool manual, std::function<void(bool available, const QString &version, const QString &error)> callback) {
     if (!isSupported()) {
         callback(false, {}, "Automatic updates are unavailable in the internal reference build.");
@@ -62,17 +136,23 @@ void UpdateClient::checkForUpdates(bool manual, std::function<void(bool availabl
     }
 
     busy = true;
-    auto *process = new QProcess(this);
-    process->setProgram(binary);
-    process->setArguments({manual ? "check" : "check-auto"});
+    const int timeoutMs = qEnvironmentVariableIntValue("ATIV_UPDATE_TIMEOUT_MS") > 0
+        ? qEnvironmentVariableIntValue("ATIV_UPDATE_TIMEOUT_MS")
+        : 60000;
 
-    connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
-            [this, process, callback](int code, QProcess::ExitStatus) {
-        busy = false;
-        const QByteArray stdoutData = process->readAllStandardOutput();
-        const QByteArray stderrData = process->readAllStandardError();
-        process->deleteLater();
-
+    runProcessSafely(this, busy, binary, {manual ? "check" : "check-auto"}, timeoutMs,
+                     "Update check timed out.",
+                     [callback](int code, QProcess::ExitStatus status, QProcess::ProcessError error,
+                                const QByteArray &stdoutData, const QByteArray &stderrData,
+                                const QString &customError) {
+        if (!customError.isEmpty()) {
+            callback(false, {}, customError);
+            return;
+        }
+        if (status == QProcess::CrashExit || error == QProcess::Crashed) {
+            callback(false, {}, "The update helper crashed unexpectedly.");
+            return;
+        }
         if (code != 0) {
             callback(false, {}, stderrData.isEmpty() ? "Update check failed." : QString::fromUtf8(stderrData).trimmed());
             return;
@@ -89,8 +169,6 @@ void UpdateClient::checkForUpdates(bool manual, std::function<void(bool availabl
         const QString version = obj["version"].toString();
         callback(available, version, QString());
     });
-
-    process->start();
 }
 
 void UpdateClient::installOrDownload(QWidget * /*parent*/, std::function<void(bool success, const QString &message)> callback) {
@@ -110,19 +188,26 @@ void UpdateClient::installOrDownload(QWidget * /*parent*/, std::function<void(bo
     }
 
     busy = true;
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+    const int timeoutMs = qEnvironmentVariableIntValue("ATIV_UPDATE_TIMEOUT_MS") > 0
+        ? qEnvironmentVariableIntValue("ATIV_UPDATE_TIMEOUT_MS")
+        : 300000;
+#endif
 
 #if defined(Q_OS_WIN)
-    auto *process = new QProcess(this);
-    process->setProgram(binary);
-    process->setArguments({"download"});
-
-    connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
-            [this, process, callback](int code, QProcess::ExitStatus) {
-        busy = false;
-        const QByteArray stdoutData = process->readAllStandardOutput();
-        const QByteArray stderrData = process->readAllStandardError();
-        process->deleteLater();
-
+    runProcessSafely(this, busy, binary, {"download"}, timeoutMs,
+                     "Update download timed out.",
+                     [this, callback](int code, QProcess::ExitStatus status, QProcess::ProcessError error,
+                                      const QByteArray &stdoutData, const QByteArray &stderrData,
+                                      const QString &customError) {
+        if (!customError.isEmpty()) {
+            callback(false, customError);
+            return;
+        }
+        if (status == QProcess::CrashExit || error == QProcess::Crashed) {
+            callback(false, "The update helper crashed unexpectedly.");
+            return;
+        }
         if (code != 0) {
             callback(false, stderrData.isEmpty() ? "Could not download update." : QString::fromUtf8(stderrData).trimmed());
             return;
@@ -163,40 +248,41 @@ void UpdateClient::installOrDownload(QWidget * /*parent*/, std::function<void(bo
         QCoreApplication::quit();
     });
 
-    process->start();
-
 #elif defined(Q_OS_LINUX)
     if (canInstallDirectly()) {
-        auto *process = new QProcess(this);
-        process->setProgram(binary);
-        process->setArguments({"install-appimage"});
-
-        connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
-                [this, process, callback](int code, QProcess::ExitStatus) {
-            busy = false;
-            const QByteArray stderrData = process->readAllStandardError();
-            process->deleteLater();
-
+        runProcessSafely(this, busy, binary, {"install-appimage"}, timeoutMs,
+                         "AppImage installation timed out.",
+                         [callback](int code, QProcess::ExitStatus status, QProcess::ProcessError error,
+                                    const QByteArray &/*stdoutData*/, const QByteArray &stderrData,
+                                    const QString &customError) {
+            if (!customError.isEmpty()) {
+                callback(false, customError);
+                return;
+            }
+            if (status == QProcess::CrashExit || error == QProcess::Crashed) {
+                callback(false, "The update helper crashed unexpectedly.");
+                return;
+            }
             if (code != 0) {
                 callback(false, stderrData.isEmpty() ? "AppImage installation failed." : QString::fromUtf8(stderrData).trimmed());
                 return;
             }
             callback(true, "Update installed. Restart ATIV to use the new version.");
         });
-
-        process->start();
     } else {
-        auto *process = new QProcess(this);
-        process->setProgram(binary);
-        process->setArguments({"download"});
-
-        connect(process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this,
-                [this, process, callback](int code, QProcess::ExitStatus) {
-            busy = false;
-            const QByteArray stdoutData = process->readAllStandardOutput();
-            const QByteArray stderrData = process->readAllStandardError();
-            process->deleteLater();
-
+        runProcessSafely(this, busy, binary, {"download"}, timeoutMs,
+                         "Update download timed out.",
+                         [callback](int code, QProcess::ExitStatus status, QProcess::ProcessError error,
+                                    const QByteArray &stdoutData, const QByteArray &stderrData,
+                                    const QString &customError) {
+            if (!customError.isEmpty()) {
+                callback(false, customError);
+                return;
+            }
+            if (status == QProcess::CrashExit || error == QProcess::Crashed) {
+                callback(false, "The update helper crashed unexpectedly.");
+                return;
+            }
             if (code != 0) {
                 callback(false, stderrData.isEmpty() ? "Could not download update." : QString::fromUtf8(stderrData).trimmed());
                 return;
@@ -213,8 +299,6 @@ void UpdateClient::installOrDownload(QWidget * /*parent*/, std::function<void(bo
             QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
             callback(true, "Verified update downloaded. Close ATIV and replace the old binary manually.");
         });
-
-        process->start();
     }
 #else
     busy = false;

@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
 #else
     app.setApplicationName("ATIV");
 #endif
-    app.setApplicationVersion("0.2.6");
+    app.setApplicationVersion(Preferences::authoritativeVersion());
     app.setOrganizationName("TLO Labs");
     app.setOrganizationDomain("tlolabs.com");
 

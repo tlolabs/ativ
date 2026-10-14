@@ -16,6 +16,7 @@ public:
 
     void checkForUpdates(bool manual, std::function<void(bool available, const QString &version, const QString &error)> callback);
     void installOrDownload(QWidget *parent, std::function<void(bool success, const QString &message)> callback);
+    bool isBusy() const { return busy; }
 
 private:
     static QString updateBinaryPath();

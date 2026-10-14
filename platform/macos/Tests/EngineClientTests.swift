@@ -62,6 +62,105 @@ final class EngineClientTests: XCTestCase {
         wait(for:[render],timeout:60)
     }
 
+    private func createTestMedia() -> (image: URL, audio: URL, tempDir: URL) {
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-test-\(UUID().uuidString)")
+        try! FileManager.default.createDirectory(at: temp, withIntermediateDirectories: true)
+        let img = temp.appendingPathComponent("artwork.ppm")
+        var ppmData = Data("P6\n16 16\n255\n".utf8)
+        ppmData.append(Data(repeating: 128, count: 16 * 16 * 3))
+        try! ppmData.write(to: img)
+
+        let aud = temp.appendingPathComponent("audio.wav")
+        var wavData = Data()
+        wavData.append(contentsOf: "RIFF".utf8)
+        let totalSize = UInt32(36 + 16000)
+        withUnsafeBytes(of: totalSize.littleEndian) { wavData.append(contentsOf: $0) }
+        wavData.append(contentsOf: "WAVEfmt ".utf8)
+        let fmtChunk: [UInt8] = [16, 0, 0, 0, 1, 0, 1, 0, 0x40, 0x1f, 0, 0, 0x80, 0x3e, 0, 0, 2, 0, 16, 0]
+        wavData.append(contentsOf: fmtChunk)
+        wavData.append(contentsOf: "data".utf8)
+        let dataSize = UInt32(16000)
+        withUnsafeBytes(of: dataSize.littleEndian) { wavData.append(contentsOf: $0) }
+        wavData.append(Data(repeating: 0, count: 16000))
+        try! wavData.write(to: aud)
+
+        return (img, aud, temp)
+    }
+
+    func testCancellationBeforeLaunch() throws {
+        guard ProcessInfo.processInfo.environment["ATIV_ENGINE_PATH"] != nil else {
+            throw XCTSkip("Set ATIV_ENGINE_PATH to test the native process boundary")
+        }
+        let media = createTestMedia()
+        defer { try? FileManager.default.removeItem(at: media.tempDir) }
+
+        let client = EngineClient()
+        let output = media.tempDir.appendingPathComponent("cancelled_output.mp4")
+        let done = expectation(description: "cancellation before launch")
+
+        client.render(image: media.image, audio: media.audio, output: output, preset: Preset(platform: "Test", aspect: "16:9", width: 160, height: 90), bitrate: "128k", fps: 30, flipHorizontal: false, flipVertical: false) { _ in } completion: { result in
+            switch result {
+            case .success:
+                XCTFail("Should not succeed when cancelled")
+            case .failure(let error):
+                XCTAssertEqual(error as? EngineClientError, EngineClientError.cancelled)
+            }
+            XCTAssertFalse(FileManager.default.fileExists(atPath: output.path))
+            done.fulfill()
+        }
+        client.cancelRender()
+        wait(for: [done], timeout: 10)
+    }
+
+    func testRapidPreviewSuperseding() throws {
+        guard ProcessInfo.processInfo.environment["ATIV_ENGINE_PATH"] != nil else {
+            throw XCTSkip("Set ATIV_ENGINE_PATH to test the native process boundary")
+        }
+        let media = createTestMedia()
+        defer { try? FileManager.default.removeItem(at: media.tempDir) }
+
+        let client = EngineClient()
+        let outA = media.tempDir.appendingPathComponent("prevA.png")
+        let outB = media.tempDir.appendingPathComponent("prevB.png")
+        let outC = media.tempDir.appendingPathComponent("prevC.png")
+
+        let expA = expectation(description: "preview A")
+        let expB = expectation(description: "preview B")
+        let expC = expectation(description: "preview C")
+
+        client.preview(image: media.image, output: outA, width: 160, height: 90, flipHorizontal: false, flipVertical: false) { result in
+            // A should be cancelled or fail as superseded
+            expA.fulfill()
+        }
+        client.preview(image: media.image, output: outB, width: 160, height: 90, flipHorizontal: false, flipVertical: false) { result in
+            // B should be cancelled or fail as superseded
+            expB.fulfill()
+        }
+        client.preview(image: media.image, output: outC, width: 160, height: 90, flipHorizontal: false, flipVertical: false) { result in
+            // C should succeed
+            if case .failure(let error) = result {
+                XCTFail("Latest preview failed: \(error)")
+            }
+            expC.fulfill()
+        }
+
+        wait(for: [expA, expB, expC], timeout: 20)
+    }
+
+    @MainActor
+    func testRenderStorePreviewStateManagement() async {
+        let store = RenderStore()
+        XCTAssertFalse(store.isPreviewLoading)
+        XCTAssertFalse(store.previewFailed)
+        XCTAssertNil(store.previewImage)
+
+        // Clear preview when image is nil
+        store.imageURL = nil
+        store.refreshPreview()
+        XCTAssertFalse(store.isPreviewLoading)
+        XCTAssertFalse(store.previewFailed)
+        XCTAssertNil(store.previewImage)
+    }
 }
 
 final class UpdateWorkCoordinationTests: XCTestCase {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 
 enum EngineClientError: LocalizedError, Equatable {
@@ -18,8 +19,16 @@ enum EngineClientError: LocalizedError, Equatable {
 
 final class EngineClient {
     private let lock = NSLock()
+    private var currentRenderId: UUID?
+    private var cancelledRenderIds: Set<UUID> = []
     private var renderProcess: Process?
+
+    private var currentPreviewId: UUID?
+    private var cancelledPreviewIds: Set<UUID> = []
     private var previewProcess: Process?
+
+    private var currentProbeId: UUID?
+    private var cancelledProbeIds: Set<UUID> = []
     private var probeProcess: Process?
 
     private var engineURL: URL? {
@@ -41,7 +50,17 @@ final class EngineClient {
 
     func probe(audio: URL, completion: @escaping (Result<Double?, Error>) -> Void) {
         cancelProbe()
-        runCapture(arguments: ["probe", "--audio", audio.path], assign: { [weak self] p in
+        let requestId = UUID()
+        lock.lock()
+        currentProbeId = requestId
+        lock.unlock()
+
+        runCapture(arguments: ["probe", "--audio", audio.path], requestId: requestId, isCancelled: { [weak self] id in
+            guard let self else { return true }
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            return self.cancelledProbeIds.contains(id) || self.currentProbeId != id
+        }, assign: { [weak self] p in
             self?.lock.lock(); self?.probeProcess = p; self?.lock.unlock()
         }, clear: { [weak self] p in
             self?.lock.lock(); if self?.probeProcess === p { self?.probeProcess = nil }; self?.lock.unlock()
@@ -51,12 +70,14 @@ final class EngineClient {
     }
 
     func cancelProbe() {
-        lock.lock(); let process = probeProcess; probeProcess = nil; lock.unlock()
-        guard let process, process.isRunning else { return }
-        if let handle = (process.standardInput as? Pipe)?.fileHandleForWriting {
-            try? handle.write(contentsOf: Data("cancel\n".utf8))
+        lock.lock()
+        if let id = currentProbeId { cancelledProbeIds.insert(id) }
+        let process = probeProcess
+        probeProcess = nil
+        lock.unlock()
+        if let process {
+            terminateProcessGracefully(process)
         }
-        process.terminate()
     }
 
     func preview(image: URL, output: URL, width: Int, height: Int, flipHorizontal: Bool, flipVertical: Bool, completion: @escaping (Result<URL, Error>) -> Void) {
@@ -64,20 +85,41 @@ final class EngineClient {
         var arguments = ["preview", "--image", image.path, "--output", output.path, "--width", String(width), "--height", String(height)]
         if flipHorizontal { arguments.append("--flip-horizontal") }
         if flipVertical { arguments.append("--flip-vertical") }
-        runCapture(arguments: arguments, assign: { [weak self] p in
+
+        let requestId = UUID()
+        lock.lock()
+        currentPreviewId = requestId
+        lock.unlock()
+
+        runCapture(arguments: arguments, requestId: requestId, isCancelled: { [weak self] id in
+            guard let self else { return true }
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            return self.cancelledPreviewIds.contains(id) || self.currentPreviewId != id
+        }, assign: { [weak self] p in
             self?.lock.lock(); self?.previewProcess = p; self?.lock.unlock()
         }, clear: { [weak self] p in
             self?.lock.lock(); if self?.previewProcess === p { self?.previewProcess = nil }; self?.lock.unlock()
-        }) { result in completion(result.map { _ in output }) }
+        }) { result in
+            switch result {
+            case .success:
+                completion(.success(output))
+            case .failure(let error):
+                try? FileManager.default.removeItem(at: output)
+                completion(.failure(error))
+            }
+        }
     }
 
     func cancelPreview() {
-        lock.lock(); let process = previewProcess; previewProcess = nil; lock.unlock()
-        guard let process, process.isRunning else { return }
-        if let handle = (process.standardInput as? Pipe)?.fileHandleForWriting {
-            try? handle.write(contentsOf: Data("cancel\n".utf8))
+        lock.lock()
+        if let id = currentPreviewId { cancelledPreviewIds.insert(id) }
+        let process = previewProcess
+        previewProcess = nil
+        lock.unlock()
+        if let process {
+            terminateProcessGracefully(process)
         }
-        process.terminate()
     }
 
     func render(image: URL, audio: URL, output: URL, preset: Preset, bitrate: String, fps: Int, flipHorizontal: Bool, flipVertical: Bool, event: @escaping (EngineEvent) -> Void, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -88,20 +130,45 @@ final class EngineClient {
         if flipHorizontal { arguments.append("--flip-horizontal") }
         if flipVertical { arguments.append("--flip-vertical") }
 
+        let requestId = UUID()
+        lock.lock()
+        currentRenderId = requestId
+        lock.unlock()
+
         DispatchQueue.global(qos: .userInitiated).async {
+            self.lock.lock()
+            if self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId {
+                self.lock.unlock()
+                completion(.failure(EngineClientError.cancelled))
+                return
+            }
             let process = Process(), stdout = Pipe(), stdin = Pipe()
             process.executableURL = engineURL
             process.arguments = arguments
             process.standardOutput = stdout
             process.standardError = FileHandle.nullDevice
             process.standardInput = stdin
-            self.lock.lock(); self.renderProcess = process; self.lock.unlock()
-            do { try process.run() } catch {
+            self.renderProcess = process
+            self.lock.unlock()
+
+            do {
+                try process.run()
+            } catch {
                 NSLog("ATIV media engine launch failed: %@", error.localizedDescription)
-                self.clear(process)
+                self.lock.lock()
+                if self.renderProcess === process { self.renderProcess = nil }
+                self.lock.unlock()
                 completion(.failure(EngineClientError.launchFailed))
                 return
             }
+
+            self.lock.lock()
+            let wasCancelledBeforeRun = self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId
+            self.lock.unlock()
+            if wasCancelledBeforeRun {
+                self.terminateProcessGracefully(process)
+            }
+
             var lastError: String?
             self.consumeLines(from: stdout.fileHandleForReading) { item in
                 if item.event == "error" { lastError = item.message }
@@ -109,23 +176,78 @@ final class EngineClient {
             }
             process.waitUntilExit()
 
-            self.clear(process)
-            if process.terminationStatus == 0 { completion(.success(())); return }
-            if process.terminationStatus == 130 { completion(.failure(EngineClientError.cancelled)); return }
+            self.lock.lock()
+            if self.renderProcess === process { self.renderProcess = nil }
+            let isCancelled = self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId
+            self.lock.unlock()
+
+            if isCancelled || process.terminationStatus == 130 {
+                try? FileManager.default.removeItem(at: output)
+                completion(.failure(EngineClientError.cancelled))
+                return
+            }
+
+            if process.terminationStatus == 0 {
+                completion(.success(()))
+                return
+            }
             let detail = lastError ?? "The media engine could not finish this operation."
             completion(.failure(EngineClientError.operationFailed(detail)))
         }
     }
 
     func cancelRender() {
-        lock.lock(); let process = renderProcess; lock.unlock()
-        guard let handle = (process?.standardInput as? Pipe)?.fileHandleForWriting else { return }
-        try? handle.write(contentsOf: Data("cancel\n".utf8))
+        lock.lock()
+        if let id = currentRenderId {
+            cancelledRenderIds.insert(id)
+        }
+        let process = renderProcess
+        lock.unlock()
+
+        if let process {
+            terminateProcessGracefully(process)
+        }
     }
 
-    private func runCapture(arguments: [String], assign: ((Process) -> Void)? = nil, clear: ((Process) -> Void)? = nil, completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
+    private func terminateProcessGracefully(_ process: Process) {
+        guard process.isRunning else { return }
+        if let handle = (process.standardInput as? Pipe)?.fileHandleForWriting {
+            try? handle.write(contentsOf: Data("cancel\n".utf8))
+        }
+        DispatchQueue.global(qos: .utility).async {
+            let start = ProcessInfo.processInfo.systemUptime
+            while process.isRunning && (ProcessInfo.processInfo.systemUptime - start) < 1.5 {
+                usleep(50000)
+            }
+            if process.isRunning {
+                process.terminate()
+                let termStart = ProcessInfo.processInfo.systemUptime
+                while process.isRunning && (ProcessInfo.processInfo.systemUptime - termStart) < 0.5 {
+                    usleep(50000)
+                }
+                if process.isRunning {
+                    let pid = process.processIdentifier
+                    if pid > 0 {
+                        kill(-pid, SIGKILL)
+                        kill(pid, SIGKILL)
+                    }
+                }
+            }
+        }
+    }
+
+    private func runCapture(arguments: [String],
+                            requestId: UUID? = nil,
+                            isCancelled: ((UUID) -> Bool)? = nil,
+                            assign: ((Process) -> Void)? = nil,
+                            clear: ((Process) -> Void)? = nil,
+                            completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
         guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
         DispatchQueue.global(qos: .userInitiated).async {
+            if let requestId, let isCancelled, isCancelled(requestId) {
+                completion(.failure(EngineClientError.cancelled))
+                return
+            }
             let process = Process(), output = Pipe(), stdin = Pipe()
             process.executableURL = engineURL
             process.arguments = arguments
@@ -133,14 +255,30 @@ final class EngineClient {
             process.standardError = FileHandle.nullDevice
             process.standardInput = stdin
             if let assign { assign(process) }
-            do { try process.run() } catch {
+
+            if let requestId, let isCancelled, isCancelled(requestId) {
+                if let clear { clear(process) }
+                completion(.failure(EngineClientError.cancelled))
+                return
+            }
+
+            do {
+                try process.run()
+            } catch {
                 NSLog("ATIV media engine launch failed: %@", error.localizedDescription)
                 if let clear { clear(process) }
-                completion(.failure(EngineClientError.launchFailed)); return
+                completion(.failure(EngineClientError.launchFailed))
+                return
             }
+
             let data = output.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
             if let clear { clear(process) }
+
+            if let requestId, let isCancelled, isCancelled(requestId) {
+                completion(.failure(EngineClientError.cancelled))
+                return
+            }
 
             let decoder = JSONDecoder()
             var events: [EngineEvent] = []
@@ -154,6 +292,7 @@ final class EngineClient {
                 index = (lineEnd == data.endIndex) ? data.endIndex : data.index(after: lineEnd)
             }
             if process.terminationStatus == 0 { completion(.success(events)); return }
+            if process.terminationStatus == 130 { completion(.failure(EngineClientError.cancelled)); return }
             let message = events.last(where: { $0.event == "error" })?.message ?? "The media engine could not complete this operation."
             completion(.failure(EngineClientError.operationFailed(message)))
         }
@@ -179,10 +318,5 @@ final class EngineClient {
         if !buffer.isEmpty {
             if let decoded = try? decoder.decode(EngineEvent.self, from: buffer) { event(decoded) }
         }
-    }
-
-
-    private func clear(_ process: Process) {
-        lock.lock(); if renderProcess === process { renderProcess = nil }; lock.unlock()
     }
 }

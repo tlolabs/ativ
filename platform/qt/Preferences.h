@@ -16,4 +16,5 @@ public:
 
     static Preferences loadLegacyLinux(const QString &iniPath);
     static bool isDevelopmentBuild();
+    static QString authoritativeVersion();
 };

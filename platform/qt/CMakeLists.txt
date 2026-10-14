@@ -17,6 +17,7 @@ add_library(ativ-qt-ui STATIC
 )
 target_link_libraries(ativ-qt-ui PUBLIC Qt6::Widgets)
 target_include_directories(ativ-qt-ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(ativ-qt-ui PUBLIC ATIV_VERSION_STRING="${PROJECT_VERSION}")
 
 if(MSVC)
     target_compile_options(ativ-qt-ui PRIVATE /W4 /permissive-)
