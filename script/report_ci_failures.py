@@ -19,6 +19,7 @@ MONITORED_WORKFLOWS = {
     "Attest and verify native Linux AppImages",
     "CodeQL",
     "Retry failed verification workflows",
+    "Publish independently verified native platforms",
     "Publish recovered platform artifacts",
 }
 
@@ -30,34 +31,61 @@ def gh(*args, check=True):
     )
 
 
-def fetch_json(path):
-    result = gh("api", path)
-    return json.loads(result.stdout)
+def fetch_json(path, paginate=None):
+    if paginate is None:
+        paginate = "per_page=" in path
+    args = ["api"]
+    if paginate:
+        args.extend(["--paginate", "--slurp"])
+    args.append(path)
+    result = gh(*args)
+    data = json.loads(result.stdout)
+    if paginate and isinstance(data, list):
+        items = []
+        for page in data:
+            if isinstance(page, list):
+                items.extend(page)
+            else:
+                items.append(page)
+        return items
+    return data
 
 
 def current_run_failures():
     repo = os.environ["GITHUB_REPOSITORY"]
     try:
+        branches = fetch_json(f"repos/{repo}/branches?per_page=100")
+        tags = fetch_json(f"repos/{repo}/tags?per_page=100")
         live_refs = {
             item["name"]
-            for kind in ("branches", "tags")
-            for item in fetch_json(f"repos/{repo}/{kind}?per_page=100")
+            for items in (branches, tags)
+            if isinstance(items, list)
+            for item in items
+            if isinstance(item, dict) and "name" in item
         }
-        live_refs.update(
-            item["head"]["ref"]
-            for item in fetch_json(f"repos/{repo}/pulls?state=open&per_page=100")
-        )
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        pulls = fetch_json(f"repos/{repo}/pulls?state=open&per_page=100")
+        if isinstance(pulls, list):
+            live_refs.update(
+                item["head"]["ref"]
+                for item in pulls
+                if isinstance(item, dict) and "head" in item and isinstance(item["head"], dict) and "ref" in item["head"]
+            )
+    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError):
         live_refs = None
     runs = gh(
         "run", "list", "--limit", "100",
         "--json", "databaseId,workflowName,status,conclusion,createdAt,headBranch,headSha,url,event",
     )
     grouped = {}
-    for run in json.loads(runs.stdout):
-        if run["workflowName"] not in MONITORED_WORKFLOWS:
+    try:
+        runs_list = json.loads(runs.stdout)
+    except json.JSONDecodeError:
+        runs_list = []
+
+    for run in runs_list:
+        if run.get("workflowName") not in MONITORED_WORKFLOWS:
             continue
-        if live_refs is not None and run["headBranch"] not in live_refs:
+        if live_refs is not None and run.get("headBranch") not in live_refs:
             continue
         key = (run["workflowName"], run["headBranch"])
         if key not in grouped or run["createdAt"] > grouped[key]["createdAt"]:
@@ -65,28 +93,52 @@ def current_run_failures():
 
     failures = []
     for (workflow, branch), run in sorted(grouped.items()):
-        if run["status"] != "completed" or run["conclusion"] in ("success", "skipped", "cancelled"):
+        if run.get("status") != "completed" or run.get("conclusion") in ("skipped", "cancelled"):
             continue
-        if run["conclusion"] not in ("failure", "timed_out", "action_required", "startup_failure"):
-            continue
+
         try:
             details = json.loads(gh("run", "view", str(run["databaseId"]), "--json", "jobs").stdout)
-            jobs = [
-                job for job in details["jobs"]
-                if job.get("conclusion") in ("failure", "timed_out", "cancelled", "action_required")
-            ]
-            job_names = ", ".join(job["name"] for job in jobs) or "workflow failed; job detail unavailable"
+            jobs_data = details.get("jobs", [])
         except (subprocess.CalledProcessError, json.JSONDecodeError):
-            job_names = "workflow failed; job detail unavailable"
-        failures.append({
-            "key": f"{workflow}|{branch}",
-            "workflow": workflow,
-            "branch": branch,
-            "sha": run["headSha"],
-            "jobs": job_names,
-            "url": run["url"],
-            "created": run["createdAt"],
-        })
+            jobs_data = None
+
+        if run.get("conclusion") in ("failure", "timed_out", "action_required", "startup_failure"):
+            if jobs_data:
+                failed_jobs = [
+                    job for job in jobs_data
+                    if job.get("conclusion") in ("failure", "timed_out", "cancelled", "action_required")
+                ]
+                job_names = ", ".join(job["name"] for job in failed_jobs) or "workflow failed; job detail unavailable"
+            else:
+                job_names = "workflow failed; job detail unavailable"
+            failures.append({
+                "key": f"{workflow}|{branch}",
+                "workflow": workflow,
+                "branch": branch,
+                "sha": run["headSha"],
+                "jobs": job_names,
+                "url": run["url"],
+                "created": run["createdAt"],
+            })
+        elif run.get("conclusion") == "success" and jobs_data:
+            # Inspect informational/diagnostic step failures even when overall workflow succeeded
+            for job in jobs_data:
+                failed_steps = [
+                    step for step in job.get("steps", [])
+                    if step.get("conclusion") in ("failure", "timed_out")
+                ]
+                for step in failed_steps:
+                    step_name = step.get("name", "unnamed step")
+                    failures.append({
+                        "key": f"{workflow}|{branch}|diagnostic|{job.get('name', 'job')}|{step_name}",
+                        "workflow": workflow,
+                        "branch": branch,
+                        "sha": run["headSha"],
+                        "jobs": f"{job.get('name', 'job')} (diagnostic step: {step_name})",
+                        "url": run["url"],
+                        "created": run["createdAt"],
+                    })
+
     return failures
 
 
@@ -109,7 +161,20 @@ def security_findings():
                 "url": f"https://github.com/{repo}/security",
             })
             continue
+
+        if not isinstance(alerts, list):
+            detail = alerts.get("message", str(alerts)) if isinstance(alerts, dict) else str(alerts)
+            findings.append({
+                "key": f"security-api|{source}",
+                "source": source,
+                "title": f"{source} alert status unavailable: {detail[:300]}",
+                "url": f"https://github.com/{repo}/security",
+            })
+            continue
+
         for alert in alerts:
+            if not isinstance(alert, dict):
+                continue
             if source == "Dependabot":
                 detail = alert.get("security_advisory", {})
                 title = detail.get("summary", "Dependency vulnerability")
@@ -132,8 +197,13 @@ def security_findings():
 
 
 def get_issue():
-    issues = fetch_json(f"repos/{os.environ['GITHUB_REPOSITORY']}/issues?state=all&per_page=100")
-    matches = [issue for issue in issues if issue.get("title") == TITLE and "pull_request" not in issue]
+    try:
+        issues = fetch_json(f"repos/{os.environ['GITHUB_REPOSITORY']}/issues?state=all&per_page=100")
+    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError):
+        return None
+    if not isinstance(issues, list):
+        return None
+    matches = [issue for issue in issues if isinstance(issue, dict) and issue.get("title") == TITLE and "pull_request" not in issue]
     return max(matches, key=lambda item: item["number"]) if matches else None
 
 
