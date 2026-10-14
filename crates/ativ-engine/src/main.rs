@@ -258,13 +258,13 @@ impl Arguments {
 }
 
 struct JsonEvents {
-    log: Mutex<Option<File>>,
+    log: Mutex<Option<std::io::BufWriter<File>>>,
 }
 
 impl JsonEvents {
     fn new() -> Self {
         Self {
-            log: Mutex::new(open_log()),
+            log: Mutex::new(open_log().map(std::io::BufWriter::new)),
         }
     }
 
@@ -273,19 +273,29 @@ impl JsonEvents {
         let Ok(mut guard) = self.log.lock() else {
             return;
         };
-        if let Some(file) = guard.as_mut() {
-            let _ = writeln!(file, "{line}");
+        if let Some(writer) = guard.as_mut() {
+            let _ = writeln!(writer, "{line}");
+        }
+    }
+
+    fn log_fmt(&self, args: std::fmt::Arguments<'_>) {
+        use std::io::Write;
+        let Ok(mut guard) = self.log.lock() else {
+            return;
+        };
+        if let Some(writer) = guard.as_mut() {
+            let _ = writeln!(writer, "{args}");
         }
     }
 }
 
 impl EventSink for JsonEvents {
     fn stage(&self, stage: Stage) {
-        self.log(&format!("stage: {}", stage.as_str()));
+        self.log_fmt(format_args!("stage: {}", stage.as_str()));
         println!("{{\"event\":\"stage\",\"stage\":\"{}\"}}", stage.as_str());
     }
     fn progress(&self, progress: RenderProgress) {
-        self.log(&format!("progress: {progress:?}"));
+        self.log_fmt(format_args!("progress: {progress:?}"));
         println!(
             "{{\"event\":\"progress\",\"elapsed_seconds\":{},\"duration_seconds\":{},\"fraction\":{},\"eta_seconds\":{}}}",
             number(progress.elapsed_seconds),

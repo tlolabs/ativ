@@ -687,14 +687,21 @@ void MainWindow::chooseOutput() {
 void MainWindow::updateAspects() {
     const QSignalBlocker blocker(aspect);
     aspect->clear();
+    const QString currentPlatform = platform->currentText();
+    QSet<QString> seen;
     for (const auto &value : presets) {
         const auto p = value.toObject();
-        if (p["platform"] == platform->currentText() && aspect->findText(p["aspect"].toString()) < 0) {
-            aspect->addItem(p["aspect"].toString());
+        if (p["platform"] == currentPlatform) {
+            const QString aspectStr = p["aspect"].toString();
+            if (!seen.contains(aspectStr)) {
+                seen.insert(aspectStr);
+                aspect->addItem(aspectStr);
+            }
         }
     }
     updateResolutions();
 }
+
 
 void MainWindow::updateResolutions() {
     const QSignalBlocker blocker(resolution);

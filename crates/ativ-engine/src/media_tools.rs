@@ -13,6 +13,16 @@ use std::{
 const LEGACY_PIN: &str = include_str!("../../../runtime/core-runtime.json");
 const PLATFORM_PINS: &str = include_str!("../../../runtime/platform-runtimes.json");
 
+static LEGACY: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| {
+    serde_json::from_str(LEGACY_PIN).expect("checked-in legacy Core runtime pins")
+});
+static PLATFORMS: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| {
+    serde_json::from_str(PLATFORM_PINS).expect("checked-in platform Core runtime pins")
+});
+static CORE_SPEC: std::sync::LazyLock<Value> = std::sync::LazyLock::new(|| {
+    serde_json::from_str(ativ_core::FFMPEG_RUNTIME_SPECIFICATION).expect("Core specification")
+});
+
 fn unavailable() -> AtivError {
     AtivError::RuntimeUnavailable
 }
@@ -28,7 +38,7 @@ fn hash(path: &Path) -> ativ_core::Result<String> {
     }
     let mut file = fs::File::open(path).map_err(|_| unavailable())?;
     let mut digest = Sha256::new();
-    let mut buffer = [0u8; 65536];
+    let mut buffer = [0u8; 131072];
     loop {
         let count = file.read(&mut buffer).map_err(|_| unavailable())?;
         if count == 0 {
@@ -36,11 +46,14 @@ fn hash(path: &Path) -> ativ_core::Result<String> {
         }
         digest.update(&buffer[..count]);
     }
-    Ok(digest
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect())
+    const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
+    let hash_bytes = digest.finalize();
+    let mut out = String::with_capacity(64);
+    for &b in &hash_bytes {
+        out.push(HEX_CHARS[(b >> 4) as usize] as char);
+        out.push(HEX_CHARS[(b & 0x0f) as usize] as char);
+    }
+    Ok(out)
 }
 fn check_tree(
     root: &Path,
@@ -48,11 +61,12 @@ fn check_tree(
     files: &HashMap<String, String>,
 ) -> ativ_core::Result<()> {
     for entry in fs::read_dir(directory).map_err(|_| unavailable())? {
-        let path = entry.map_err(|_| unavailable())?.path();
-        let metadata = fs::symlink_metadata(&path).map_err(|_| unavailable())?;
-        if metadata.is_dir() {
+        let entry = entry.map_err(|_| unavailable())?;
+        let file_type = entry.file_type().map_err(|_| unavailable())?;
+        let path = entry.path();
+        if file_type.is_dir() {
             check_tree(root, &path, files)?;
-        } else if !metadata.is_file() {
+        } else if !file_type.is_file() {
             return Err(unavailable());
         } else {
             let name = path
@@ -95,10 +109,8 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         std::env::consts::ARCH
     };
     let target = format!("{os}-{arch}");
-    let legacy: Value =
-        serde_json::from_str(LEGACY_PIN).expect("checked-in legacy Core runtime pins");
-    let platforms: Value =
-        serde_json::from_str(PLATFORM_PINS).expect("checked-in platform Core runtime pins");
+    let legacy = &*LEGACY;
+    let platforms = &*PLATFORMS;
     let signed = read_json(&metadata.join("signed-payload.json"))?;
     let platform = &platforms["targets"][&target];
     let archive = format!(
@@ -164,11 +176,10 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         }
     }
     let spec = read_json(&metadata.join("spec.json"))?;
-    let core_spec: Value =
-        serde_json::from_str(ativ_core::FFMPEG_RUNTIME_SPECIFICATION).expect("Core specification");
+    let core_spec = &*CORE_SPEC;
     let build = read_json(&metadata.join("build.json"))?;
     let provenance = read_json(&metadata.join("ativ-runtime.json"))?;
-    if spec != core_spec
+    if spec != *core_spec
         || build["target"] != target
         || build["core_revision"] != *build_revision
         || build["core_worktree_modified"] != false
@@ -181,12 +192,26 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
     {
         return Err(unavailable());
     }
-    for name in [&ffmpeg_name, &ffprobe_name] {
-        if signed["original_binary_sha256"][name] != *files.get(name).ok_or_else(unavailable)?
-            || signed["signed_binary_sha256"][name] != hash(&binary.join(name))?
-        {
-            return Err(unavailable());
-        }
+    let ffmpeg_expected = signed["signed_binary_sha256"][&ffmpeg_name]
+        .as_str()
+        .ok_or_else(unavailable)?;
+    let ffprobe_expected = signed["signed_binary_sha256"][&ffprobe_name]
+        .as_str()
+        .ok_or_else(unavailable)?;
+    if signed["original_binary_sha256"][&ffmpeg_name]
+        != *files.get(&ffmpeg_name).ok_or_else(unavailable)?
+        || signed["original_binary_sha256"][&ffprobe_name]
+            != *files.get(&ffprobe_name).ok_or_else(unavailable)?
+    {
+        return Err(unavailable());
+    }
+    let (ffmpeg_res, ffprobe_res) = std::thread::scope(|s| {
+        let t1 = s.spawn(|| hash(&binary.join(&ffmpeg_name)));
+        let t2 = s.spawn(|| hash(&binary.join(&ffprobe_name)));
+        (t1.join().unwrap(), t2.join().unwrap())
+    });
+    if ffmpeg_res? != ffmpeg_expected || ffprobe_res? != ffprobe_expected {
+        return Err(unavailable());
     }
     Ok((
         binary.join(ffmpeg_name),

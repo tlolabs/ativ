@@ -39,13 +39,14 @@ final class RenderStore: ObservableObject {
     private var terminating = false
     private var lastAnnouncedStage: String?
 
-    var platforms: [String] { unique(presets.map(\.platform)) }
-    var aspects: [String] { unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect)) }
-    var resolutions: [Preset] { presets.filter { $0.platform == selectedPlatform && $0.aspect == selectedAspect } }
+    private(set) var platforms: [String] = []
+    private(set) var aspects: [String] = []
+    private(set) var resolutions: [Preset] = []
     var canRender: Bool {
         imageURL != nil && audioURL != nil && outputURL != nil && selectedPreset != nil && !isRendering
         && outputURL != imageURL && outputURL != audioURL && !terminating
     }
+
 
     func start() {
         guard presets.isEmpty else { return }
@@ -213,10 +214,25 @@ final class RenderStore: ObservableObject {
         }
     }
 
+    private func updateCachedCollections() {
+        platforms = unique(presets.map(\.platform))
+        aspects = unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect))
+        resolutions = presets.filter { $0.platform == selectedPlatform && $0.aspect == selectedAspect }
+    }
+
     private func normalizeSelection() {
-        if !platforms.contains(selectedPlatform) { selectedPlatform = platforms.first ?? "" }
-        if !aspects.contains(selectedAspect) { selectedAspect = aspects.first ?? "" }
-        if selectedPreset == nil || !resolutions.contains(selectedPreset!) { selectedPreset = resolutions.first }
+        updateCachedCollections()
+        if !platforms.contains(selectedPlatform) {
+            selectedPlatform = platforms.first ?? ""
+            aspects = unique(presets.filter { $0.platform == selectedPlatform }.map(\.aspect))
+        }
+        if !aspects.contains(selectedAspect) {
+            selectedAspect = aspects.first ?? ""
+        }
+        resolutions = presets.filter { $0.platform == selectedPlatform && $0.aspect == selectedAspect }
+        if selectedPreset == nil || !resolutions.contains(selectedPreset!) {
+            selectedPreset = resolutions.first
+        }
     }
 
     private func apply(_ event: EngineEvent) {
@@ -266,5 +282,9 @@ final class RenderStore: ObservableObject {
             .priority: NSAccessibilityPriorityLevel.medium.rawValue
         ])
     }
-    private func unique(_ values: [String]) -> [String] { values.reduce(into: []) { if !$0.contains($1) { $0.append($1) } } }
+    private func unique(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { seen.insert($0).inserted }
+    }
 }
+

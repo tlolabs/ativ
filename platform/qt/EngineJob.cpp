@@ -52,14 +52,15 @@ void EngineJob::cancel() {
 
 void EngineJob::readOutput(bool flush) {
     pending += process.readAllStandardOutput();
+    qsizetype start = 0;
     while (true) {
-        auto end = pending.indexOf('\n');
+        auto end = pending.indexOf('\n', start);
         if (end < 0) {
-            if (!flush || pending.isEmpty()) break;
+            if (!flush || start >= pending.size()) break;
             end = pending.size();
         }
-        const auto line = pending.left(end);
-        pending.remove(0, end + 1);
+        const auto line = QByteArray::fromRawData(pending.constData() + start, end - start);
+        start = (end < pending.size()) ? end + 1 : end;
         QJsonParseError parseError;
         const auto document = QJsonDocument::fromJson(line, &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
@@ -70,7 +71,11 @@ void EngineJob::readOutput(bool flush) {
         if (event["event"] == "error") failure = event["message"].toString();
         emit eventReceived(event);
     }
+    if (start > 0) {
+        pending.remove(0, start);
+    }
 }
+
 
 void EngineJob::complete(int code) {
     if (!active) return;

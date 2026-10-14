@@ -166,16 +166,21 @@ final class EngineClient {
             let data = handle.availableData
             if data.isEmpty { break }
             buffer.append(data)
-            while let newline = buffer.firstIndex(of: 10) {
-                let line = buffer[..<newline]
-                buffer.removeSubrange(..<buffer.index(after: newline))
+            var startIndex = buffer.startIndex
+            while let newline = buffer[startIndex...].firstIndex(of: 10) {
+                let line = buffer[startIndex..<newline]
+                startIndex = buffer.index(after: newline)
                 if !line.isEmpty, let decoded = try? decoder.decode(EngineEvent.self, from: line) { event(decoded) }
+            }
+            if startIndex > buffer.startIndex {
+                buffer.removeSubrange(..<startIndex)
             }
         }
         if !buffer.isEmpty {
             if let decoded = try? decoder.decode(EngineEvent.self, from: buffer) { event(decoded) }
         }
     }
+
 
     private func clear(_ process: Process) {
         lock.lock(); if renderProcess === process { renderProcess = nil }; lock.unlock()
