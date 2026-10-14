@@ -10,7 +10,30 @@ Core preserves the original compiler runtime notices in each runtime's `licenses
 
 ## Qt 6 Presentation Layer
 
-Windows and Linux presentation uses Qt 6 Widgets (dynamically linked). An internal macOS ARM64 build is provided for development and parity testing. Qt 6 is licensed under the GNU Lesser General Public License version 3 (LGPL-3.0) and GNU General Public License version 3 (GPL-3.0). Under LGPL-3.0, users are permitted to inspect, modify, and relink the Qt libraries used by the application. Source code for Qt 6 is available from https://code.qt.io/cgit/qt/qtbase.git and upstream Qt releases. Dynamically linked Qt libraries are staged alongside the application binaries in accordance with LGPL-3.0 terms.
+Windows and Linux presentation uses Qt 6 Widgets (dynamically linked). An internal macOS ARM64 build is provided for development and parity testing.
+
+Qt 6 is licensed under the GNU Lesser General Public License version 3 (LGPL-3.0-only) and GNU General Public License version 3 (GPL-3.0-only). Complete license texts are provided in the repository under `licenses/qt/LICENSE.LGPLv3` and `licenses/qt/LICENSE.GPLv3`, and are bundled in distributed packages as `QT_LICENSE.LGPLv3.txt` and `QT_LICENSE.GPLv3.txt`.
+
+### Relinking and Replacement Instructions
+
+In accordance with LGPLv3 Section 4(d), users have the right to modify the Qt libraries and relink or replace them with modified versions:
+
+- **Windows Portable Distribution**:
+  Qt 6 runtime libraries (`Qt6Core.dll`, `Qt6Gui.dll`, `Qt6Widgets.dll`, and plugin subdirectories `platforms/qwindows.dll`, `imageformats/`) are dynamically linked and staged in the application directory alongside `ativ-qt-ui.exe`. To use a modified version of Qt:
+  1. Build or acquire compatible replacement Qt 6.8+ DLLs with matching ABI.
+  2. Replace the corresponding `.dll` files in the ATIV application directory.
+  3. Launch `ativ-qt-ui.exe`.
+
+- **Linux AppImage Distribution**:
+  Linux AppImages bundle dynamic shared objects (`libQt6Core.so.6`, `libQt6Gui.so.6`, `libQt6Widgets.so.6`, plugins). To replace the Qt libraries:
+  1. Extract the AppImage: `./ATIV-x86_64.AppImage --appimage-extract`
+  2. In the resulting `squashfs-root/usr/lib/` directory, replace the Qt `.so` files with your modified, interface-compatible Qt 6 libraries.
+  3. Run the modified application directly via `./squashfs-root/AppRun` or repackage it using `appimagetool ./squashfs-root`.
+
+### Corresponding Source and Written Offer
+
+- **Source Code Availability**: Source code for Qt 6.8.2 is available from the official Qt repository at https://code.qt.io/cgit/qt/qtbase.git (branch `6.8.2`) and upstream source archives at https://download.qt.io/official_releases/qt/6.8/6.8.2/submodules/qtbase-everywhere-src-6.8.2.tar.xz.
+- **Written Offer**: For any recipient of binary distributions of ATIV, Thomas Lothian hereby provides a written offer, valid for at least three years from the date of distribution, to provide a complete machine-readable copy of the Corresponding Source code for the dynamically linked Qt libraries on a durable physical medium at no charge other than the actual cost of physically performing source distribution, or free of charge via download from https://github.com/tlolabs/ativ or https://download.qt.io.
 
 Published v0.2.4 Windows ZIPs used WinUI and Microsoft Windows App SDK; earlier versions used Avalonia .NET. Those components are removed from the active source tree. Linux GTK/libadwaita and Avalonia dependencies are likewise retired.
 

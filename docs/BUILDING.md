@@ -4,19 +4,19 @@
 
 Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.0 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
 
-Use a current stable Rust toolchain and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements. macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. CI installs each platform's requirements.
+Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. CI installs each platform's requirements.
 
 ```sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 python3 -m venv build/release-tools
-build/release-tools/bin/pip install -r script/requirements-build.txt
+build/release-tools/bin/pip install --require-hashes -r script/requirements-build.lock
 build/release-tools/bin/python script/test_release_infrastructure.py
 python3 script/dependency_inventory.py --check
 ```
 
-Python is build/test tooling only; no Python runtime ships in ATIV. The maintained scripts live in `script/` and use the disposable `build/release-tools` environment. Root-level `.venv` / `.venv-x86_64` environments, PyInstaller outputs, and old AVID app bundles are obsolete and should not be kept in this checkout. The former Python application is preserved only as a [remote archive branch](https://github.com/tlolabs/ativ/tree/archive/avid-python); do not restore it into the native source tree.
+Python is build/test tooling only; no Python runtime ships in ATIV. The maintained scripts live in `script/` and use the disposable `build/release-tools` environment. For reproducible build verification, `script/requirements-build.lock` provides pinned SHA-256 hashes for all wheels and source distributions of build dependencies. For ordinary nonblocking local development, unhashed installation from `script/requirements-build.txt` remains supported. Root-level `.venv` / `.venv-x86_64` environments, PyInstaller outputs, and old AVID app bundles are obsolete and should not be kept in this checkout. The former Python application is preserved only as a [remote archive branch](https://github.com/tlolabs/ativ/tree/archive/avid-python); do not restore it into the native source tree.
 
 ## Media tools
 
