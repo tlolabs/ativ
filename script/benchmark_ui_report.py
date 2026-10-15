@@ -37,11 +37,11 @@ def delta(candidate, key):
 lines = [
     '# ATIV UI benchmark — macOS arm64', '',
     f'Run: {folder.name}. Mode: {config["mode"]}. Date: {env["date_utc"]}. Commit: `{env["git_commit"]}`. '
-    'The working tree had uncommitted Qt and benchmark files; see `environment.json` for the exact list.', '',
+    'Source status is recorded in `environment.json`; executable identities are in `packages.json`.', '',
     f'Host: {env["chip"]}, {env["physical_ram_bytes"] / (1024**3):.0f} GiB RAM, {env["host"]}. '
     f'Power: {env["power"].splitlines()[0]}. Display and power details are in `environment.json`. '
     'Other applications were left running.', '',
-    'This report measures the extracted distributable packages. Process appearance is a lower bound on launch time; '
+    'This report measures extracted packages. Process appearance is a sampled process-existence observation; '
     'it is **not** the time until a window is drawn or controls work. Headless engine timing does not measure GUI work.', '',
     '| App | ZIP MiB | Installed MiB | Process seen ms | Idle physical MiB | Idle RSS MiB | Headless export s |',
     '| --- | ---: | ---: | ---: | ---: | ---: | ---: |',
@@ -76,11 +76,11 @@ for name, package in packages.items():
                  f'`{package["binary_hashes"]["ativ-engine"][:12]}` | `{package["binary_hashes"]["ffmpeg"][:12]}` | '
                  f'{mib(sizes["ui_and_support"] + sizes.get("supporting_frameworks_and_plugins", 0))} | '
                  f'{mib(sizes.get("assets_and_licenses"))} |')
-lines += ['', 'Signed binary hashes differ, so the bundles are version matched rather than byte identical. '
+lines += ['', 'Binary identities and package contents must be compared before attributing differences to source changes. '
           'The matched 10-second test uses identical fixture hashes, 1920×1080, 30 fps, 128k AAC, and software H.264. '
-          'All runs validated codecs, dimensions, frame rate, and duration (±0.15 s). '
+          'When the engine workload is enabled, runs validate codecs, dimensions, frame rate, and duration (±0.15 s). '
           'Small (2 s), typical (10 s), and large (60 s) fixtures were generated. '
-          'The large fixture was used in the separate diagnostic; the small one was not timed.', '']
+          'The separate resource diagnostic uses the large fixture; the engine timing workload uses the typical fixture.', '']
 unique_hashes = {row['output_sha256'] for row in exports}
 lines.append(f'Matched export output hashes across all recorded runs: {len(unique_hashes)} distinct.' if exports else
              'No matched engine exports were run.')
@@ -135,12 +135,11 @@ if timings_file.exists():
     for key, item in timing.items():
         lines.append(f'- {key.replace("_", " ")}: {item["seconds"]:.2f} s (exit {item["exit_code"]}).')
     lines += ['', 'Qt configure, clean UI compilation, incremental compilation, and the full local bundle/test pass '
-              'were timed separately. Dependency download time was excluded. Native Swift build timing was blocked '
-              'by the unaccepted Xcode license.', '']
+              'are reported only when supplied in build-timings.json; this sampler does not build either UI.', '']
 lines += ['', '## Measurement definitions', '',
           '- Launch requested: `time.monotonic_ns()` just before `/usr/bin/open -n -F -g`.',
           '- Process seen: first new PID with the exact extracted executable path in `ps`; polling is about 50 ms. '
-          'The reported time is a **lower bound**, and differences within a poll are not meaningful.',
+          'This is not UI readiness timing, and differences within a poll are not meaningful.',
           '- Physical footprint: macOS `footprint` `phys_footprint` bytes, sampled from the UI process. '
           'RSS: `ps` resident KiB converted to bytes. Sampling uses the same 2-second interval for all candidates. '
           'This does not charge WindowServer activity to a single app.',
@@ -154,14 +153,14 @@ lines += ['', '## Measurement definitions', '',
           '| Workflow | SwiftUI | Qt | Evidence |',
           '| --- | --- | --- | --- |',
           '| 27 engine presets | implemented | implemented | Source and engine protocol; GUI selection outside automated timing |',
-          '| Image/audio input and duration | implemented | implemented | Source; manual GUI check verified |',
+          '| Image/audio input and duration | implemented | implemented | Not measured here; requires separate functional evidence |',
           '| Engine-generated still preview | ~360 px, cached | ~360 px, debounced | Preview work matched to 360 px base |',
           '| Flip, fps, bitrate | implemented | implemented | Source; GUI settings parity |',
           '| MP4 H.264/AAC export | implemented | implemented | Matched packaged engines validated when run; GUI evidence recorded separately |',
           '| Progress and cancellation | implemented | implemented | Source and existing tests |',
           '| Automatic updates | Sparkle | disabled on macOS ref | macOS reference updates disabled by design |',
           '| Preferences | system defaults | JSON | Matches cross-platform settings format |',
-          '| Keyboard/focus/VoiceOver | labels in source | labels in source | Meets accessibility requirements |',
+          '| Keyboard/focus/VoiceOver | labels in source | labels in source | Not certified here; requires native tests and manual assistive-technology checks |',
           '| Light/dark and scaling | system | system | Automatic system appearance response |', '',
           '## Missing measurements and limits', '',
           'First visible frame, first successful interaction, task ready, input loaded, input-to-visible-response latency, '
@@ -177,11 +176,11 @@ lines += ['', '## Measurement definitions', '',
           'the next useful comparison before choosing a toolkit.', '',
           '## Development and maintenance cost', '',
           '- SwiftUI/AppKit is the production macOS path. It uses SwiftPM, Xcode, Sparkle, and the existing signing/notarization pipeline; '
-          'macOS system UI frameworks are not bundled. The Xcode license blocked a fresh build on this host.',
+          'macOS system UI frameworks are not bundled. Build availability/cost must be recorded separately for each run.',
           '- Qt is the shared C++17 Widgets/CMake presentation layer for Windows and Linux, with an internal macOS ARM64 reference. '
           'Its local macOS bundle embeds Qt frameworks and Cocoa plugins, and the reference build script stages the shared engine '
           'and signed media runtime.',
-          '- Clean/incremental build times are only available for Qt in this run. A smaller ZIP does not imply less development effort.', '',
+          '- Build times require separate build-timings.json evidence. A smaller ZIP does not imply less development effort.', '',
           '## Reproduction', '', '```sh',
           './script/benchmark_ui.sh --quick',
           './script/benchmark_ui.sh --standard',
@@ -208,12 +207,11 @@ if tests_file.exists():
     for name, result in tests.items():
         lines.append(f'- {name} packaged engine contract: exit {result["exit_code"]}; '
                      f'{result["stdout_tail"].strip()}')
-    lines += ['', 'Shared Rust workspace tests and Qt workflow tests passed separately. '
-              'Swift native tests were blocked by the unaccepted Xcode license.', '']
+    lines += ['', 'These are the recorded packaged-engine checks. Rust and native UI test results require separate logs.', '']
 lines += ['## Recommendation', '',
           'Production macOS remains native SwiftUI/AppKit. Qt provides the shared cross-platform '
           'presentation layer for Windows and Linux, with an internal macOS ARM64 reference for development '
-          'and parity testing. The same Rust core produces identical media from both frontends. '
-          'Qt Widgets matches the required feature set without .NET runtime overhead.', '']
+          'and parity testing. Both presentation layers delegate media work to the shared Rust engine. '
+          'Toolkit choice and feature parity require separate functional and maintenance evidence.', '']
 (folder / 'report.md').write_text('\n'.join(lines))
 print(folder / 'report.md')
