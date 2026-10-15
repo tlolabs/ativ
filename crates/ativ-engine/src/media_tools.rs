@@ -38,7 +38,7 @@ fn hash(path: &Path) -> ativ_core::Result<String> {
     }
     let mut file = fs::File::open(path).map_err(|_| unavailable())?;
     let mut digest = Sha256::new();
-    let mut buffer = [0u8; 131072];
+    let mut buffer = [0u8; 65536];
     loop {
         let count = file.read(&mut buffer).map_err(|_| unavailable())?;
         if count == 0 {
@@ -46,14 +46,18 @@ fn hash(path: &Path) -> ativ_core::Result<String> {
         }
         digest.update(&buffer[..count]);
     }
+    let bytes: [u8; 32] = digest.finalize().into();
+    Ok(hex_digest(&bytes))
+}
+
+fn hex_digest(hash_bytes: &[u8; 32]) -> String {
     const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-    let hash_bytes = digest.finalize();
     let mut out = String::with_capacity(64);
-    for &b in &hash_bytes {
+    for &b in hash_bytes {
         out.push(HEX_CHARS[(b >> 4) as usize] as char);
         out.push(HEX_CHARS[(b & 0x0f) as usize] as char);
     }
-    Ok(out)
+    out
 }
 fn check_tree(
     root: &Path,
@@ -89,6 +93,27 @@ fn check_tree(
     }
     Ok(())
 }
+// Join both workers before propagating either result: an unjoined panic would
+// otherwise escape scope() and bypass the engine's structured IPC error.
+fn hash_pair(
+    ffmpeg: impl FnOnce() -> ativ_core::Result<String> + Send,
+    ffprobe: impl FnOnce() -> ativ_core::Result<String> + Send,
+) -> ativ_core::Result<(String, String)> {
+    std::thread::scope(|scope| {
+        let first = std::thread::Builder::new().spawn_scoped(scope, ffmpeg);
+        let second = std::thread::Builder::new().spawn_scoped(scope, ffprobe);
+        let first = first
+            .map_err(|_| unavailable())
+            .and_then(|worker| worker.join().map_err(|_| unavailable()))
+            .and_then(|result| result);
+        let second = second
+            .map_err(|_| unavailable())
+            .and_then(|worker| worker.join().map_err(|_| unavailable()))
+            .and_then(|result| result);
+        Ok((first?, second?))
+    })
+}
+
 fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
     let executable = std::env::current_exe().map_err(|_| unavailable())?;
     let binary = executable.parent().ok_or_else(unavailable)?;
@@ -205,12 +230,11 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
     {
         return Err(unavailable());
     }
-    let (ffmpeg_res, ffprobe_res) = std::thread::scope(|s| {
-        let t1 = s.spawn(|| hash(&binary.join(&ffmpeg_name)));
-        let t2 = s.spawn(|| hash(&binary.join(&ffprobe_name)));
-        (t1.join().unwrap(), t2.join().unwrap())
-    });
-    if ffmpeg_res? != ffmpeg_expected || ffprobe_res? != ffprobe_expected {
+    let (ffmpeg_hash, ffprobe_hash) = hash_pair(
+        || hash(&binary.join(&ffmpeg_name)),
+        || hash(&binary.join(&ffprobe_name)),
+    )?;
+    if ffmpeg_hash != ffmpeg_expected || ffprobe_hash != ffprobe_expected {
         return Err(unavailable());
     }
     Ok((
@@ -246,12 +270,11 @@ pub fn resolve(
         }
     };
     let tools = MediaTools::from_paths(ffmpeg, ffprobe, token)?;
-    if let Some(version) = version {
-        if tools.ffmpeg_version().split_whitespace().nth(2) != Some(version.as_str())
-            || tools.ffprobe_version().split_whitespace().nth(2) != Some(version.as_str())
-        {
-            return Err(unavailable());
-        }
+    if let Some(version) = version
+        && (tools.ffmpeg_version().split_whitespace().nth(2) != Some(version.as_str())
+            || tools.ffprobe_version().split_whitespace().nth(2) != Some(version.as_str()))
+    {
+        return Err(unavailable());
     }
     Ok(tools)
 }
@@ -259,6 +282,75 @@ pub fn resolve(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hex_is_fixed_lowercase_and_preserves_leading_zeros() {
+        for seed in 0..=255u8 {
+            let bytes = std::array::from_fn(|i| seed.wrapping_add(i as u8));
+            assert_eq!(
+                hex_digest(&bytes),
+                bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
+            );
+            assert_eq!(hex_digest(&bytes).len(), 64);
+        }
+        assert_eq!(hex_digest(&[0; 32]), "0".repeat(64));
+    }
+
+    #[test]
+    fn both_workers_finish_even_when_either_fails_or_panics() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        for failed in 0..2 {
+            for panics in [false, true] {
+                let count = AtomicUsize::new(0);
+                let worker = |index| {
+                    count.fetch_add(1, Ordering::SeqCst);
+                    if index == failed {
+                        if panics {
+                            panic!("injected hash failure");
+                        }
+                        return Err(unavailable());
+                    }
+                    Ok("digest".into())
+                };
+                assert!(hash_pair(|| worker(0), || worker(1)).is_err());
+                assert_eq!(count.load(Ordering::SeqCst), 2);
+            }
+        }
+        assert_eq!(
+            hash_pair(|| Ok("first".into()), || Ok("second".into())).unwrap(),
+            ("first".into(), "second".into())
+        );
+    }
+
+    #[test]
+    fn tree_rejects_unlisted_entries_and_symlinks() {
+        let directory = std::env::temp_dir().join(format!(
+            "ativ-tree-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(directory.join("nested")).unwrap();
+        fs::write(directory.join("nested/known"), b"payload").unwrap();
+        let files = HashMap::from([("nested/known".into(), "hash".into())]);
+        assert!(check_tree(&directory, &directory, &files).is_ok());
+        fs::write(directory.join("unknown"), b"payload").unwrap();
+        assert!(check_tree(&directory, &directory, &files).is_err());
+        fs::remove_file(directory.join("unknown")).unwrap();
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(directory.join("nested"), directory.join("link")).unwrap();
+            assert!(check_tree(&directory, &directory, &files).is_err());
+            fs::remove_file(directory.join("link")).unwrap();
+            std::os::unix::fs::symlink(directory.join("missing"), directory.join("broken"))
+                .unwrap();
+            assert!(check_tree(&directory, &directory, &files).is_err());
+        }
+        assert!(check_tree(&directory, &directory.join("absent"), &files).is_err());
+        fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn cancellation_before_resolution_retains_cancelled_error() {

@@ -170,6 +170,7 @@ fn run() -> ativ_core::Result<()> {
                 "export wall time: {seconds:.6}s; mode: {mode:?}; success: {}",
                 result.is_ok()
             ));
+            events.flush_log();
             println!(
                 "{{\"event\":\"timing\",\"wall_seconds\":{seconds},\"render_mode\":\"{}\",\"success\":{}}}",
                 if mode == RenderMode::Simple {
@@ -269,13 +270,7 @@ impl JsonEvents {
     }
 
     fn log(&self, line: &str) {
-        use std::io::Write;
-        let Ok(mut guard) = self.log.lock() else {
-            return;
-        };
-        if let Some(writer) = guard.as_mut() {
-            let _ = writeln!(writer, "{line}");
-        }
+        self.log_fmt(format_args!("{line}"));
     }
 
     fn log_fmt(&self, args: std::fmt::Arguments<'_>) {
@@ -283,8 +278,28 @@ impl JsonEvents {
         let Ok(mut guard) = self.log.lock() else {
             return;
         };
-        if let Some(writer) = guard.as_mut() {
-            let _ = writeln!(writer, "{args}");
+        if let Some(writer) = guard.as_mut()
+            && let Err(error) = writeln!(writer, "{args}")
+        {
+            let _ = writeln!(
+                io::stderr().lock(),
+                "ATIV diagnostic log write failed: {error}"
+            );
+        }
+    }
+
+    fn flush_log(&self) {
+        use std::io::Write;
+        let Ok(mut guard) = self.log.lock() else {
+            return;
+        };
+        if let Some(writer) = guard.as_mut()
+            && let Err(error) = writer.flush()
+        {
+            let _ = writeln!(
+                io::stderr().lock(),
+                "ATIV diagnostic log flush failed: {error}"
+            );
         }
     }
 }
@@ -292,6 +307,7 @@ impl JsonEvents {
 impl EventSink for JsonEvents {
     fn stage(&self, stage: Stage) {
         self.log_fmt(format_args!("stage: {}", stage.as_str()));
+        self.flush_log();
         println!("{{\"event\":\"stage\",\"stage\":\"{}\"}}", stage.as_str());
     }
     fn progress(&self, progress: RenderProgress) {
@@ -477,6 +493,53 @@ mod tests {
         .unwrap();
         assert_eq!(parsed.values["image"], "/tmp/my image.png");
         assert!(parsed.flags.contains("flip-horizontal"));
+    }
+
+    #[test]
+    fn explicit_log_flush_preserves_order_before_drop() {
+        let path = env::temp_dir().join(format!(
+            "ativ-flush-{}-{}.log",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let events = JsonEvents {
+            log: Mutex::new(Some(std::io::BufWriter::new(
+                open_log_at(&path, false).unwrap(),
+            ))),
+        };
+        events.log("progress");
+        events.log("final status");
+        events.flush_log();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "progress\nfinal status\n"
+        );
+        drop(events);
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn diagnostic_write_failure_is_nonfatal() {
+        let path = env::temp_dir().join(format!(
+            "ativ-readonly-log-{}-{}.log",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::write(&path, b"previous log").unwrap();
+        let events = JsonEvents {
+            log: Mutex::new(Some(std::io::BufWriter::new(File::open(&path).unwrap()))),
+        };
+        events.log("cannot write to a read-only handle");
+        events.flush_log();
+        drop(events);
+        assert_eq!(fs::read(&path).unwrap(), b"previous log");
+        fs::remove_file(path).unwrap();
     }
 
     #[cfg(unix)]

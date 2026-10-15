@@ -399,3 +399,87 @@ fn failed_authentication_cleans_install_staging_before_retry() {
     assert_eq!(std::fs::read(backup).unwrap(), b"old image");
     assert_eq!(std::fs::read(image).unwrap(), DATA);
 }
+
+#[test]
+fn download_handles_short_io_and_leading_zero_checksum() {
+    struct ShortReader<'a>(&'a [u8]);
+    impl Read for ShortReader<'_> {
+        fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+            let n = output.len().min(self.0.len()).min(7);
+            output[..n].copy_from_slice(&self.0[..n]);
+            self.0 = &self.0[n..];
+            Ok(n)
+        }
+    }
+    #[derive(Default)]
+    struct ShortWriter(Vec<u8>);
+    impl Write for ShortWriter {
+        fn write(&mut self, input: &[u8]) -> io::Result<usize> {
+            let n = input.len().min(3);
+            self.0.extend_from_slice(&input[..n]);
+            Ok(n)
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+    let (config, manifest) = fixture();
+    let mut asset = manifest.assets[&config.target].clone();
+    for bytes in [
+        vec![],
+        vec![0],
+        (0..=255).cycle().take(262145).collect::<Vec<u8>>(),
+        b"286".to_vec(),
+    ] {
+        asset.size = bytes.len() as u64;
+        asset.sha256 = format!("{:x}", Sha256::digest(&bytes));
+        if bytes == b"286" {
+            assert_eq!(
+                asset.sha256,
+                "00328ce57bbc14b33bd6695bc8eb32cdf2fb5f3a7d89ec14a42825e15d39df60"
+            );
+        }
+        let mut output = ShortWriter::default();
+        download(ShortReader(&bytes), &mut output, &asset).unwrap();
+        assert_eq!(output.0, bytes);
+    }
+}
+
+#[test]
+#[ignore = "diagnostic local download-buffer benchmark"]
+fn benchmark_download_buffers() {
+    fn copy<const N: usize>(mut source: impl Read) -> (u64, String) {
+        let mut hash = Sha256::new();
+        let mut total = 0;
+        let mut buffer = [0; N];
+        let mut output = io::sink();
+        loop {
+            let n = source.read(&mut buffer).unwrap();
+            if n == 0 {
+                break;
+            }
+            total += n as u64;
+            hash.update(&buffer[..n]);
+            output.write_all(&buffer[..n]).unwrap();
+        }
+        (total, format!("{:x}", hash.finalize()))
+    }
+    let path = std::env::var("ATIV_BENCH_FFMPEG").expect("Set ATIV_BENCH_FFMPEG");
+    let data = std::fs::read(&path).unwrap();
+    let expected = (data.len() as u64, format!("{:x}", Sha256::digest(&data)));
+    for sample in 0..11 {
+        for offset in 0..2 {
+            let mode = (sample + offset) % 2;
+            let source = std::fs::File::open(&path).unwrap();
+            let start = std::time::Instant::now();
+            let actual = if mode == 0 {
+                copy::<65536>(source)
+            } else {
+                copy::<131072>(source)
+            };
+            let seconds = start.elapsed().as_secs_f64();
+            assert_eq!(actual, expected);
+            println!("download sample={sample} mode={mode} seconds={seconds:.9}");
+        }
+    }
+}

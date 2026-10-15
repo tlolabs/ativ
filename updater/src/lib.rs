@@ -196,7 +196,7 @@ pub fn select<'a>(
 pub fn download(mut source: impl Read, mut output: impl Write, asset: &Asset) -> Result<()> {
     let mut hash = Sha256::new();
     let mut total = 0;
-    let mut buffer = [0u8; 131072];
+    let mut buffer = [0u8; 65536];
     loop {
         let n = source.read(&mut buffer)?;
         if n == 0 {
@@ -209,14 +209,7 @@ pub fn download(mut source: impl Read, mut output: impl Write, asset: &Asset) ->
         hash.update(&buffer[..n]);
         output.write_all(&buffer[..n])?;
     }
-    const HEX_CHARS: &[u8; 16] = b"0123456789abcdef";
-    let hash_bytes = hash.finalize();
-    let mut hex = String::with_capacity(64);
-    for &b in &hash_bytes {
-        hex.push(HEX_CHARS[(b >> 4) as usize] as char);
-        hex.push(HEX_CHARS[(b & 0x0f) as usize] as char);
-    }
-    if total != asset.size || hex != asset.sha256 {
+    if total != asset.size || format!("{:x}", hash.finalize()) != asset.sha256 {
         return Err("Download checksum/size mismatch".into());
     }
     Ok(())
