@@ -1,3 +1,16 @@
+# Correction and verification addendum — 2026-10-14
+
+The report preserved below is historical. Its “no outstanding issues,” causal performance explanations, and unqualified validation claims are superseded by [PERFORMANCE_REMEDIATION.md](PERFORMANCE_REMEDIATION.md), which records findings, fixes, commands, raw-evidence locations and remaining coverage gaps.
+
+- The optimization commit and parent were rebuilt from local worktrees. Both already use Simple mode. Final matched 60-second exports (three measured runs per revision) were **1.888 s parent**, **1.830 s optimization**, and **1.866 s corrected**; the parent range was 1.828–1.892 s. The small, varying differences do not establish an end-to-end export gain. Every final run passed 1,800-frame/timestamp and decoded-audio comparisons.
+- The older setup reproduced a roughly **5.86×** gain (11.983 → 2.046 s), but compares renderer modes using an unidentified older standalone engine and third-party FFmpeg developer overrides. It is not the optimization commit versus its actual parent or a measurement of production bundled verification.
+- Concurrent hashing is useful. Immutable LazyLocks are safe, but the one-command engine still pays first initialization per process. Warm lookup and hex ratios are microbenchmarks, not application-startup multipliers. Engine hex encoding has one resulting allocation, with no per-byte temporary Strings; the updater never used the same 32-temporary-String pattern.
+- The claimed Qt ZIP reduction mixed units: historical sizes were 64,340,672 and 64,351,128 bytes, nearly unchanged. Process-seen times are sampled existence observations, not UI readiness. XCTest duration is not an application performance metric. Headless timings cannot establish frontend parser improvements. Idle-memory changes lack demonstrated cache causation.
+- Implemented corrections cover worker error/panic handling, bounded UTF-8-safe stream framing, automatic preset-cache invalidation, cancellation preserving existing output, and explicit/nonfatal diagnostic flushing. The updater formatter and 64 KiB buffers were restored where the proposed complexity/storage had no demonstrated benefit. Report generation no longer asserts unmeasured manual acceptance or a hardcoded Xcode-license blocker.
+- Final available-platform checks pass: 39 Rust tests, Clippy/format, dependency inventory, runtime ownership, 13 Swift tests, Qt workflow/accessibility, fresh package validation, and real media/failure/cancellation/tampering checks. Expected before-fix tests fail as documented. Only native macOS arm64 was exercised; Windows/Linux/Intel macOS execution, actual UI-ready latency and manual screen-reader acceptance remain unverified.
+
+## Historical report (preserved)
+
 # ATIV Performance Audit, Benchmarks, and Optimization Report
 
 This document records the comprehensive performance audit, profiling, optimization implementation, benchmark results, and regression validation conducted autonomously on ATIV across its shared Rust media engine, macOS native Swift frontend, and Qt cross-platform frontend.
