@@ -96,6 +96,8 @@ final class EngineClientTests: XCTestCase {
 
         let client = EngineClient()
         let output = media.tempDir.appendingPathComponent("cancelled_output.mp4")
+        let previous = Data("previous completed export".utf8)
+        try previous.write(to: output)
         let done = expectation(description: "cancellation before launch")
 
         client.render(image: media.image, audio: media.audio, output: output, preset: Preset(platform: "Test", aspect: "16:9", width: 160, height: 90), bitrate: "128k", fps: 30, flipHorizontal: false, flipVertical: false) { _ in } completion: { result in
@@ -105,11 +107,42 @@ final class EngineClientTests: XCTestCase {
             case .failure(let error):
                 XCTAssertEqual(error as? EngineClientError, EngineClientError.cancelled)
             }
-            XCTAssertFalse(FileManager.default.fileExists(atPath: output.path))
+            XCTAssertEqual(try? Data(contentsOf: output), previous)
             done.fulfill()
         }
         client.cancelRender()
         wait(for: [done], timeout: 10)
+    }
+
+    func testCancellationAfterLaunchPreservesExistingDestination() throws {
+        guard ProcessInfo.processInfo.environment["ATIV_ENGINE_PATH"] != nil else {
+            throw XCTSkip("Set ATIV_ENGINE_PATH")
+        }
+        let media = createTestMedia()
+        defer { try? FileManager.default.removeItem(at: media.tempDir) }
+        let output = media.tempDir.appendingPathComponent("existing.mp4")
+        let previous = Data("previous completed export".utf8)
+        try previous.write(to: output)
+        let client = EngineClient()
+        let done = expectation(description: "cancel running export")
+        var requested = false
+        client.render(image: media.image, audio: media.audio, output: output,
+                      preset: Preset(platform: "Test", aspect: "16:9", width: 1920, height: 1080),
+                      bitrate: "128k", fps: 30, flipHorizontal: false, flipVertical: false) { event in
+            if event.stage == "validating" {
+                requested = true
+                client.cancelRender()
+            }
+        } completion: { result in
+            XCTAssertTrue(requested)
+            switch result {
+            case .success: XCTFail("Expected cancellation")
+            case .failure(let error): XCTAssertEqual(error as? EngineClientError, .cancelled)
+            }
+            XCTAssertEqual(try? Data(contentsOf: output), previous)
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 15)
     }
 
     func testRapidPreviewSuperseding() throws {
@@ -202,5 +235,64 @@ final class ManualUpdateActionTests: XCTestCase {
         let unsupported = NSObject()
         XCTAssertFalse(ATIVCheckForUpdatesWithController(Unmanaged.passUnretained(unsupported).toOpaque()))
         XCTAssertFalse(ATIVCheckForUpdatesWithController(nil))
+    }
+}
+
+final class PerformanceRegressionTests: XCTestCase {
+    func testStreamEveryBoundaryAndEOF() {
+        let wire = Data("{\"event\":\"stage\",\"stage\":\"café 🎬\"}\n\ninvalid\n{\"event\":\"progress\",\"fraction\":0.5}\n{\"event\":\"complete\"}".utf8)
+        for cut in 0...wire.count {
+            var parser = EngineEventStream()
+            var events: [String] = []
+            parser.consume(Data(wire.prefix(cut))) { events.append($0.event) }
+            parser.consume(Data()) { events.append($0.event) }
+            parser.consume(Data(wire.dropFirst(cut))) { events.append($0.event) }
+            parser.consume(Data(), endOfFile: true) { events.append($0.event) }
+            XCTAssertEqual(events, ["stage", "progress", "complete"], "cut \(cut)")
+        }
+    }
+
+    func testStreamLargeMalformedAndOversizedLinesRecover() {
+        var parser = EngineEventStream()
+        var events: [EngineEvent] = []
+        let large = Data(("{\"event\":\"stage\",\"stage\":\"" + String(repeating: "é", count: 100_000) + "\"}\n").utf8)
+        for byte in large { parser.consume(Data([byte])) { events.append($0) } }
+        XCTAssertEqual(events.count, 1)
+        for _ in 0...EngineEventStream.maximumLineBytes / 65536 {
+            parser.consume(Data(repeating: 120, count: 65536)) { events.append($0) }
+            XCTAssertLessThanOrEqual(parser.pending.count, EngineEventStream.maximumLineBytes)
+        }
+        parser.consume(Data("\n{\"event\":\"complete\"}\n{".utf8)) { events.append($0) }
+        parser.consume(Data(), endOfFile: true) { events.append($0) }
+        XCTAssertEqual(events.map(\.event), ["stage", "complete"])
+        XCTAssertTrue(parser.pending.isEmpty)
+    }
+
+    @MainActor
+    func testPresetReplacementAndRestoredInvalidSelections() async {
+        let store = RenderStore()
+        let a = Preset(platform: "A", aspect: "wide", width: 160, height: 90)
+        let b = Preset(platform: "B", aspect: "square", width: 90, height: 90)
+        store.presets = [a, a, b]
+        XCTAssertEqual(store.platforms, ["A", "B"])
+        XCTAssertEqual(store.selectedPreset, a)
+        store.selectedPlatform = "B"
+        XCTAssertEqual(store.aspects, ["square"])
+        XCTAssertEqual(store.resolutions, [b])
+        XCTAssertEqual(store.selectedPreset, b)
+        store.selectedAspect = "invalid"
+        store.selectedPreset = a
+        XCTAssertEqual(store.selectedAspect, "square")
+        XCTAssertEqual(store.selectedPreset, b)
+        store.presets = [a]
+        XCTAssertEqual(store.selectedPlatform, "A")
+        XCTAssertEqual(store.selectedPreset, a)
+        store.presets = []
+        XCTAssertTrue(store.platforms.isEmpty)
+        XCTAssertTrue(store.aspects.isEmpty)
+        XCTAssertTrue(store.resolutions.isEmpty)
+        XCTAssertNil(store.selectedPreset)
+        store.presets = [b]
+        XCTAssertEqual(store.selectedPreset, b)
     }
 }

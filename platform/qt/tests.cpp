@@ -20,6 +20,32 @@ class WorkflowTests : public QObject {
         const QByteArray samples(seconds*16000, '\0'); stream.writeRawData(samples.constData(), samples.size());
     }
 private slots:
+    void streamBoundariesAndEOF() {
+        const QByteArray wire = QString::fromUtf8("{\"event\":\"stage\",\"stage\":\"caf\xc3\xa9 \xf0\x9f\x8e\xac\"}\n{\"event\":\"progress\"}\n{\"event\":\"complete\"}").toUtf8();
+        for (qsizetype cut = 0; cut <= wire.size(); ++cut) {
+            EngineJob job("unused"); QSignalSpy events(&job, &EngineJob::eventReceived);
+            job.consumeOutput(wire.left(cut));
+            job.consumeOutput({});
+            job.consumeOutput(wire.mid(cut));
+            job.consumeOutput({}, true);
+            QCOMPARE(events.size(), 3);
+            QCOMPARE(qvariant_cast<QJsonObject>(events[0][0])["stage"].toString(), QString::fromUtf8("caf\xc3\xa9 \xf0\x9f\x8e\xac"));
+            QVERIFY(job.pending.isEmpty()); QVERIFY(job.failure.isEmpty());
+        }
+    }
+    void streamMalformedLargeAndOverflow() {
+        EngineJob job("unused"); QSignalSpy events(&job, &EngineJob::eventReceived);
+        const QByteArray large = "{\"event\":\"stage\",\"stage\":\"" + QByteArray(200000, 'x') + "\"}\n";
+        for (qsizetype i = 0; i < large.size(); i += 7) job.consumeOutput(large.mid(i, 7));
+        QCOMPARE(events.size(), 1);
+        job.consumeOutput("\ninvalid\n"); QVERIFY(!job.failure.isEmpty());
+        for (int i = 0; i <= EngineJob::maximumLineBytes / 65536; ++i) {
+            job.consumeOutput(QByteArray(65536, 'x'));
+            QVERIFY(job.pending.size() <= EngineJob::maximumLineBytes);
+        }
+        job.consumeOutput("\n{\"event\":\"complete\"}\n{", true);
+        QCOMPARE(events.size(), 2); QVERIFY(!job.failure.isEmpty()); QVERIFY(job.pending.isEmpty());
+    }
     void initTestCase() {
         engine = qEnvironmentVariable("ATIV_QT_TEST_ENGINE");
         QVERIFY2(QFileInfo::exists(engine), "Set ATIV_QT_TEST_ENGINE to the packaged engine");

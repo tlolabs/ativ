@@ -16,7 +16,11 @@ signals:
     void eventReceived(const QJsonObject &event);
     void finished(int exitCode, const QString &error);
 private:
+    friend class WorkflowTests;
     void readOutput(bool flush = false);
+    void consumeOutput(const QByteArray &data, bool flush = false);
+    static constexpr qsizetype maximumLineBytes = 8 * 1024 * 1024;
+    bool discardingLine = false;
     void complete(int code);
     QString engine;
     QProcess process;

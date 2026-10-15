@@ -38,7 +38,7 @@ EngineJob::EngineJob(QString enginePath, QObject *parent)
 
 void EngineJob::start(const QStringList &arguments) {
     if (active) return;
-    pending.clear(); stderrTail.clear(); failure.clear(); cancelled = false; active = true;
+    pending.clear(); discardingLine = false; stderrTail.clear(); failure.clear(); cancelled = false; active = true;
     process.setProgram(engine);
     process.setArguments(arguments);
     if (arguments.value(0) != "render") deadline.start(60000);
@@ -51,28 +51,52 @@ void EngineJob::cancel() {
 }
 
 void EngineJob::readOutput(bool flush) {
-    pending += process.readAllStandardOutput();
-    qsizetype start = 0;
-    while (true) {
-        auto end = pending.indexOf('\n', start);
-        if (end < 0) {
-            if (!flush || start >= pending.size()) break;
-            end = pending.size();
-        }
-        const auto line = QByteArray::fromRawData(pending.constData() + start, end - start);
-        start = (end < pending.size()) ? end + 1 : end;
+    consumeOutput(process.readAllStandardOutput(), flush);
+}
+
+void EngineJob::consumeOutput(const QByteArray &data, bool flush) {
+    const auto parse = [this](const QByteArray &line) {
         QJsonParseError parseError;
         const auto document = QJsonDocument::fromJson(line, &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
             failure = "The media engine returned an invalid response.";
-            continue;
+            return;
         }
         const auto event = document.object();
         if (event["event"] == "error") failure = event["message"].toString();
         emit eventReceived(event);
+    };
+    qsizetype start = 0;
+    while (start < data.size()) {
+        const auto newline = data.indexOf('\n', start);
+        const auto end = newline < 0 ? data.size() : newline;
+        const auto size = end - start;
+        if (!discardingLine) {
+            if (size > maximumLineBytes - pending.size()) {
+                pending.clear();
+                discardingLine = true;
+                failure = "The media engine returned an invalid response.";
+            } else if (pending.isEmpty() && newline >= 0) {
+                parse(QByteArray::fromRawData(data.constData() + start, size));
+            } else {
+                pending.append(data.constData() + start, size);
+                if (newline >= 0) {
+                    // Clear framing state before invoking a UI callback.
+                    const auto line = std::move(pending);
+                    pending.clear();
+                    parse(line);
+                }
+            }
+        }
+        if (newline < 0) break;
+        discardingLine = false;
+        start = newline + 1;
     }
-    if (start > 0) {
-        pending.remove(0, start);
+    if (flush) {
+        const auto line = std::move(pending);
+        pending.clear();
+        if (!discardingLine && !line.isEmpty()) parse(line);
+        discardingLine = false;
     }
 }
 

@@ -7,10 +7,10 @@ final class RenderStore: ObservableObject {
     @Published var imageURL: URL?
     @Published var audioURL: URL?
     @Published var outputURL: URL?
-    @Published var presets: [Preset] = []
-    @Published var selectedPlatform = "Instagram"
-    @Published var selectedAspect = "Horizontal video (16:9)"
-    @Published var selectedPreset: Preset?
+    @Published var presets: [Preset] = [] { didSet { normalizeSelection() } }
+    @Published var selectedPlatform = "Instagram" { didSet { normalizeSelection() } }
+    @Published var selectedAspect = "Horizontal video (16:9)" { didSet { normalizeSelection() } }
+    @Published var selectedPreset: Preset? { didSet { normalizeSelection() } }
     @Published var flipHorizontal = false
     @Published var flipVertical = false
     @Published var bitrate = UserDefaults.standard.string(forKey: "audioBitrate") ?? "128k"
@@ -38,6 +38,7 @@ final class RenderStore: ObservableObject {
     private var lastPreviewKey: PreviewKey?
     private var previewGeneration = 0
     private var audioGeneration = 0
+    private var normalizingSelection = false
     private var terminating = false
     private var lastAnnouncedStage: String?
 
@@ -58,7 +59,6 @@ final class RenderStore: ObservableObject {
                 switch result {
                 case .success(let presets):
                     self.presets = presets
-                    self.normalizeSelection()
                     self.status = "Choose an image and audio recording."
                     if let path = ProcessInfo.processInfo.environment["ATIV_SMOKE_REPORT"], presets.count == 27 {
                         try? Data("{\"startup\":true,\"presets\":27}".utf8).write(to: URL(fileURLWithPath:path), options:.atomic)
@@ -241,6 +241,9 @@ final class RenderStore: ObservableObject {
     }
 
     private func normalizeSelection() {
+        guard !normalizingSelection else { return }
+        normalizingSelection = true
+        defer { normalizingSelection = false }
         updateCachedCollections()
         if !platforms.contains(selectedPlatform) {
             selectedPlatform = platforms.first ?? ""

@@ -182,7 +182,7 @@ final class EngineClient {
             self.lock.unlock()
 
             if isCancelled || process.terminationStatus == 130 {
-                try? FileManager.default.removeItem(at: output)
+                // The engine owns staged output cleanup and preserves any prior destination.
                 completion(.failure(EngineClientError.cancelled))
                 return
             }
@@ -271,7 +271,8 @@ final class EngineClient {
                 return
             }
 
-            let data = output.fileHandleForReading.readDataToEndOfFile()
+            var events: [EngineEvent] = []
+            self.consumeLines(from: output.fileHandleForReading) { events.append($0) }
             process.waitUntilExit()
             if let clear { clear(process) }
 
@@ -280,17 +281,6 @@ final class EngineClient {
                 return
             }
 
-            let decoder = JSONDecoder()
-            var events: [EngineEvent] = []
-            var index = data.startIndex
-            while index < data.endIndex {
-                let lineEnd = data[index...].firstIndex(of: 10) ?? data.endIndex
-                let lineData = data[index..<lineEnd]
-                if !lineData.isEmpty, let event = try? decoder.decode(EngineEvent.self, from: lineData) {
-                    events.append(event)
-                }
-                index = (lineEnd == data.endIndex) ? data.endIndex : data.index(after: lineEnd)
-            }
             if process.terminationStatus == 0 { completion(.success(events)); return }
             if process.terminationStatus == 130 { completion(.failure(EngineClientError.cancelled)); return }
             let message = events.last(where: { $0.event == "error" })?.message ?? "The media engine could not complete this operation."
@@ -299,24 +289,53 @@ final class EngineClient {
     }
 
     private func consumeLines(from handle: FileHandle, event: (EngineEvent) -> Void) {
-        var buffer = Data()
-        let decoder = JSONDecoder()
+        var stream = EngineEventStream()
         while true {
             let data = handle.availableData
             if data.isEmpty { break }
-            buffer.append(data)
-            var startIndex = buffer.startIndex
-            while let newline = buffer[startIndex...].firstIndex(of: 10) {
-                let line = buffer[startIndex..<newline]
-                startIndex = buffer.index(after: newline)
-                if !line.isEmpty, let decoded = try? decoder.decode(EngineEvent.self, from: line) { event(decoded) }
-            }
-            if startIndex > buffer.startIndex {
-                buffer.removeSubrange(..<startIndex)
-            }
+            stream.consume(data, event: event)
         }
-        if !buffer.isEmpty {
-            if let decoded = try? decoder.decode(EngineEvent.self, from: buffer) { event(decoded) }
+        stream.consume(Data(), endOfFile: true, event: event)
+    }
+}
+
+// Operation-local byte framing preserves fragmented UTF-8 and the existing
+// policy of ignoring malformed/empty lines, including an incomplete EOF record.
+struct EngineEventStream {
+    static let maximumLineBytes = 8 * 1024 * 1024
+    private(set) var pending = Data()
+    private var discarding = false
+    private let decoder = JSONDecoder()
+
+    mutating func consume(_ data: Data, endOfFile: Bool = false, event: (EngineEvent) -> Void) {
+        var start = data.startIndex
+        while start < data.endIndex {
+            let newline = data[start...].firstIndex(of: 10)
+            let end = newline ?? data.endIndex
+            let bytes = data[start..<end]
+            if !discarding {
+                if bytes.count > Self.maximumLineBytes - pending.count {
+                    pending.removeAll(keepingCapacity: false)
+                    discarding = true
+                } else if pending.isEmpty, newline != nil {
+                    if let value = try? decoder.decode(EngineEvent.self, from: bytes) { event(value) }
+                } else {
+                    pending.append(bytes)
+                    if newline != nil {
+                        if let value = try? decoder.decode(EngineEvent.self, from: pending) { event(value) }
+                        pending.removeAll(keepingCapacity: true)
+                    }
+                }
+            }
+            if let newline {
+                discarding = false
+                start = data.index(after: newline)
+            } else { break }
+        }
+        if endOfFile {
+            if !discarding, let value = try? decoder.decode(EngineEvent.self, from: pending) { event(value) }
+            pending.removeAll(keepingCapacity: false)
+            discarding = false
         }
     }
 }
