@@ -269,7 +269,10 @@ pub fn resolve(
             ));
         }
     };
-    let tools = MediaTools::from_paths(ffmpeg, ffprobe, token)?;
+    // Complete installed Core runtimes retain Core's qualification metadata.
+    // Signed application packages deliberately split metadata and executables;
+    // packaged_pair() verifies that derivative before its explicit pair is loaded.
+    let tools = load_pair(&ffmpeg, &ffprobe, token)?;
     if let Some(version) = version
         && (tools.ffmpeg_version().split_whitespace().nth(2) != Some(version.as_str())
             || tools.ffprobe_version().split_whitespace().nth(2) != Some(version.as_str()))
@@ -277,6 +280,49 @@ pub fn resolve(
         return Err(unavailable());
     }
     Ok(tools)
+}
+
+fn has_core_metadata(directory: &Path) -> ativ_core::Result<bool> {
+    for name in [
+        "SHA256SUMS",
+        "spec.json",
+        "build.json",
+        "validation.json",
+        "repeat-build.json",
+        "source-provenance.json",
+        "core-tests-passed.txt",
+    ] {
+        match fs::symlink_metadata(directory.join(name)) {
+            Ok(_) => return Ok(true),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(_) => return Err(unavailable()),
+        }
+    }
+    Ok(false)
+}
+
+fn load_pair(
+    ffmpeg: &Path,
+    ffprobe: &Path,
+    token: &CancellationToken,
+) -> ativ_core::Result<MediaTools> {
+    let expected_ffmpeg = format!("ffmpeg{}", std::env::consts::EXE_SUFFIX);
+    let expected_ffprobe = format!("ffprobe{}", std::env::consts::EXE_SUFFIX);
+    if let Some(directory) = ffmpeg.parent()
+        && ffprobe.parent() == Some(directory)
+        && ffmpeg
+            .file_name()
+            .is_some_and(|name| name == expected_ffmpeg.as_str())
+        && ffprobe
+            .file_name()
+            .is_some_and(|name| name == expected_ffprobe.as_str())
+        && has_core_metadata(directory)?
+    {
+        // A damaged complete runtime must fail closed, never retry as an
+        // unqualified pair. The host acquisition authenticates its origin.
+        return Ok(MediaTools::from_core_directory(directory, token)?);
+    }
+    Ok(MediaTools::from_paths(ffmpeg, ffprobe, token)?)
 }
 
 #[cfg(test)]
@@ -349,6 +395,42 @@ mod tests {
             assert!(check_tree(&directory, &directory, &files).is_err());
         }
         assert!(check_tree(&directory, &directory.join("absent"), &files).is_err());
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn damaged_complete_runtime_does_not_fall_back_to_unqualified_pair() {
+        let directory = std::env::temp_dir().join(format!(
+            "ativ-core-runtime-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&directory).unwrap();
+        fs::write(directory.join("SHA256SUMS"), b"damaged manifest\n").unwrap();
+        // No executable exists: reaching ordinary from_paths would produce an
+        // executable lookup error instead of Core's manifest validation error.
+        let error = load_pair(
+            &directory.join(format!("ffmpeg{}", std::env::consts::EXE_SUFFIX)),
+            &directory.join(format!("ffprobe{}", std::env::consts::EXE_SUFFIX)),
+            &CancellationToken::default(),
+        )
+        .unwrap_err();
+        assert_eq!(error.code(), "media_tools_unavailable");
+        assert!(format!("{error:?}").contains("Invalid checksum entry"));
+        // Removing a damaged manifest must not turn an installed runtime into
+        // a development pair while Core metadata remains.
+        fs::remove_file(directory.join("SHA256SUMS")).unwrap();
+        fs::write(directory.join("spec.json"), b"{}").unwrap();
+        let error = load_pair(
+            &directory.join(format!("ffmpeg{}", std::env::consts::EXE_SUFFIX)),
+            &directory.join(format!("ffprobe{}", std::env::consts::EXE_SUFFIX)),
+            &CancellationToken::default(),
+        )
+        .unwrap_err();
+        assert!(format!("{error:?}").contains("read Core runtime checksums"));
         fs::remove_dir_all(directory).unwrap();
     }
 

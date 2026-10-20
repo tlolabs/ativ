@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ativ-core"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "avid-core",
  "toml",
@@ -12,16 +12,17 @@ dependencies = [
 
 [[package]]
 name = "ativ-engine"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "ativ-core",
+ "fs2",
  "serde_json",
  "sha2 0.11.0",
 ]
 
 [[package]]
 name = "ativ-update"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "tlo-updater",
 ]
@@ -34,13 +35,13 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "avid-core"
-version = "0.3.0"
-source = "git+https://github.com/tlolabs/avid-core?rev=25d19098a22936638b0e2a70616083d929fe409c#25d19098a22936638b0e2a70616083d929fe409c"
+version = "0.3.1"
+source = "git+https://github.com/tlolabs/avid-core.git?rev=15f28236142c100d0a83bf19154ed6f9f5b44e75#15f28236142c100d0a83bf19154ed6f9f5b44e75"
 dependencies = [
  "same-file",
  "serde",
  "serde_json",
- "sha2 0.10.9",
+ "sha2 0.11.0",
  "tempfile",
 ]
 
@@ -207,7 +208,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -713,7 +714,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -827,7 +828,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1070,7 +1071,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1420,7 +1421,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

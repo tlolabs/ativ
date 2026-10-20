@@ -30,6 +30,8 @@ final class RenderStore: ObservableObject {
     private let engine = EngineClient()
     private struct PreviewKey: Equatable {
         let imageURL: URL
+        let sourceSize: Int?
+        let sourceModified: Date?
         let width: Int
         let height: Int
         let flipHorizontal: Bool
@@ -88,7 +90,7 @@ final class RenderStore: ObservableObject {
         engine.probe(audio: url) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self else { return }
-                guard generation == self.audioGeneration else { return }
+                guard generation == self.audioGeneration, !self.isRendering, !self.terminating else { return }
                 switch result {
                 case .success(let value): self.duration = value; self.status = "Ready to create video."
                 case .failure(let error): self.fail(error)
@@ -132,7 +134,7 @@ final class RenderStore: ObservableObject {
                 self.isRendering = false
                 let exportSeconds = ProcessInfo.processInfo.systemUptime - exportStarted
                 self.diagnostics.append(String(format: "Export wall time: %.3f seconds", exportSeconds))
-                if self.terminating { NSApp.reply(toApplicationShouldTerminate: true); return }
+                if self.terminating { self.finishTerminationWhenIdle(); return }
                 switch result {
                 case .success:
                     self.progress = 1
@@ -155,12 +157,25 @@ final class RenderStore: ObservableObject {
     }
 
     func requestTermination() -> NSApplication.TerminateReply {
-        guard isRendering else { return .terminateNow }
+        guard isRendering || engine.hasPendingWork else { return .terminateNow }
         // Sparkle may request termination without its postponement callback.
-        // Complete the current export before replying; Stop remains user-controlled.
+        // Join every engine worker before its application/runtime is replaced.
         terminating = true
-        status = "Finishing the current video before quitting…"
+        engine.cancelPreview()
+        engine.cancelProbe()
+        if isRendering {
+            // Complete the current export; Stop remains user-controlled.
+            status = "Finishing the current video before quitting…"
+        } else {
+            finishTerminationWhenIdle()
+        }
         return .terminateLater
+    }
+
+    private func finishTerminationWhenIdle() {
+        engine.whenIdle {
+            DispatchQueue.main.async { NSApp.reply(toApplicationShouldTerminate: true) }
+        }
     }
 
     func cancel() {
@@ -172,7 +187,10 @@ final class RenderStore: ObservableObject {
     }
 
     func refreshPreview() {
+        guard !terminating && !isRendering else { return }
         guard let imageURL, let preset = selectedPreset else {
+            engine.cancelPreview()
+            previewGeneration += 1
             lastPreviewKey = nil
             previewImage = nil
             isPreviewLoading = false
@@ -184,7 +202,8 @@ final class RenderStore: ObservableObject {
         let height = ratio >= 1 ? Int(360 / ratio) : 360
         let evenWidth = max(2, width - width % 2)
         let evenHeight = max(2, height - height % 2)
-        let key = PreviewKey(imageURL: imageURL, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical)
+        let source = try? imageURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey])
+        let key = PreviewKey(imageURL: imageURL, sourceSize: source?.fileSize, sourceModified: source?.contentModificationDate, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical)
         if key == lastPreviewKey && previewImage != nil { return }
         lastPreviewKey = key
         previewGeneration += 1
@@ -195,7 +214,7 @@ final class RenderStore: ObservableObject {
         previewFailed = false
 
         let output = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-preview-\(UUID().uuidString).png")
-        engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical) { [weak self] result in
+        engine.preview(image: imageURL, output: output, width: evenWidth, height: evenHeight, flipHorizontal: flipHorizontal, flipVertical: flipVertical, protectedPaths: [audioURL].compactMap { $0 }) { [weak self] result in
             DispatchQueue.main.async {
                 defer { try? FileManager.default.removeItem(at: output) }
                 guard let self, generation == self.previewGeneration else { return }

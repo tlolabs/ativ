@@ -1,6 +1,10 @@
-# ATIV integration with AVID Core 0.3.0
+# ATIV Core integration reports
 
-## Current integration in ATIV 0.2.5
+Current source integration and local qualification: [AVID Core 0.3.1](core-0.3.1-integration.md).
+
+The reports below are historical; source and runtime identities are now independent.
+
+## September 30 integration in ATIV 0.2.5
 
 ATIV consumes the published Core runtime `ffmpeg-9.0.1-r7.1` and pins its Rust library to the matching build commit `25d19098a22936638b0e2a70616083d929fe409c`. Core owns FFmpeg source selection, build options, native compilation and qualification. ATIV's source builder and dependency recipe have been removed.
 

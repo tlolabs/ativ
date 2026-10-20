@@ -180,6 +180,103 @@ final class EngineClientTests: XCTestCase {
         wait(for: [expA, expB, expC], timeout: 20)
     }
 
+    // These process doubles isolate host lifecycle behavior; they do not claim
+    // coverage of Core, FFmpeg, or authenticated runtime acquisition.
+    private func withEngineDouble(_ script: String, perform: (URL) throws -> Void) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-engine-double-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let executable = root.appendingPathComponent("engine")
+        try Data(("#!/bin/sh\n" + script).utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        let previous = ProcessInfo.processInfo.environment["ATIV_ENGINE_PATH"]
+        setenv("ATIV_ENGINE_PATH", executable.path, 1)
+        defer {
+            if let previous { setenv("ATIV_ENGINE_PATH", previous, 1) }
+            else { unsetenv("ATIV_ENGINE_PATH") }
+        }
+        try perform(root)
+    }
+
+    func testFailedPreviewPreservesExistingDestination() throws {
+        try withEngineDouble("echo '{\"event\":\"error\",\"message\":\"invalid artwork\"}'\nexit 1\n") { root in
+            let output = root.appendingPathComponent("existing.png")
+            let previous = Data("previous completed preview".utf8)
+            try previous.write(to: output)
+            let done = expectation(description: "failed preview preserves destination")
+            let client = EngineClient()
+            client.preview(image: root.appendingPathComponent("broken.png"), output: output, width: 160, height: 90,
+                           flipHorizontal: false, flipVertical: false) { result in
+                if case .success = result { XCTFail("Expected invalid artwork failure") }
+                XCTAssertEqual(try? Data(contentsOf: output), previous)
+                done.fulfill()
+            }
+            wait(for: [done], timeout: 5)
+        }
+    }
+
+    func testPublishedExportWinsOverLateCancellation() throws {
+        try withEngineDouble("echo '{\"event\":\"stage\",\"stage\":\"complete\"}'\nread cancellation\nexit 130\n") { root in
+            let client = EngineClient()
+            let done = expectation(description: "published export")
+            client.render(image: root.appendingPathComponent("image.png"), audio: root.appendingPathComponent("audio.wav"),
+                          output: root.appendingPathComponent("output.mp4"),
+                          preset: Preset(platform: "Test", aspect: "16:9", width: 160, height: 90),
+                          bitrate: "128k", fps: 30, flipHorizontal: false, flipVertical: false) { item in
+                if item.stage == "complete" { client.cancelRender() }
+            } completion: { result in
+                if case .failure(let error) = result { XCTFail("Publication must remain successful: \(error)") }
+                done.fulfill()
+            }
+            wait(for: [done], timeout: 5)
+        }
+    }
+
+    func testWorkersSerializeAcrossClientsAndDrainBeforeIdle() throws {
+        try withEngineDouble("echo start >> \"$0.log\"\nsleep 0.1\necho end >> \"$0.log\"\necho '{\"event\":\"probe\",\"duration_seconds\":1}'\n") { root in
+            let clients = [EngineClient(), EngineClient()]
+            let done = expectation(description: "both operations finish")
+            done.expectedFulfillmentCount = 2
+            for client in clients {
+                client.probe(audio: root.appendingPathComponent("audio.wav")) { result in
+                    if case .failure(let error) = result { XCTFail(error.localizedDescription) }
+                    done.fulfill()
+                }
+                XCTAssertTrue(client.hasPendingWork)
+            }
+            let idle = expectation(description: "worker queue drained")
+            clients[0].whenIdle {
+                XCTAssertFalse(clients.contains { $0.hasPendingWork })
+                let log = try? String(contentsOf: root.appendingPathComponent("engine.log"), encoding: .utf8)
+                XCTAssertEqual(log, "start\nend\nstart\nend\n")
+                idle.fulfill()
+            }
+            wait(for: [done, idle], timeout: 5)
+        }
+    }
+
+    @MainActor
+    func testStaleAudioProbeCannotReplaceActiveExportStatus() throws {
+        try withEngineDouble("exit 130\n") { root in
+            let store = RenderStore()
+            store.setAudio(root.appendingPathComponent("audio.wav"))
+            store.isRendering = true
+            defer { store.isRendering = false }
+            store.status = "Creating video…"
+            let done = expectation(description: "stale probe callback ignored")
+            // A queue barrier waits for the process-double probe and its main
+            // queue callback before checking the active export's UI state.
+            EngineClient().whenIdle {
+                DispatchQueue.main.async {
+                    XCTAssertNil(store.errorMessage)
+                    XCTAssertEqual(store.status, "Creating video…")
+                    done.fulfill()
+                }
+            }
+            wait(for: [done], timeout: 5)
+        }
+    }
+
     @MainActor
     func testRenderStorePreviewStateManagement() async {
         let store = RenderStore()

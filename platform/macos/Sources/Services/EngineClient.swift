@@ -18,7 +18,36 @@ enum EngineClientError: LocalizedError, Equatable {
 }
 
 final class EngineClient {
+    // Serial across clients: a superseded process must exit before another Core
+    // operation starts. This also bounds the four artwork probes in each render
+    // and serializes writers to the same destination within the application.
+    private static let worker = DispatchQueue(label: "com.tlolabs.ativ.engine", qos: .userInitiated)
     private let lock = NSLock()
+    private var pendingOperations = 0
+
+    var hasPendingWork: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return pendingOperations != 0
+    }
+
+    func whenIdle(completion: @escaping () -> Void) {
+        Self.worker.async(execute: completion)
+    }
+
+    private func enqueue(_ operation: @escaping () -> Void) {
+        lock.lock()
+        pendingOperations += 1
+        lock.unlock()
+        Self.worker.async {
+            defer {
+                self.lock.lock()
+                self.pendingOperations -= 1
+                self.lock.unlock()
+            }
+            operation()
+        }
+    }
     private var currentRenderId: UUID?
     private var cancelledRenderIds: Set<UUID> = []
     private var renderProcess: Process?
@@ -63,7 +92,10 @@ final class EngineClient {
         }, assign: { [weak self] p in
             self?.lock.lock(); self?.probeProcess = p; self?.lock.unlock()
         }, clear: { [weak self] p in
-            self?.lock.lock(); if self?.probeProcess === p { self?.probeProcess = nil }; self?.lock.unlock()
+            self?.lock.lock()
+            if self?.probeProcess === p { self?.probeProcess = nil }
+            self?.cancelledProbeIds.remove(requestId)
+            self?.lock.unlock()
         }) { result in
             completion(result.map { $0.first(where: { $0.event == "probe" })?.durationSeconds })
         }
@@ -80,9 +112,10 @@ final class EngineClient {
         }
     }
 
-    func preview(image: URL, output: URL, width: Int, height: Int, flipHorizontal: Bool, flipVertical: Bool, completion: @escaping (Result<URL, Error>) -> Void) {
+    func preview(image: URL, output: URL, width: Int, height: Int, flipHorizontal: Bool, flipVertical: Bool, protectedPaths: [URL] = [], completion: @escaping (Result<URL, Error>) -> Void) {
         cancelPreview()
         var arguments = ["preview", "--image", image.path, "--output", output.path, "--width", String(width), "--height", String(height)]
+        for protected in protectedPaths { arguments += ["--protected-path", protected.path] }
         if flipHorizontal { arguments.append("--flip-horizontal") }
         if flipVertical { arguments.append("--flip-vertical") }
 
@@ -99,13 +132,16 @@ final class EngineClient {
         }, assign: { [weak self] p in
             self?.lock.lock(); self?.previewProcess = p; self?.lock.unlock()
         }, clear: { [weak self] p in
-            self?.lock.lock(); if self?.previewProcess === p { self?.previewProcess = nil }; self?.lock.unlock()
+            self?.lock.lock()
+            if self?.previewProcess === p { self?.previewProcess = nil }
+            self?.cancelledPreviewIds.remove(requestId)
+            self?.lock.unlock()
         }) { result in
             switch result {
             case .success:
                 completion(.success(output))
             case .failure(let error):
-                try? FileManager.default.removeItem(at: output)
+                // Core owns staged output cleanup and preserves prior destinations.
                 completion(.failure(error))
             }
         }
@@ -124,6 +160,7 @@ final class EngineClient {
 
     func render(image: URL, audio: URL, output: URL, preset: Preset, bitrate: String, fps: Int, flipHorizontal: Bool, flipVertical: Bool, event: @escaping (EngineEvent) -> Void, completion: @escaping (Result<Void, Error>) -> Void) {
         guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
+        cancelRender()
         cancelPreview()
         cancelProbe()
         var arguments = ["render", "--image", image.path, "--audio", audio.path, "--output", output.path, "--width", String(preset.width), "--height", String(preset.height), "--audio-bitrate", bitrate, "--fps", String(fps)]
@@ -135,9 +172,10 @@ final class EngineClient {
         currentRenderId = requestId
         lock.unlock()
 
-        DispatchQueue.global(qos: .userInitiated).async {
+        enqueue {
             self.lock.lock()
             if self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId {
+                self.cancelledRenderIds.remove(requestId)
                 self.lock.unlock()
                 completion(.failure(EngineClientError.cancelled))
                 return
@@ -157,6 +195,7 @@ final class EngineClient {
                 NSLog("ATIV media engine launch failed: %@", error.localizedDescription)
                 self.lock.lock()
                 if self.renderProcess === process { self.renderProcess = nil }
+                self.cancelledRenderIds.remove(requestId)
                 self.lock.unlock()
                 completion(.failure(EngineClientError.launchFailed))
                 return
@@ -170,8 +209,10 @@ final class EngineClient {
             }
 
             var lastError: String?
+            var published = false
             self.consumeLines(from: stdout.fileHandleForReading) { item in
                 if item.event == "error" { lastError = item.message }
+                if item.stage == "complete" { published = true }
                 event(item)
             }
             process.waitUntilExit()
@@ -179,16 +220,16 @@ final class EngineClient {
             self.lock.lock()
             if self.renderProcess === process { self.renderProcess = nil }
             let isCancelled = self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId
+            self.cancelledRenderIds.remove(requestId)
             self.lock.unlock()
 
-            if isCancelled || process.terminationStatus == 130 {
-                // The engine owns staged output cleanup and preserves any prior destination.
-                completion(.failure(EngineClientError.cancelled))
+            // A late Stop cannot turn an already published output into a failure.
+            if published || process.terminationStatus == 0 {
+                completion(.success(()))
                 return
             }
-
-            if process.terminationStatus == 0 {
-                completion(.success(()))
+            if isCancelled || process.terminationStatus == 130 {
+                completion(.failure(EngineClientError.cancelled))
                 return
             }
             let detail = lastError ?? "The media engine could not finish this operation."
@@ -240,11 +281,12 @@ final class EngineClient {
                             requestId: UUID? = nil,
                             isCancelled: ((UUID) -> Bool)? = nil,
                             assign: ((Process) -> Void)? = nil,
-                            clear: ((Process) -> Void)? = nil,
+                            clear: ((Process?) -> Void)? = nil,
                             completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
         guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
-        DispatchQueue.global(qos: .userInitiated).async {
+        enqueue {
             if let requestId, let isCancelled, isCancelled(requestId) {
+                if let clear { clear(nil) }
                 completion(.failure(EngineClientError.cancelled))
                 return
             }
@@ -271,18 +313,22 @@ final class EngineClient {
                 return
             }
 
+            if let requestId, let isCancelled, isCancelled(requestId) {
+                self.terminateProcessGracefully(process)
+            }
+
             var events: [EngineEvent] = []
             self.consumeLines(from: output.fileHandleForReading) { events.append($0) }
             process.waitUntilExit()
+            let cancelledAfterExit = (requestId != nil && isCancelled != nil) ? isCancelled!(requestId!) : false
             if let clear { clear(process) }
 
-            if let requestId, let isCancelled, isCancelled(requestId) {
+            let published = events.contains { $0.stage == "complete" || $0.event == "complete" }
+            if published || process.terminationStatus == 0 { completion(.success(events)); return }
+            if cancelledAfterExit || process.terminationStatus == 130 {
                 completion(.failure(EngineClientError.cancelled))
                 return
             }
-
-            if process.terminationStatus == 0 { completion(.success(events)); return }
-            if process.terminationStatus == 130 { completion(.failure(EngineClientError.cancelled)); return }
             let message = events.last(where: { $0.event == "error" })?.message ?? "The media engine could not complete this operation."
             completion(.failure(EngineClientError.operationFailed(message)))
         }

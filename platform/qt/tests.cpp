@@ -60,6 +60,41 @@ private slots:
         job.start({"presets"}); QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 5000);
         QCOMPARE(done[0][0].toInt(), -1); QVERIFY(!done[0][1].toString().isEmpty()); QVERIFY(!job.busy());
     }
+    void queuedCancellationDoesNotLaunch() {
+        // Host process doubles isolate queue/cancellation semantics from Core.
+        EngineJob running("/bin/sh"), queued("/bin/sh");
+        QSignalSpy firstDone(&running, &EngineJob::finished), secondDone(&queued, &EngineJob::finished);
+        const auto marker = media.filePath("queued-operation-launched");
+        running.start({"-c", "sleep 0.1"});
+        queued.start({"-c", "echo launched > \"$1\"", "engine", marker});
+        QVERIFY(running.busy()); QVERIFY(queued.busy());
+        queued.cancel(); queued.cancel();
+        QTRY_COMPARE_WITH_TIMEOUT(secondDone.size(), 1, 5000);
+        QCOMPARE(secondDone[0][0].toInt(), 130);
+        QTRY_COMPARE_WITH_TIMEOUT(firstDone.size(), 1, 5000);
+        QVERIFY(!QFileInfo::exists(marker));
+    }
+    void workersSerializeAcrossJobs() {
+        EngineJob first("/bin/sh"), second("/bin/sh");
+        QSignalSpy firstDone(&first, &EngineJob::finished), secondDone(&second, &EngineJob::finished);
+        const auto log = media.filePath("worker-serialization.log");
+        const QString script = "echo start >> \"$1\"; sleep 0.1; echo end >> \"$1\"";
+        first.start({"-c", script, "engine", log});
+        second.start({"-c", script, "engine", log});
+        QTRY_COMPARE_WITH_TIMEOUT(firstDone.size(), 1, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(secondDone.size(), 1, 5000);
+        QCOMPARE(firstDone[0][0].toInt(), 0); QCOMPARE(secondDone[0][0].toInt(), 0);
+        QCOMPARE(contents(log), QByteArray("start\nend\nstart\nend\n"));
+    }
+    void publishedExportWinsOverLateCancellation() {
+        EngineJob job("/bin/sh"); QSignalSpy done(&job, &EngineJob::finished);
+        connect(&job, &EngineJob::eventReceived, &job, [&job](const QJsonObject &event) {
+            if (event["stage"] == "complete") job.cancel();
+        });
+        job.start({"-c", "echo '{\"event\":\"stage\",\"stage\":\"complete\"}'; read cancellation; exit 130"});
+        QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 5000);
+        QCOMPARE(done[0][0].toInt(), 0); QVERIFY(done[0][1].toString().isEmpty());
+    }
     void preferencesAndLegacyMigration() {
         const QString iniPath = media.filePath("legacy-preferences.ini");
         QFile iniFile(iniPath);
@@ -356,7 +391,7 @@ private slots:
     void authoritativeVersion() {
         const QString ver = Preferences::authoritativeVersion();
         QVERIFY(!ver.isEmpty());
-        QCOMPARE(ver, QString("0.2.6"));
+        QCOMPARE(ver, QString("0.2.7"));
     }
 };
 QTEST_MAIN(WorkflowTests)

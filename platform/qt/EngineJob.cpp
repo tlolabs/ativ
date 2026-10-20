@@ -3,6 +3,9 @@
 #include <QJsonDocument>
 #include <QDebug>
 
+QList<QPointer<EngineJob>> EngineJob::waiting;
+bool EngineJob::workerActive = false;
+
 EngineJob::EngineJob(QString enginePath, QObject *parent)
     : QObject(parent), engine(std::move(enginePath)) {
     connect(&process, &QProcess::readyReadStandardOutput, this, [this] { readOutput(); });
@@ -36,18 +39,54 @@ EngineJob::EngineJob(QString enginePath, QObject *parent)
     });
 }
 
+EngineJob::~EngineJob() {
+    waiting.removeAll(this);
+    if (ownsWorker) {
+        // MainWindow normally drains jobs before destruction. Keep the global
+        // worker bound intact if a caller destroys an active standalone job.
+        disconnect(&process, nullptr, this, nullptr);
+        process.kill();
+        process.waitForFinished();
+        ownsWorker = false;
+        workerActive = false;
+        QTimer::singleShot(0, [] { startNext(); });
+    }
+}
+
 void EngineJob::start(const QStringList &arguments) {
     if (active) return;
-    pending.clear(); discardingLine = false; stderrTail.clear(); failure.clear(); cancelled = false; active = true;
-    process.setProgram(engine);
-    process.setArguments(arguments);
-    if (arguments.value(0) != "render") deadline.start(60000);
-    process.start();
+    pending.clear(); discardingLine = false; stderrTail.clear(); failure.clear(); cancelled = false; published = false; active = true;
+    queuedArguments = arguments;
+    waiting.append(this);
+    startNext();
+}
+
+void EngineJob::startNext() {
+    // Each Core render can use four probe workers. One engine operation across
+    // the application bounds aggregate probing and serializes output writers.
+    if (workerActive) return;
+    while (!waiting.isEmpty()) {
+        auto job = waiting.takeFirst();
+        if (!job || !job->active) continue;
+        workerActive = true;
+        job->ownsWorker = true;
+        job->process.setProgram(job->engine);
+        job->process.setArguments(job->queuedArguments);
+        if (job->queuedArguments.value(0) != "render") job->deadline.start(60000);
+        job->process.start();
+        return;
+    }
 }
 
 void EngineJob::cancel() {
+    if (!active || (cancelled && !ownsWorker)) return;
     cancelled = true;
-    if (process.state() == QProcess::Running) process.write("cancel\n");
+    if (!ownsWorker) {
+        waiting.removeAll(this);
+        QTimer::singleShot(0, this, [this] { complete(130); });
+    } else if (process.state() == QProcess::Running) {
+        process.write("cancel\n");
+    }
 }
 
 void EngineJob::readOutput(bool flush) {
@@ -64,6 +103,7 @@ void EngineJob::consumeOutput(const QByteArray &data, bool flush) {
         }
         const auto event = document.object();
         if (event["event"] == "error") failure = event["message"].toString();
+        if (event["stage"] == "complete" || event["event"] == "complete") published = true;
         emit eventReceived(event);
     };
     qsizetype start = 0;
@@ -104,10 +144,13 @@ void EngineJob::consumeOutput(const QByteArray &data, bool flush) {
 void EngineJob::complete(int code) {
     if (!active) return;
     deadline.stop(); killDeadline.stop(); active = false;
+    if (ownsWorker) { ownsWorker = false; workerActive = false; }
+    if (published) { code = 0; failure.clear(); }
     if (code != 0 && failure.isEmpty()) {
         if (!stderrTail.isEmpty()) qWarning().noquote() << "ATIV media engine error:" << QString::fromUtf8(stderrTail);
         failure = "The media operation could not finish. Check the selected files and destination, then try again.";
     }
     if (code == 0 && !failure.isEmpty()) code = -1;
     emit finished(code, failure);
+    startNext();
 }

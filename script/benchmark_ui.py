@@ -25,7 +25,7 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = {
-    'swiftui': ('packages/ATIV-0.2.6-macos-arm64.zip', 'ATIV.app', 'ATIV'),
+    'swiftui': ('packages/ATIV-0.2.7-macos-arm64.zip', 'ATIV.app', 'ATIV'),
     'qt': ('build/qt-macos/ATIV-Qt-macos-arm64.zip', 'ATIV Qt.app', 'ATIV Qt'),
 }
 ALL = tuple(ARTIFACTS)

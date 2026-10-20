@@ -513,6 +513,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 
     connect(&previewJob, &EngineJob::finished, this, [this](int code, const QString &error) {
         if (closing) { close(); return; }
+        if (rendering || updating) return;
         if (previewRevision != revision) { previewDelay.start(); return; }
         if (code == 0) {
             preview->image = QImage(temporary.filePath("preview.png"));
@@ -562,6 +563,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
 
     connect(&probeJob, &EngineJob::finished, this, [this](int code, const QString &error) {
         if (closing) { close(); return; }
+        if (rendering || updating) return;
         if (probedPath != audioPath->text()) { beginProbe(); return; }
         if (code != 0) {
             duration->setText("Could not read audio");
@@ -787,6 +789,7 @@ QStringList MainWindow::compositionArguments(bool forExport) const {
     QStringList args{"--image", imagePath->text(), "--width", QString::number(w), "--height", QString::number(h)};
     if (flipH->isChecked()) args << "--flip-horizontal";
     if (flipV->isChecked()) args << "--flip-vertical";
+    if (!forExport && !audioPath->text().isEmpty()) args << "--protected-path" << audioPath->text();
     return args;
 }
 
@@ -809,7 +812,7 @@ void MainWindow::queuePreview() {
 }
 
 void MainWindow::startPreview() {
-    if (closing || previewJob.busy() || imagePath->text().isEmpty() || resolution->currentIndex() < 0) return;
+    if (closing || updating || rendering || previewJob.busy() || imagePath->text().isEmpty() || resolution->currentIndex() < 0) return;
     if (!temporary.isValid()) {
         previewCaption->setText("Could not create a preview folder.");
         return;
@@ -819,6 +822,7 @@ void MainWindow::startPreview() {
 }
 
 void MainWindow::beginProbe() {
+    if (closing || updating || rendering) return;
     probedPath = audioPath->text();
     if (!probedPath.isEmpty()) {
         probeJob.start({"probe", "--audio", probedPath});
@@ -853,6 +857,9 @@ void MainWindow::startRender() {
         return;
     }
     rendering = true;
+    previewDelay.stop();
+    previewJob.cancel();
+    probeJob.cancel();
     reveal->hide();
     progress->setRange(0, 0);
     setStatus("Preparing video…", true);
@@ -1038,16 +1045,31 @@ void MainWindow::checkForUpdates(bool manual) {
             updating = true;
             updateEnabled();
             status->setText("Downloading update…");
-            updateClient.installOrDownload(this, [this](bool success, const QString &msg) {
-                updating = false;
-                updateEnabled();
-                if (success) {
-                    QMessageBox::information(this, "Update", msg);
-                } else {
-                    QMessageBox::warning(this, "Update Failed", msg);
-                }
-                status->setText(msg);
+            whenEngineIdle([this] {
+                updateClient.installOrDownload(this, [this](bool success, const QString &msg) {
+                    updating = false;
+                    updateEnabled();
+                    if (success) {
+                        QMessageBox::information(this, "Update", msg);
+                    } else {
+                        QMessageBox::warning(this, "Update Failed", msg);
+                    }
+                    status->setText(msg);
+                });
             });
         }
     });
+}
+
+void MainWindow::whenEngineIdle(std::function<void()> completion) {
+    previewDelay.stop();
+    previewJob.cancel();
+    probeJob.cancel();
+    if (renderJob.busy() || previewJob.busy() || probeJob.busy() || presetsJob.busy()) {
+        QTimer::singleShot(50, this, [this, completion = std::move(completion)]() mutable {
+            whenEngineIdle(std::move(completion));
+        });
+        return;
+    }
+    completion();
 }

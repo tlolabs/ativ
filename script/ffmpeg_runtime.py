@@ -143,8 +143,10 @@ def core_identity():
     packages = tomllib.loads((ROOT / 'Cargo.lock').read_text())['package']
     core, = [package for package in packages if package['name'] == 'avid-core']
     source = f"git+{pin['git']}?rev={pin['rev']}#{pin['rev']}"
-    if core['source'] != source or pin['version'] != '=' + core['version'] or pin['rev'] != PIN['revision']:
-        raise ValueError('Core lock differs from the runtime pin')
+    # Rust source and authenticated FFmpeg publication have independent identities.
+    # The runtime plan/receipt remains checked by verify/provision/stage below.
+    if core['source'] != source or pin['version'] != '=' + core['version'] or len(pin['rev']) != 40:
+        raise ValueError('Core lock differs from the workspace source pin')
     return dict(version=core['version'], revision=pin['rev'], source=source)
 
 

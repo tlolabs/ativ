@@ -2,7 +2,7 @@
 
 ## Checkouts and toolchains
 
-Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.0 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
+Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.1 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
 
 Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. CI installs each platform's requirements.
 

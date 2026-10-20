@@ -39,7 +39,7 @@ Published v0.2.4 Windows ZIPs used WinUI and Microsoft Windows App SDK; earlier 
 
 ## AVID Core and Rust dependencies
 
-ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (0.3.0, `25d19098a22936638b0e2a70616083d929fe409c`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and this pinned revision declares GPL-3.0-or-later. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`.
+ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (0.3.1, `15f28236142c100d0a83bf19154ed6f9f5b44e75`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and this pinned revision declares GPL-3.0-or-later. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`.
 
 The exact Rust dependency versions and checksums are in Cargo.lock. The following packages retain their upstream notices and licenses (source archives are available from https://crates.io):
 

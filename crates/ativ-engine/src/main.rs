@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Thomas Lothian
 // SPDX-License-Identifier: GPL-3.0-or-later
+mod artwork;
 mod media_tools;
+mod worker;
 
 use ativ_core::{
     AtivError, CancellationToken, Composition, EventSink, MediaTools, PRESETS, PreviewRequest,
@@ -41,10 +43,23 @@ fn run() -> ativ_core::Result<()> {
     let mut arguments = env::args().skip(1);
     let command = arguments.next().unwrap_or_else(|| "help".into());
     let parsed = Arguments::parse(arguments.collect())?;
-    let token = if matches!(command.as_str(), "check" | "probe" | "preview" | "render") {
+    let token = if matches!(
+        command.as_str(),
+        "check" | "probe" | "inspect-image" | "preview" | "render"
+    ) {
         stdin_cancellation()
     } else {
         CancellationToken::default()
+    };
+    // The GUI calls this process from application workers. A process-wide/user
+    // permit also bounds multiple windows/instances and serializes destinations.
+    let _worker = if matches!(
+        command.as_str(),
+        "check" | "probe" | "inspect-image" | "preview" | "render"
+    ) {
+        Some(worker::acquire(&token)?)
+    } else {
+        None
     };
     match command.as_str() {
         "help" | "--help" | "-h" => {
@@ -100,9 +115,24 @@ fn run() -> ativ_core::Result<()> {
             );
             Ok(())
         }
+        "inspect-image" => {
+            let renderer = Renderer::new(tools(&parsed, &token)?);
+            if parsed.images.is_empty() {
+                return Err(AtivError::InvalidInput("--image is required.".into()));
+            }
+            for image in &parsed.images {
+                let (width, height) = renderer.inspect_image(image, &token)?;
+                println!(
+                    "{}",
+                    serde_json::json!({"event": "image", "width": width, "height": height})
+                );
+            }
+            Ok(())
+        }
         "preview" => {
-            let tools = tools(&parsed, &token)?;
-            Renderer::new(tools).preview(
+            let renderer = Renderer::new(tools(&parsed, &token)?);
+            let events = JsonEvents::new();
+            renderer.preview(
                 &PreviewRequest {
                     image: parsed.required_path("image")?,
                     output: parsed.required_path("output")?,
@@ -114,31 +144,28 @@ fn run() -> ativ_core::Result<()> {
                         flip_vertical: parsed.flags.contains("flip-vertical"),
                         ..Default::default()
                     },
-                    protected_paths: vec![],
+                    protected_paths: protected_paths(&parsed, &renderer),
                 },
                 &token,
-                &(),
+                &events,
             )?;
+            events.flush_log();
             println!("{{\"event\":\"complete\",\"kind\":\"preview\"}}");
             Ok(())
         }
         "render" => {
             let started = Instant::now();
-            let mode = match parsed
-                .values
-                .get("render-mode")
-                .map(String::as_str)
-                .unwrap_or("simple")
-            {
-                "simple" => RenderMode::Simple,
-                "current" => RenderMode::PerFrame,
+            let requested_mode = match parsed.values.get("render-mode").map(String::as_str) {
+                None | Some("auto") => None,
+                Some("simple") => Some(RenderMode::Simple),
+                Some("current") => Some(RenderMode::PerFrame),
                 _ => {
                     return Err(AtivError::InvalidInput(
                         "--render-mode must be simple or current.".into(),
                     ));
                 }
             };
-            let tools = tools(&parsed, &token)?;
+            let renderer = Renderer::new(tools(&parsed, &token)?);
             let request = RenderRequest {
                 image: parsed.required_path("image")?,
                 audio: parsed.required_path("audio")?,
@@ -158,13 +185,14 @@ fn run() -> ativ_core::Result<()> {
                 flip_horizontal: parsed.flags.contains("flip-horizontal"),
                 flip_vertical: parsed.flags.contains("flip-vertical"),
             };
+            // Container classification controls playback only. Core inspects and
+            // validates artwork inside the normal stage/timing lifecycle below.
+            let mode =
+                requested_mode.unwrap_or_else(|| artwork::default_mode(&request.image, &token));
+            let mut request = request.into_shared();
+            request.protected_paths = protected_paths(&parsed, &renderer);
             let events = JsonEvents::new();
-            let result = Renderer::new(tools).render_with_mode(
-                &request.into_shared(),
-                mode,
-                &token,
-                &events,
-            );
+            let result = renderer.render_with_mode(&request, mode, &token, &events);
             let seconds = started.elapsed().as_secs_f64();
             events.log(&format!(
                 "export wall time: {seconds:.6}s; mode: {mode:?}; success: {}",
@@ -211,10 +239,28 @@ fn tools(arguments: &Arguments, token: &CancellationToken) -> ativ_core::Result<
     )
 }
 
+fn protected_paths(arguments: &Arguments, renderer: &Renderer) -> Vec<PathBuf> {
+    let mut paths = arguments.protected.clone();
+    paths.push(worker::lock_path());
+    paths.extend([
+        renderer.tools().ffmpeg().to_owned(),
+        renderer.tools().ffprobe().to_owned(),
+    ]);
+    paths.extend(env::current_exe().ok());
+    paths.extend(
+        env::var_os("ATIV_LOG_PATH")
+            .map(PathBuf::from)
+            .or_else(default_diagnostic_log_path),
+    );
+    paths
+}
+
 #[derive(Default)]
 struct Arguments {
     values: HashMap<String, String>,
     flags: HashSet<String>,
+    images: Vec<PathBuf>,
+    protected: Vec<PathBuf>,
 }
 
 impl Arguments {
@@ -236,6 +282,11 @@ impl Arguments {
                     .get(index + 1)
                     .ok_or_else(|| AtivError::InvalidInput(format!("--{key} requires a value.")))?
                     .to_owned();
+                match key.as_str() {
+                    "image" => parsed.images.push(PathBuf::from(&value)),
+                    "protected-path" => parsed.protected.push(PathBuf::from(&value)),
+                    _ => {}
+                }
                 parsed.values.insert(key, value);
                 index += 2;
             }
@@ -455,7 +506,7 @@ fn escape(value: &str) -> std::borrow::Cow<'_, str> {
 
 fn print_help() {
     println!(
-        "A.T.I.V. shared engine\n\nCommands:\n  build-info  Report application and pinned AVID Core identity\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode simple|current] [--flip-horizontal] [--flip-vertical]\n\nBy default, ATIV uses only its packaged runtime. The --ffmpeg and --ffprobe overrides must be supplied together and are for development/tests.\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
+        "A.T.I.V. shared engine\n\nCommands:\n  build-info  Report application and pinned AVID Core identity\n  check [--ffmpeg PATH --ffprobe PATH]\n  presets\n  probe --audio PATH\n  inspect-image --image PATH [--image PATH ...]\n  preview --image PATH --output PATH --width N --height N [--flip-horizontal] [--flip-vertical]\n  render --image PATH --audio PATH --output PATH --width N --height N [--audio-bitrate 128k] [--fps 30] [--render-mode auto|simple|current] [--flip-horizontal] [--flip-vertical]\n\nBy default, ATIV uses only its packaged runtime. The --ffmpeg and --ffprobe overrides must be supplied together and are for development/tests.\n\nPreview/render also accept repeatable --protected-path PATH for project and other source files. Auto uses Simple for verified single-image PNG/JPEG/BMP; potentially animated containers retain current (PerFrame) playback.\n\nDuring a media operation, write 'cancel' followed by a newline to standard input to stop safely."
     );
 }
 

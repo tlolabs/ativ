@@ -12,7 +12,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.6"
+      "version": "0.2.7"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -21,7 +21,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.6"
+      "version": "0.2.7"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -33,7 +33,7 @@
         "linux-x64",
         "linux-arm64"
       ],
-      "version": "0.2.6"
+      "version": "0.2.7"
     },
     {
       "checksum": "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0",
@@ -50,11 +50,11 @@
       "license": "GPL-3.0-or-later",
       "name": "avid-core",
       "scope": "required",
-      "source": "git+https://github.com/tlolabs/avid-core?rev=25d19098a22936638b0e2a70616083d929fe409c#25d19098a22936638b0e2a70616083d929fe409c",
+      "source": "git+https://github.com/tlolabs/avid-core.git?rev=15f28236142c100d0a83bf19154ed6f9f5b44e75#15f28236142c100d0a83bf19154ed6f9f5b44e75",
       "targets": [
         "all"
       ],
-      "version": "0.3.0"
+      "version": "0.3.1"
     },
     {
       "checksum": "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6",
@@ -2150,7 +2150,7 @@
     }
   ],
   "project": "ATIV",
-  "projectVersion": "0.2.6",
+  "projectVersion": "0.2.7",
   "schema": 1,
   "source": {
     "cargo": "Cargo.lock",

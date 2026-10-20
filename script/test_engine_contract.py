@@ -141,7 +141,9 @@ def main():
         # Every actual preset remains usable; PNG format does not follow the suffix.
         for index, preset in enumerate(presets):
             preview = root / 'preview.custom'
-            assert invoke('preview', '--image', image, '--output', preview, '--width', preset['width'], '--height', preset['height']) == [{'event': 'complete', 'kind': 'preview'}]
+            events = invoke('preview', '--image', image, '--output', preview, '--width', preset['width'], '--height', preset['height'])
+            assert [e['stage'] for e in events if e['event'] == 'stage'] == ['validating', 'probing', 'compositing', 'publishing', 'complete']
+            assert events[-1] == {'event': 'complete', 'kind': 'preview'}
             stream = info(preview)['streams'][0]
             assert (stream['codec_name'], stream['width'], stream['height']) == ('png', preset['width'], preset['height'])
         # Five aspect families and all flip combinations, including both layers.
@@ -166,7 +168,7 @@ def main():
             audio = audio_paths[channels - 1]
             output = root / f'video {index}.custom'
             output.write_bytes(b'existing output to replace')
-            args = ['--image', image, '--audio', audio, '--width', 160, '--height', 90, '--fps', fps, '--audio-bitrate', bitrate, '--flip-horizontal', '--flip-vertical']
+            args = ['--image', image, '--audio', audio, '--width', 160, '--height', 90, '--fps', fps, '--audio-bitrate', bitrate, '--render-mode', 'simple', '--flip-horizontal', '--flip-vertical']
             events = invoke('render', *args, '--output', output)
             stages = [e['stage'] for e in events if e['event'] == 'stage']
             assert stages == ['validating', 'probing', 'compositing', 'encoding', 'publishing', 'complete'], stages

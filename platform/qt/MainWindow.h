@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <functional>
 
 class QLineEdit;
 class QComboBox;
@@ -58,6 +59,7 @@ private:
     void showPreferences();
     void showAbout();
     void checkForUpdates(bool manual);
+    void whenEngineIdle(std::function<void()> completion);
 
     static QString resolveEnginePath(const QString &specified);
 

@@ -72,4 +72,21 @@ Appearance and media workflow state are shared by the Qt implementation on Windo
 
 `assets/icons` owns artwork; `generate_icons.py` converts it into tracked native resources. Distribution identity and versions are generated from the workspace version plus the CI development build number. Stable/development feeds and application identities are separate.
 
-Core 0.3.0 is pinned at `25d19098a22936638b0e2a70616083d929fe409c`, matching the published runtime build. Staging calls `MediaTools::from_core_directory` to validate the original Core package. Production calls `MediaTools::from_paths` after ATIV verifies its signed bundle against the pinned original metadata and signed binary hashes. This preserves platform signing without changing Core's original qualification records. `ativ-engine build-info` identifies the compiled source dependency; package provenance must match the compiled application version, including development versions.
+Core 0.3.1 is pinned at `15f28236142c100d0a83bf19154ed6f9f5b44e75`. The Rust source identity is independent of the authenticated FFmpeg runtime pin, which is unchanged. Staging calls `MediaTools::from_core_directory` to validate the original Core package. Complete Core runtime pairs use `MediaTools::from_core_directory` with no fallback on invalid metadata. Production signed bundles use `MediaTools::from_paths` after ATIV verifies its signed bundle against the pinned original metadata and signed binary hashes. This preserves platform signing without changing Core's original qualification records. `ativ-engine build-info` identifies the compiled source dependency; package provenance must match the compiled application version, including development versions.
+
+
+The engine selects Simple only for verified single-image PNG/JPEG/BMP containers.
+It keeps PerFrame for APNG, concatenated images, PNM, WebP, GIF, TIFF, and unknown
+containers, retaining their existing playback behavior. Explicit `simple` and
+`current` modes remain available. Core owns all composition/filter construction;
+ATIV's bounded container check chooses playback policy only. See the
+[0.3.1 integration and local evidence](core-0.3.1-integration.md).
+
+Media commands hold a cancellable OS worker permit across ATIV engine processes
+for the current user. Native clients also queue work and drain workers before
+runtime/application replacement. Additional project/source paths can be supplied
+with repeatable `--protected-path`; the engine protects its tools, executable,
+diagnostic log, and worker lock as well. Core protects the active media inputs.
+`inspect-image --image PATH [--image PATH ...]` shares one Renderer and probe cache.
+The process protocol remains request-per-process; caches are not shared across
+separate GUI engine launches.

@@ -6,4 +6,9 @@ RUNTIME="$(python3 "$ROOT_DIR/script/ffmpeg_runtime.py" provision "$TARGET")"
 cargo build --manifest-path "$ROOT_DIR/Cargo.toml" --locked -p ativ-engine
 ENGINE="$ROOT_DIR/target/debug/ativ-engine"
 [[ "$TARGET" != windows-* ]] || ENGINE="$ENGINE.exe"
-python3 "$ROOT_DIR/script/test_ffmpeg_runtime.py" --engine "$ENGINE" --runtime "$RUNTIME" --target "$(python3 -c 'import sys;sys.path.insert(0,sys.argv[1]);from ffmpeg_runtime import target_id;print(target_id(sys.argv[2]))' "$ROOT_DIR/script" "$TARGET")"
+CORE_TARGET="$(python3 -c 'import sys;sys.path.insert(0,sys.argv[1]);from ffmpeg_runtime import target_id;print(target_id(sys.argv[2]))' "$ROOT_DIR/script" "$TARGET")"
+# Keep both diagnostic suites running even if one reports a failure.
+RESULT=0
+python3 "$ROOT_DIR/script/test_ffmpeg_runtime.py" --engine "$ENGINE" --runtime "$RUNTIME" --target "$CORE_TARGET" || RESULT=1
+python3 "$ROOT_DIR/script/test_core_rendering.py" --engine "$ENGINE" --runtime "$RUNTIME" --target "$CORE_TARGET" || RESULT=1
+exit "$RESULT"
