@@ -199,7 +199,7 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ATIV/packages/*
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ATIV-macos-${{ matrix.arch }}
           path: ATIV/packages/*
@@ -290,7 +290,7 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ATIV/packages/*
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ATIV-windows-${{ matrix.arch }}
           path: ATIV/packages/*
@@ -371,7 +371,7 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ATIV/packages/*
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ATIV-linux-${{ matrix.arch }}
           path: ATIV/packages/*
@@ -419,7 +419,7 @@ jobs:
         run: |
           python3 script/create_smoke_media.py build/native-fixtures
           ATIV_ENGINE_PATH="$PWD/build/qt-macos/ATIV Qt.app/Contents/MacOS/ativ-engine" python3 script/test_engine_fixtures.py "$PWD/build/native-fixtures"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ATIV-INTERNAL-REFERENCE-macos-arm64
           path: ATIV/build/qt-macos/ATIV-Qt-macos-arm64.zip
