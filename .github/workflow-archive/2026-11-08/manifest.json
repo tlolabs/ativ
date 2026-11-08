@@ -1,0 +1,67 @@
+{
+  "repository": "tlolabs/ativ",
+  "archived_on": "2026-11-08",
+  "workflows": [
+    {
+      "name": "Attest and verify native Linux AppImages",
+      "workflow_id": 374798902,
+      "original_path": ".github/workflows/attest-linux.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/attest-linux.yml",
+      "sha256": "5694f768e52696a4ad52a2680c5b05500498a3d1a6da00888f097b441b75b3ab"
+    },
+    {
+      "name": "FFmpeg Windows source diagnostic",
+      "workflow_id": 363068851,
+      "original_path": ".github/workflows/ffmpeg-diagnostic.yml",
+      "archive_status": "already_absent_from_default_branch; historical workflow registration disabled"
+    },
+    {
+      "name": "Native build, test, and package",
+      "workflow_id": 356870882,
+      "original_path": ".github/workflows/native-release.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/native-release.yml",
+      "sha256": "cf1be96106d403f0dddec5f703480fc196acb6a3997a907f442408e166921e22"
+    },
+    {
+      "name": "Publish independently verified native platforms",
+      "workflow_id": 381622492,
+      "original_path": ".github/workflows/publish-recovered-artifacts.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/publish-recovered-artifacts.yml",
+      "sha256": "97ee33749144ab55408d4f0d2da613db3f8a55ae3123fdc4ca60dff07bc90b25"
+    },
+    {
+      "name": "Recipe 7 host qualification (no publication)",
+      "workflow_id": 360074484,
+      "original_path": ".github/workflows/recipe7-qualification.yml",
+      "archive_status": "already_absent_from_default_branch; historical workflow registration disabled"
+    },
+    {
+      "name": "Report CI/CD failures",
+      "workflow_id": 381622493,
+      "original_path": ".github/workflows/report-ci-failures.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/report-ci-failures.yml",
+      "sha256": "de96d9128591d2f799cc4819a6499737e4070e5694f834c749bfb989dde35b09"
+    },
+    {
+      "name": "Retry failed verification workflows",
+      "workflow_id": 381622494,
+      "original_path": ".github/workflows/retry-failed-verification.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/retry-failed-verification.yml",
+      "sha256": "f76948eabfb451187bbec3d0b7b5e6e5dc68f0f635a854f1b60b20a109e1fbd9"
+    },
+    {
+      "name": "Sign Windows portable packages with Azure",
+      "workflow_id": 371800007,
+      "original_path": ".github/workflows/sign-windows.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/sign-windows.yml",
+      "sha256": "e913f4ec4a42027e94966a4169f364663f160a0f9892fd6c1395a1b8c1d055b8"
+    },
+    {
+      "name": "Verify locally notarized Mac qualification packages",
+      "workflow_id": 371800008,
+      "original_path": ".github/workflows/verify-macos.yml",
+      "archive_path": ".github/workflow-archive/2026-11-08/verify-macos.yml",
+      "sha256": "ccb53fda3f085953b6658838c8a6af1e961037de896a80ae1ea3af794adc806b"
+    }
+  ]
+}
