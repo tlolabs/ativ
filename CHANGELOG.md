@@ -4,6 +4,30 @@ Notable changes to ATIV are recorded here using a [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Added
+
+- Optional offline transcription on Apple silicon with macOS 14+, using the verified shared AVID Core model catalog and model cache through an isolated helper.
+- Native model installation/import/verification, transcript corrections and realignment, versioned source-bound documents, word-highlight caption preview, and SRT/WebVTT sidecars.
+- Reproducible reviewed-source acquisition, nested helper resources and Swift runtime packaging, dependency/model notices, cancellation and update/quit coordination.
+
+### Limitations
+
+- Existing macOS 13/Intel and Windows/Linux media workflows remain supported; these Apple transcription engines are unavailable there. MP4 caption burn-in requires an additional shared Core render contract.
+
+## [0.2.8] — 2026-10-29
+
+### Fixed
+
+- Collect dependency licenses when invoked outside the repository, including relative destination paths.
+- Accept native macOS file drops and raw paths without changing literal filename characters or spaces; reject remote and relative URLs.
+- Regenerate suggested output names when they collide with either media input, including repeated filename collisions and file aliases.
+- Recognize normalized paths, symbolic links, hard links, and filesystem case behavior when protecting source files in both frontends; preserve distinct custom destinations and Qt filenames containing trailing spaces.
+
+### Changed
+
+- Align workspace, Qt, dependency inventory, and local benchmark package selection with version 0.2.8.
+- Isolate Qt workflow and accessibility test preferences in temporary directories.
+
 ## [0.2.7] — 2026-10-20
 
 ### Changed

@@ -27,13 +27,24 @@ struct ATIVApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     @StateObject private var store = RenderStore()
+    @StateObject private var transcription = TranscriptionStore()
     @AppStorage("appearance") private var appearance = "system"
 
     var body: some Scene {
         WindowGroup("ATIV", id: "main") {
-            ContentView(store: store)
+            ContentView(store: store, transcription: transcription)
                 .onAppear {
-                    AppDelegate.requestTermination = { store.requestTermination() }
+                    store.additionalWorkInProgress = { transcription.isBusy }
+                    store.drainAdditionalWork = { completion in
+                        Task { await transcription.cancelAndWait(); completion() }
+                    }
+                    transcription.workStateChanged = { store.updateWorkState() }
+                    store.updateWorkState()
+                    AppDelegate.requestTermination = {
+                        guard transcription.confirmTerminationWithUnsavedChanges() else { return .terminateCancel }
+                        transcription.close()
+                        return store.requestTermination()
+                    }
                     applyAppearance()
                 }
                 .onChange(of: appearance) { _ in applyAppearance() }

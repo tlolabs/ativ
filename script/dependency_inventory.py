@@ -5,10 +5,12 @@
 
 import argparse
 import datetime
+import hashlib
 import json
 import re
 import subprocess
 import sys
+import tarfile
 import tomllib
 from pathlib import Path
 import uuid
@@ -16,6 +18,7 @@ import uuid
 ROOT = Path(__file__).resolve().parent.parent
 INVENTORY = ROOT / "docs/dependency-inventory.json"
 UUID_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+TRANSCRIPTION_BUNDLE_SHA256 = "f4555615571d54b96d714be26caf0484f6049835065d7215820c3244bf761c5a"
 
 # Crates that are only compiled into ativ-update (shipped on Windows and Linux, omitted on macOS prod)
 UPDATER_ONLY_CRATES = {
@@ -56,6 +59,81 @@ def format_cyclonedx_licenses(license_str):
         return [{"license": {"name": clean}}]
     # Standard atomic SPDX ID
     return [{"license": {"id": clean}}]
+
+
+def transcription_inventory():
+    """Read exact reviewed inputs without requiring an extracted checkout or SDK cache."""
+    folder = ROOT / "vendor/avid-transcription"
+    manifest = json.loads((folder / "AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json").read_text())
+    bundle = folder / manifest["source_bundle"]
+    actual = hashlib.sha256(bundle.read_bytes()).hexdigest()
+    if actual != TRANSCRIPTION_BUNDLE_SHA256 or manifest["source_bundle_sha256"] != actual:
+        raise ValueError("Reviewed transcription source archive digest mismatch")
+    files = {entry["path"]: entry for entry in manifest["files"]}
+    with tarfile.open(bundle, "r:gz") as archive:
+        def read_json(path):
+            data = archive.extractfile("avid-core-transcription/" + path).read()
+            expected = files[path]
+            if len(data) != expected["size_bytes"] or hashlib.sha256(data).hexdigest() != expected["sha256"]:
+                raise ValueError("Reviewed transcription input digest mismatch: " + path)
+            return json.loads(data)
+
+        pins = read_json("apple/AVIDTranscriptionEngines/Package.resolved")["pins"]
+        catalog_path = "apple/AVIDTranscription/Sources/AVIDTranscription/Resources/models.json"
+        catalog = read_json(catalog_path)
+
+    feature = {
+        "scope": "optional",
+        "delivery": "shipped in transcription helper",
+        "targets": ["macos-arm64"],
+        "minimumOS": "macOS 14.0",
+    }
+    inputs = [{
+        **feature,
+        "name": "AVID Core Apple transcription snapshot",
+        "version": actual,
+        "sha256": actual,
+        "license": "GPL-3.0-or-later",
+        "source": str(bundle.relative_to(ROOT)),
+        "reviewSnapshotSHA256": manifest["review_snapshot_sha256"],
+        "description": "Reviewed frozen Apple source; baseline commit does not contain these uncommitted packages",
+    }]
+    # Direct licenses are established by the frozen THIRD_PARTY_NOTICES.md.
+    # Transitive license texts are collected from their pinned build checkouts by packaging.
+    direct_licenses = {
+        "argmax-oss-swift": "MIT", "fluidaudio": "Apache-2.0",
+        "mlx-audio-swift": "MIT", "mlx-swift": "MIT",
+    }
+    for pin in sorted(pins, key=lambda item: item["identity"]):
+        state = pin["state"]
+        item = {
+            **feature,
+            "name": pin["identity"],
+            "version": state.get("version", state["revision"]),
+            "revision": state["revision"],
+            "source": pin["location"],
+            "ecosystem": "SwiftPM",
+            "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+        }
+        if pin["identity"] in direct_licenses:
+            item["license"] = direct_licenses[pin["identity"]]
+        inputs.append(item)
+
+    models = [{
+        "id": model["id"],
+        "displayName": model["displayName"],
+        "role": model["role"],
+        "repository": model["repository"],
+        "revision": model["revision"],
+        "downloadBytes": sum(artifact["sizeBytes"] for artifact in model["artifacts"]),
+        "artifactCount": len(model["artifacts"]),
+        "catalogSHA256": files[catalog_path]["sha256"],
+        "license": model["license"],
+        "delivery": "optional anonymous upstream download; weights are not bundled",
+        "targets": ["macos-arm64"],
+        "minimumOS": "macOS 14.0",
+    } for model in catalog["models"]]
+    return inputs, models
 
 
 def inventory():
@@ -220,6 +298,8 @@ def inventory():
             "description": "Qt image format plugins",
         },
     ]
+    transcription_inputs, model_downloads = transcription_inventory()
+    native_inputs.extend(transcription_inputs)
 
     build_inputs = [
         line.strip()
@@ -231,9 +311,13 @@ def inventory():
         "schema": 1,
         "project": "ATIV",
         "projectVersion": workspace["workspace"]["package"]["version"],
-        "source": {"cargo": "Cargo.lock", "ffmpeg": "runtime/platform-runtimes.json"},
+        "source": {
+            "cargo": "Cargo.lock", "ffmpeg": "runtime/platform-runtimes.json",
+            "transcription": "vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json",
+        },
         "lockedRustPackages": packages,
         "nativeInputs": native_inputs,
+        "optionalModelDownloads": model_downloads,
         "buildInputs": build_inputs,
     }
 
@@ -287,6 +371,13 @@ def sbom(data, target=None):
             component["licenses"] = licenses
         if package.get("description"):
             component["description"] = package["description"]
+        if package.get("source", "").startswith("https://"):
+            component["externalReferences"] = [{"type": "vcs", "url": package["source"]}]
+        properties = [{"name": "ativ:" + field, "value": str(package[field])}
+                      for field in ("revision", "minimumOS", "delivery", "reviewSnapshotSHA256")
+                      if field in package]
+        if properties:
+            component["properties"] = properties
         components.append(component)
 
     # Process build-only inputs

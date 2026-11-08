@@ -47,6 +47,8 @@ def validate(root,target):
         info=plistlib.loads((contents/'Info.plist').read_bytes()); assert info['LSMinimumSystemVersion']=='13.0'
         assert info['CFBundleIconFile']=='ATIV'
         assert (contents/'Frameworks/Sparkle.framework').is_dir()
+        from transcription_runtime import validate as validate_transcription
+        validate_transcription(root, target)
     elif target.startswith('windows'):
         binary=root;icons=[root/'Assets/ATIV.ico'];names=['ATIV.exe','ativ-engine.exe','ativ-update.exe','ffmpeg.exe','ffprobe.exe']
     else:

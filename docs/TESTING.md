@@ -12,9 +12,9 @@ python3 script/dependency_inventory.py --check
 python3 script/test_engine_fixtures.py build/native-fixtures
 ```
 
-The release infrastructure tests use the pinned Python requirements and `script/test_release_infrastructure.py`. Run `./script/test_engine_integration.sh macos-arm64` to test the acquired Core runtime, media operations, cancellation and rejection of missing or damaged package files. ATIV has no independent FFmpeg source-builder tests. Native CI runs the same package and media tests on each target when `owner_testing=false`. Owner build mode skips acceptance tests; a build result alone does not establish that they passed. Record platform-specific validation in [the acceptance matrix](acceptance-matrix.md).
+The release infrastructure tests use the pinned Python requirements and `script/test_release_infrastructure.py`. Run `./script/test_engine_integration.sh macos-arm64` to test the acquired Core runtime, media operations, cancellation and rejection of missing or damaged package files. ATIV has no independent FFmpeg source-builder tests. The archived native workflow describes the same package and media tests for each target when `owner_testing=false`. Owner build mode skips acceptance tests; a build result alone does not establish that they passed. Record platform-specific validation in [the acceptance matrix](acceptance-matrix.md).
 
-The main personally tested platform is macOS (ARM64). GitHub CI currently builds and tests macOS (ARM64/x64), Windows (x64/ARM64) and Linux (x64/ARM64), subject to the actual status of each run. A release may omit a platform whose required jobs failed; check its release notes and checksums.
+The main personally tested platform is macOS (ARM64). Archived recipes cover macOS (ARM64/x64), Windows (x64/ARM64) and Linux (x64/ARM64). Legacy workflows are inactive; the weekly tagged-release smoke policy in AGENTS.md is authoritative. Run applicable archived commands locally, without re-enabling or dispatching the workflows. A release may omit a platform whose required jobs failed; check its release notes and checksums.
 
 For native Mac process tests, select full Xcode so XCTest is available, create the fixtures, and point the client tests at the packaged engine:
 
@@ -26,4 +26,6 @@ ATIV_ENGINE_PATH="$PWD/build/package-macos-arm64/ATIV.app/Contents/MacOS/ativ-en
 swift test --package-path platform/macos --scratch-path build/native-tests
 ```
 
-Shared Qt smoke checks start the application bundle and decode 27 engine presets. The native Python integration harness (`script/test_engine_fixtures.py`) probes, previews and exports through the packaged engine. The Qt test suite (`ativ-qt-tests`) verifies missing engine detection, INI migration, preferences roundtrip, preview scaling, destination path validation, render export, cancellation, and smoke reports. CI runs native tests on both Windows and Linux; the internal Mac reference is an additional build and launch gate, never a production release artifact. Manual Narrator/Orca checks remain necessary.
+Shared Qt smoke checks start the application bundle and decode 27 engine presets. The native Python integration harness (`script/test_engine_fixtures.py`) probes, previews and exports through the packaged engine. The Qt test suite (`ativ-qt-tests`) verifies missing engine detection, INI migration, preferences roundtrip, preview scaling, destination path validation, render export, cancellation, and smoke reports. Native tests require their respective Windows and Linux hosts; the internal Mac reference is an additional build and launch check, never a production release artifact. Manual Narrator/Orca checks remain necessary.
+
+Both Qt test suites set `ATIV_PREFERENCES_DIR` to a temporary directory so they do not read or overwrite personal application settings. The application uses its standard settings location when this override is absent.

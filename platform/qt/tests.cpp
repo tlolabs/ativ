@@ -5,6 +5,9 @@
 #include <QtTest>
 #include <QtWidgets>
 #include <QJsonDocument>
+#include <filesystem>
+#include <cstdio>
+#include <cstring>
 
 class WorkflowTests : public QObject {
     Q_OBJECT
@@ -50,6 +53,7 @@ private slots:
         engine = qEnvironmentVariable("ATIV_QT_TEST_ENGINE");
         QVERIFY2(QFileInfo::exists(engine), "Set ATIV_QT_TEST_ENGINE to the packaged engine");
         QVERIFY(media.isValid());
+        qputenv("ATIV_PREFERENCES_DIR", media.filePath("preferences").toUtf8());
         image = media.filePath("artwork ü.png"); audio = media.filePath("audio ü.wav");
         QImage artwork(96, 64, QImage::Format_RGB32);
         for (int y=0; y<64; ++y) for (int x=0; x<96; ++x) artwork.setPixelColor(x,y,x<48 ? QColor(230,40,30) : QColor(20,80,220));
@@ -62,11 +66,11 @@ private slots:
     }
     void queuedCancellationDoesNotLaunch() {
         // Host process doubles isolate queue/cancellation semantics from Core.
-        EngineJob running("/bin/sh"), queued("/bin/sh");
+        EngineJob running(QCoreApplication::applicationFilePath()), queued(QCoreApplication::applicationFilePath());
         QSignalSpy firstDone(&running, &EngineJob::finished), secondDone(&queued, &EngineJob::finished);
         const auto marker = media.filePath("queued-operation-launched");
-        running.start({"-c", "sleep 0.1"});
-        queued.start({"-c", "echo launched > \"$1\"", "engine", marker});
+        running.start({"--ativ-process-double", "sleep"});
+        queued.start({"--ativ-process-double", "marker", marker});
         QVERIFY(running.busy()); QVERIFY(queued.busy());
         queued.cancel(); queued.cancel();
         QTRY_COMPARE_WITH_TIMEOUT(secondDone.size(), 1, 5000);
@@ -75,23 +79,22 @@ private slots:
         QVERIFY(!QFileInfo::exists(marker));
     }
     void workersSerializeAcrossJobs() {
-        EngineJob first("/bin/sh"), second("/bin/sh");
+        EngineJob first(QCoreApplication::applicationFilePath()), second(QCoreApplication::applicationFilePath());
         QSignalSpy firstDone(&first, &EngineJob::finished), secondDone(&second, &EngineJob::finished);
         const auto log = media.filePath("worker-serialization.log");
-        const QString script = "echo start >> \"$1\"; sleep 0.1; echo end >> \"$1\"";
-        first.start({"-c", script, "engine", log});
-        second.start({"-c", script, "engine", log});
+        first.start({"--ativ-process-double", "serialize", log});
+        second.start({"--ativ-process-double", "serialize", log});
         QTRY_COMPARE_WITH_TIMEOUT(firstDone.size(), 1, 5000);
         QTRY_COMPARE_WITH_TIMEOUT(secondDone.size(), 1, 5000);
         QCOMPARE(firstDone[0][0].toInt(), 0); QCOMPARE(secondDone[0][0].toInt(), 0);
         QCOMPARE(contents(log), QByteArray("start\nend\nstart\nend\n"));
     }
     void publishedExportWinsOverLateCancellation() {
-        EngineJob job("/bin/sh"); QSignalSpy done(&job, &EngineJob::finished);
+        EngineJob job(QCoreApplication::applicationFilePath()); QSignalSpy done(&job, &EngineJob::finished);
         connect(&job, &EngineJob::eventReceived, &job, [&job](const QJsonObject &event) {
             if (event["stage"] == "complete") job.cancel();
         });
-        job.start({"-c", "echo '{\"event\":\"stage\",\"stage\":\"complete\"}'; read cancellation; exit 130"});
+        job.start({"--ativ-process-double", "published"});
         QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 5000);
         QCOMPARE(done[0][0].toInt(), 0); QVERIFY(done[0][1].toString().isEmpty());
     }
@@ -170,8 +173,139 @@ private slots:
         window.setOutput(media.filePath("valid.mp4"));
         QVERIFY(createBtn->isEnabled());
 
+        // Test output collision resolution when audio path matches suggested image output
+        MainWindow window2(engine);
+        QSignalSpy ready2(&window2, &MainWindow::presetsReady);
+        window2.show();
+        QTRY_COMPARE_WITH_TIMEOUT(ready2.size(), 1, 10000);
+        const QString mp4Audio = media.filePath("track.mp4");
+        writeWav(mp4Audio, 1);
+        const QString trackImage = media.filePath("track.png");
+        QVERIFY(QFile::copy(image, trackImage));
+
+        window2.setImage(trackImage);
+        auto *output2 = window2.findChild<QLineEdit *>("outputPath");
+        QCOMPARE(output2->text(), media.filePath("track.mp4"));
+
+        window2.setAudio(mp4Audio);
+        QCOMPARE(output2->text(), media.filePath("track-video.mp4"));
+        auto *create2 = window2.findChild<QPushButton *>("createVideo");
+        QTRY_VERIFY(create2->isEnabled());
+
+        // Test multi-step collision resolution when image collides with track-video.mp4
+        const QString videoCollisionImage = media.filePath("track-video.mp4");
+        QVERIFY(QFile::copy(image, videoCollisionImage));
+        window2.setImage(videoCollisionImage);
+        QCOMPARE(output2->text(), media.filePath("track-video-video.mp4"));
+        QTRY_VERIFY(create2->isEnabled());
+        window2.close();
+
         window.close(); QTRY_VERIFY_WITH_TIMEOUT(!window.isVisible(), 10000);
     }
+    void outputPathAliases() {
+        MainWindow window(engine); QSignalSpy ready(&window, &MainWindow::presetsReady);
+        window.show(); QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 1, 10000);
+        auto *output = window.findChild<QLineEdit *>("outputPath");
+        auto *createButton = window.findChild<QPushButton *>("createVideo");
+        const QString trackImage = media.filePath("alias-track.png");
+        const QString trackAudio = media.filePath("alias-track.mp4");
+        QVERIFY(QFile::copy(image, trackImage));
+        writeWav(trackAudio, 1);
+
+        window.setImage(trackImage);
+        window.setAudio(media.path() + "/./alias-track.mp4");
+        QCOMPARE(QDir::cleanPath(output->text()), media.filePath("alias-track-video.mp4"));
+        QVERIFY(createButton->isEnabled());
+
+        window.setOutput(QDir::current().relativeFilePath(trackImage));
+        QVERIFY(!createButton->isEnabled());
+        window.setOutput(media.path() + "/./alias-track.mp4");
+        QVERIFY(!createButton->isEnabled());
+
+        // Selecting another source must preserve a distinct chosen destination.
+        const QString manualOutput = media.filePath("chosen-video.mp4");
+        window.setOutput(manualOutput);
+        window.setImage(image);
+        QCOMPARE(output->text(), manualOutput);
+        QVERIFY(createButton->isEnabled());
+#if defined(Q_OS_UNIX)
+        // A trailing space is part of the selected filename, not UI padding.
+        window.setOutput(audio + " ");
+        QVERIFY(createButton->isEnabled());
+#endif
+        window.close();
+    }
+    void outputPathCaseSensitivity() {
+        MainWindow window(engine); QSignalSpy ready(&window, &MainWindow::presetsReady);
+        window.show(); QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 1, 10000);
+        window.setImage(image);
+        const QString lowerAudio = media.filePath("case-sensitive.wav");
+        const QString upperAudio = media.filePath("CASE-SENSITIVE.wav");
+        writeWav(lowerAudio, 1);
+        window.setAudio(lowerAudio);
+        window.setOutput(upperAudio);
+        auto *createButton = window.findChild<QPushButton *>("createVideo");
+        // Existing case aliases collide; separate names on a case-sensitive volume do not.
+        QCOMPARE(createButton->isEnabled(), !QFileInfo::exists(upperAudio));
+        window.close();
+    }
+#if defined(Q_OS_UNIX)
+    void outputPathLinks() {
+        MainWindow window(engine); QSignalSpy ready(&window, &MainWindow::presetsReady);
+        window.show(); QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 1, 10000);
+        auto *output = window.findChild<QLineEdit *>("outputPath");
+        auto *createButton = window.findChild<QPushButton *>("createVideo");
+        const QString trackImage = media.filePath("linked-track.png");
+        const QString linkedOutput = media.filePath("linked-track.mp4");
+        QVERIFY(QFile::copy(image, trackImage));
+        QVERIFY(QFile::link(audio, linkedOutput));
+        window.setImage(trackImage);
+        window.setAudio(audio);
+        QCOMPARE(output->text(), media.filePath("audio ü.mp4"));
+        QVERIFY(createButton->isEnabled());
+
+        window.setOutput(linkedOutput);
+        QVERIFY(!createButton->isEnabled());
+        const QString hardLink = media.filePath("hard-linked-input.mp4");
+        std::error_code error;
+        std::filesystem::create_hard_link(QFileInfo(audio).filesystemFilePath(),
+                                          QFileInfo(hardLink).filesystemFilePath(), error);
+        QVERIFY2(!error, error.message().c_str());
+        window.setOutput(hardLink);
+        QVERIFY(!createButton->isEnabled());
+
+        // The first candidate can also alias an input through a different name.
+        const QString mp4Audio = media.filePath("linked-source.mp4");
+        const QString candidateImage = media.filePath("linked-source-video.mp4");
+        const QString imageLink = media.filePath("linked-artwork.png");
+        writeWav(mp4Audio, 1);
+        QVERIFY(QFile::copy(image, candidateImage));
+        QVERIFY(QFile::link(candidateImage, imageLink));
+        window.setOutput(QString());
+        window.setAudio(mp4Audio);
+        window.setImage(imageLink);
+        QCOMPARE(output->text(), media.filePath("linked-source-video-video.mp4"));
+        QVERIFY(createButton->isEnabled());
+
+        // Resolve symlink/.. using the filesystem, not lexical path cleanup.
+        QVERIFY(QDir().mkpath(media.filePath("one")));
+        QVERIFY(QDir().mkpath(media.filePath("two/sub")));
+        QVERIFY(QFile::link(media.filePath("two/sub"), media.filePath("one/link")));
+        const QString firstAudio = media.filePath("one/track.wav");
+        const QString secondAudio = media.filePath("two/track.wav");
+        writeWav(firstAudio, 1);
+        writeWav(secondAudio, 1);
+        window.setAudio(firstAudio);
+        window.setOutput(media.filePath("one/link/../track.wav"));
+        QVERIFY(createButton->isEnabled());
+        window.setOutput(media.filePath("two/./track.wav"));
+        QVERIFY(createButton->isEnabled());
+        window.setAudio(secondAudio);
+        QVERIFY(createButton->isEnabled());
+        QVERIFY(output->text().endsWith("track.mp4"));
+        window.close();
+    }
+#endif
     void disclosureSections() {
         MainWindow window(engine);
         window.show();
@@ -296,11 +430,11 @@ private slots:
         QVERIFY(!lastError.isEmpty());
 
         // 2. Non-executable helper
-        const QString nonExec = media.filePath("non_exec_helper.sh");
+        const QString nonExec = media.filePath("non_exec_helper.bin");
         {
             QFile f(nonExec);
             QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
-            f.write("#!/bin/sh\necho test\n");
+            f.write("Not a native executable.\n");
             f.close();
             f.setPermissions(QFile::ReadOwner | QFile::ReadUser);
         }
@@ -316,16 +450,9 @@ private slots:
         QVERIFY(!client.isBusy());
         QVERIFY(!lastError.isEmpty());
 
-        // 3. Crashing / failing helper
-        const QString crashScript = media.filePath("crash_helper.sh");
-        {
-            QFile f(crashScript);
-            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
-            f.write("#!/bin/sh\nexit 1\n");
-            f.close();
-            f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner | QFile::ReadUser | QFile::ExeUser);
-        }
-        qputenv("ATIV_UPDATE_PATH", crashScript.toUtf8());
+        // 3. A real nonzero exit, rather than another launch failure.
+        qputenv("ATIV_UPDATE_PATH", QCoreApplication::applicationFilePath().toUtf8());
+        qputenv("ATIV_QT_PROCESS_DOUBLE", "fail");
         callbackCount = 0;
         lastError.clear();
         client.checkForUpdates(true, [&](bool available, const QString &, const QString &error) {
@@ -335,18 +462,10 @@ private slots:
         });
         QTRY_COMPARE_WITH_TIMEOUT(callbackCount, 1, 3000);
         QVERIFY(!client.isBusy());
-        QVERIFY(!lastError.isEmpty());
+        QCOMPARE(lastError, QString("Injected update helper failure."));
 
-        // 4. Hanging helper with bounded timeout
-        const QString hangScript = media.filePath("hang_helper.sh");
-        {
-            QFile f(hangScript);
-            QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Text));
-            f.write("#!/bin/sh\nsleep 30\n");
-            f.close();
-            f.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner | QFile::ReadUser | QFile::ExeUser);
-        }
-        qputenv("ATIV_UPDATE_PATH", hangScript.toUtf8());
+        // 4. A running helper with bounded timeout on every supported OS.
+        qputenv("ATIV_QT_PROCESS_DOUBLE", "hang");
         qputenv("ATIV_UPDATE_TIMEOUT_MS", "150");
         callbackCount = 0;
         lastError.clear();
@@ -370,6 +489,7 @@ private slots:
         qunsetenv("ATIV_TEST_UPDATE_SUPPORTED");
         qunsetenv("ATIV_UPDATE_PATH");
         qunsetenv("ATIV_UPDATE_TIMEOUT_MS");
+        qunsetenv("ATIV_QT_PROCESS_DOUBLE");
     }
     void bitrateAndFpsPersistence() {
         MainWindow window(engine);
@@ -391,8 +511,47 @@ private slots:
     void authoritativeVersion() {
         const QString ver = Preferences::authoritativeVersion();
         QVERIFY(!ver.isEmpty());
-        QCOMPARE(ver, QString("0.2.7"));
+        QCOMPARE(ver, QString("0.2.8"));
     }
 };
-QTEST_MAIN(WorkflowTests)
+// Re-exec this native test binary instead of depending on Unix shells. Dispatch
+// before QApplication so child processes need neither a display nor test setup.
+static int runProcessDouble(const QString &mode, const QString &path) {
+    const auto append = [&path](const QByteArray &text) {
+        QFile file(path);
+        return file.open(QIODevice::WriteOnly | QIODevice::Append)
+            && file.write(text) == text.size() && file.flush();
+    };
+    if (mode == "sleep") { QThread::msleep(100); return 0; }
+    if (mode == "marker") return append("launched\n") ? 0 : 2;
+    if (mode == "serialize") {
+        if (!append("start\n")) return 2;
+        QThread::msleep(100);
+        return append("end\n") ? 0 : 2;
+    }
+    if (mode == "published") {
+        std::fputs("{\"event\":\"stage\",\"stage\":\"complete\"}\n", stdout);
+        std::fflush(stdout);
+        char cancellation[32];
+        return std::fgets(cancellation, sizeof cancellation, stdin) ? 130 : 2;
+    }
+    if (mode == "fail") {
+        std::fputs("Injected update helper failure.\n", stderr);
+        return 1;
+    }
+    if (mode == "hang") { QThread::msleep(30000); return 0; }
+    return 2;
+}
+
+int main(int argc, char **argv) {
+    const QString updateMode = qEnvironmentVariable("ATIV_QT_PROCESS_DOUBLE");
+    if (!updateMode.isEmpty() || (argc > 1 && std::strcmp(argv[1], "--ativ-process-double") == 0)) {
+        QCoreApplication app(argc, argv);
+        const auto args = app.arguments();
+        return runProcessDouble(updateMode.isEmpty() ? args.value(2) : updateMode, args.value(3));
+    }
+    QApplication app(argc, argv);
+    WorkflowTests tests;
+    return QTest::qExec(&tests, argc, argv);
+}
 #include "tests.moc"

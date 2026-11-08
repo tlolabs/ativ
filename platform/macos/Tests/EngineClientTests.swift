@@ -392,4 +392,90 @@ final class PerformanceRegressionTests: XCTestCase {
         store.presets = [b]
         XCTAssertEqual(store.selectedPreset, b)
     }
+
+    func testFileSelectionRowExtractsURLFromVariousTypes() {
+        let expectedURL = URL(fileURLWithPath: "/tmp/sample.mp3")
+        XCTAssertEqual(FileSelectionRow.url(from: expectedURL), expectedURL)
+        let nsURL = NSURL(fileURLWithPath: "/tmp/sample.mp3")
+        XCTAssertEqual(FileSelectionRow.url(from: nsURL), expectedURL)
+        let data = expectedURL.dataRepresentation
+        XCTAssertEqual(FileSelectionRow.url(from: data), expectedURL)
+        let stringData = Data("/tmp/sample.mp3".utf8)
+        XCTAssertEqual(FileSelectionRow.url(from: stringData), expectedURL)
+        XCTAssertEqual(FileSelectionRow.url(from: "/tmp/sample.mp3"), expectedURL)
+        XCTAssertEqual(FileSelectionRow.url(from: NSString(string: "/tmp/sample.mp3")), expectedURL)
+        XCTAssertEqual(FileSelectionRow.url(from: "file:///tmp/sample.mp3"), expectedURL)
+        XCTAssertNil(FileSelectionRow.url(from: "not-a-url"))
+        XCTAssertNil(FileSelectionRow.url(from: nil))
+    }
+
+    func testFileSelectionRowPreservesRawPathsAndRejectsRemoteURLs() {
+        let path = "/tmp/100%25#mix?.mp3 "
+        let expected = URL(fileURLWithPath: path)
+        for item: Any in [path, NSString(string: path), Data(path.utf8), expected, expected as NSURL, expected.absoluteString, Data(expected.absoluteString.utf8)] {
+            XCTAssertEqual(FileSelectionRow.url(from: item), expected)
+        }
+        for text in ["https://example.com/tmp/sample.mp3", "ftp://example.com/tmp/sample.mp3", "relative.mp3", "file:relative.mp3"] {
+            XCTAssertNil(FileSelectionRow.url(from: text))
+            XCTAssertNil(FileSelectionRow.url(from: Data(text.utf8)))
+            XCTAssertNil(FileSelectionRow.url(from: URL(string: text)!))
+            XCTAssertNil(FileSelectionRow.url(from: URL(string: text)! as NSURL))
+        }
+        XCTAssertNil(FileSelectionRow.url(from: Data([0xff, 0xfe])))
+        XCTAssertNil(FileSelectionRow.url(from: "/tmp/invalid\0.mp3"))
+    }
+
+    @MainActor
+    func testRenderStoreRecognizesSourceAliasesAndPreservesCustomOutput() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ativ-collisions-\(UUID().uuidString)")
+        let media = root.appendingPathComponent("media")
+        let alias = root.appendingPathComponent("alias")
+        try FileManager.default.createDirectory(at: media, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: media)
+        let image = media.appendingPathComponent("sample.mp4")
+        try Data("artwork".utf8).write(to: image)
+        let store = RenderStore()
+        store.audioURL = alias.appendingPathComponent("sample.wav")
+        store.outputURL = alias.appendingPathComponent("sample.mp4")
+        store.setImage(image)
+        XCTAssertEqual(store.outputURL, alias.appendingPathComponent("sample-video.mp4"))
+        store.presets = [Preset(platform: "Test", aspect: "16:9", width: 160, height: 90)]
+        XCTAssertTrue(store.canRender)
+
+        let hardLink = media.appendingPathComponent("hard-link.mp4")
+        try FileManager.default.linkItem(at: image, to: hardLink)
+        store.setOutput(hardLink)
+        XCTAssertFalse(store.canRender)
+        store.render(replacingExisting: true)
+        XCTAssertEqual(store.errorMessage, "The output destination must be separate from the image and audio source files.")
+        XCTAssertEqual(try Data(contentsOf: image), Data("artwork".utf8))
+
+        let custom = media.appendingPathComponent("custom.mp4")
+        store.setOutput(custom)
+        store.setImage(alias.appendingPathComponent("sample.mp4"))
+        XCTAssertEqual(store.outputURL, custom)
+        XCTAssertTrue(store.canRender)
+    }
+
+    @MainActor
+    func testRenderStoreOutputCollisionResolution() {
+        let store = RenderStore()
+        let audioURL = URL(fileURLWithPath: "/tmp/sample.wav")
+        let imageURL = URL(fileURLWithPath: "/tmp/sample.mp4")
+        store.setAudio(audioURL)
+        XCTAssertEqual(store.outputURL, URL(fileURLWithPath: "/tmp/sample.mp4"))
+        store.setImage(imageURL)
+        XCTAssertNotEqual(store.outputURL, imageURL)
+        XCTAssertEqual(store.outputURL, URL(fileURLWithPath: "/tmp/sample-video.mp4"))
+
+        // Test multi-step collision resolution when audio is sample.mp4 and image is sample-video.mp4
+        let mp4Audio = URL(fileURLWithPath: "/tmp/sample.mp4")
+        let videoCollisionImage = URL(fileURLWithPath: "/tmp/sample-video.mp4")
+        store.setAudio(mp4Audio)
+        store.setImage(videoCollisionImage)
+        XCTAssertNotEqual(store.outputURL, videoCollisionImage)
+        XCTAssertNotEqual(store.outputURL, mp4Audio)
+        XCTAssertEqual(store.outputURL, URL(fileURLWithPath: "/tmp/sample-video-video.mp4"))
+    }
 }

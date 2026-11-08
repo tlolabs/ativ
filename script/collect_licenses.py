@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import shutil
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -17,9 +18,20 @@ a = p.parse_args()
 command = ['cargo', 'metadata', '--format-version', '1', '--locked']
 if a.target:
     command += ['--filter-platform', a.target]
-metadata = json.loads(subprocess.check_output(command))
+metadata = json.loads(subprocess.check_output(command, cwd=ROOT))
 a.destination.mkdir(parents=True, exist_ok=True)
 index = []
+
+# The optional Apple silicon helper has a separate, fully pinned SDK graph and
+# model notices. Its build step collects actual upstream license texts; mirror
+# those into the application's ordinary license directory for discoverability.
+helper_licenses = a.destination.parent.parent / 'Helpers/ATIVTranscriptionHelper.app/Contents/Resources/licenses'
+if helper_licenses.is_dir():
+    shutil.copytree(helper_licenses, a.destination / 'avid-transcription', dirs_exist_ok=True)
+    index.append(dict(name='AVID transcription helper', version='reviewed-20261102',
+                      license='GPL-3.0-or-later and bundled dependency notices',
+                      repository='vendor/avid-transcription',
+                      files=[str(p.relative_to(helper_licenses)) for p in sorted(helper_licenses.rglob('*')) if p.is_file()]))
 
 for package in metadata['packages']:
     if package['source'] is None:

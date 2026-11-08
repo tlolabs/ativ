@@ -15,7 +15,23 @@ SWIFT_BUILD_DIR="${ROOT_DIR}/build/native-swift"
 RUNTIME_TARGET="macos-$(uname -m)"
 RUNTIME="$(python3 "$ROOT_DIR/script/ffmpeg_runtime.py" provision "$RUNTIME_TARGET")"
 
-pkill -x "${APP_NAME}" >/dev/null 2>&1 || true
+# Ask the existing application to drain helpers/renders and resolve unsaved edits.
+# Force-killing here would bypass its termination coordinator and could discard work.
+if pgrep -x "$APP_NAME" >/dev/null; then
+  EXISTING_ID="$BUNDLE_ID"
+  if [[ -f "$APP_CONTENTS/Info.plist" ]]; then
+    EXISTING_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_CONTENTS/Info.plist")"
+  fi
+  /usr/bin/osascript -e "tell application id \"$EXISTING_ID\" to quit"
+  for ((attempt=0; attempt<30; attempt++)); do
+    pgrep -x "$APP_NAME" >/dev/null || break
+    sleep 1
+  done
+  if pgrep -x "$APP_NAME" >/dev/null; then
+    echo 'ATIV is still running. Resolve its unsaved-work dialog or allow its active operation to finish, quit it, and rerun.' >&2
+    exit 1
+  fi
+fi
 
 cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --locked -p ativ-engine
 swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD_DIR}"
@@ -30,6 +46,9 @@ cp "${ROOT_DIR}/platform/macos/Info.plist" "${APP_CONTENTS}/Info.plist"
 cp "${ROOT_DIR}/platform/macos/Resources/ATIV.icns" "${APP_RESOURCES}/ATIV.icns"
 cp "${ROOT_DIR}/LICENSE" "${APP_RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${APP_RESOURCES}/THIRD_PARTY_NOTICES.md"
+if [[ "$(uname -m)" == arm64 ]]; then
+  python3 "$ROOT_DIR/script/transcription_runtime.py" stage "$APP_BUNDLE" --configuration debug
+fi
 python3 "$ROOT_DIR/script/collect_licenses.py" "$APP_RESOURCES/licenses"
 chmod +x "${APP_MACOS}/${APP_NAME}" "${APP_MACOS}/ativ-engine" "${APP_MACOS}/ffmpeg" "${APP_MACOS}/ffprobe"
 for NAME in ffmpeg ffprobe ativ-engine; do codesign --force --options runtime --sign - "$APP_MACOS/$NAME"; done

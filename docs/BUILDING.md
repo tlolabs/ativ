@@ -4,7 +4,7 @@
 
 Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.1 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
 
-Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. CI installs each platform's requirements.
+Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. The archived CI recipes document each platform's requirements; install them locally for native qualification.
 
 ```sh
 cargo fmt --all -- --check
@@ -37,8 +37,55 @@ Packaging verifies Core's runtime and corresponding source before signing and ve
 
 ATIV retains native SwiftUI/AppKit for production macOS and uses shared Qt 6 Widgets for Windows/Linux. Final packages remain a signed/notarized macOS ZIP, an Azure Authenticode Windows portable ZIP, and an attested Linux AppImage. All native package validators run bundled discovery with an empty PATH and representative exports/previews through the actual packaged engine.
 
+## Optional Apple transcription helper
+
+Apple silicon native builds additionally compile the isolated transcription helper
+with Swift 6.3+, Xcode, and the Apple Metal toolchain. The base UI continues to
+target macOS 13; the helper targets macOS 14 and is not linked into that UI or
+packaged in Intel builds. If Xcode lacks Metal, install its component with
+`xcodebuild -downloadComponent MetalToolchain`.
+
+Select a local Apple silicon Xcode toolchain supplying Swift 6.3 or later and
+the Metal compiler. The archived build recipe predates this helper and is retained
+unchanged as historical evidence; it does not establish toolchain compatibility
+for the current candidate. The application still targets macOS 13 and the
+optional helper macOS 14. Verify the actual compiler and deployment targets
+locally before packaging.
+
+The exact reviewed Core Apple source is included as a small attributed archive in
+`vendor/avid-transcription`; build tooling verifies its archive and file hashes
+before extracting to `build/transcription-core`. No sibling checkout or root
+SwiftPM package URL is required. The helper's nested package paths and resolved
+dependencies are explicit. See [integration and limitations](transcription-integration.md).
+
+```sh
+python3 script/transcription_runtime.py acquire
+swift test --package-path build/transcription-core/apple/AVIDTranscription --scratch-path build/transcription-contract-tests
+swift test --package-path build/transcription-core/apple/AVIDTranscriptionEngines --scratch-path build/transcription-engine-tests --force-resolved-versions
+python3 -B build/transcription-core/script/test_transcription_catalog.py
+swift test --package-path platform/transcription-helper --scratch-path build/transcription-helper-tests --force-resolved-versions
+python3 script/transcription_runtime.py validate build/package-macos-arm64/ATIV.app macos-arm64
+```
+
+The standard native build/package scripts stage the helper, resource/Metal bundles,
+required libraries, and SDK/model notices. Package checks include helper identity,
+integrity, resources, and a relocated catalog invocation without developer PATH
+or an existing model cache. Model weights remain optional downloads after app
+installation. Actual packaged inference requires separately installed verified
+models and must be recorded independently of catalog/package discovery.
+
+With installed test models and a short known recording, run the offline packaged
+smoke check explicitly (no models are downloaded by this command):
+
+```sh
+python3 script/smoke_transcription.py \
+  --helper build/package-macos-arm64/ATIV.app/Contents/Helpers/ATIVTranscriptionHelper.app/Contents/MacOS/ATIVTranscriptionHelper \
+  --cache /absolute/test-model-cache --audio /absolute/known-recording.m4a \
+  --output build/transcription-smoke
+```
+
 ## Icons and contributor workflow
 
 `assets/icons/ATIV-light.png`, `ATIV-dark.png`, and the editable Icon Composer document are authoritative. `build/release-tools/bin/python script/generate_icons.py` performs deterministic format/resolution conversion. Do not redraw the identity. Generated small native resources are tracked; FFmpeg, frameworks, packages and caches are ignored.
 
-Use a feature branch, run the relevant native and Rust tests, then dispatch `native-release.yml` on that branch. Manual dispatches build and validate but do not publish. Pushes and PRs run quality checks; the candidate qualification workflow does not publish. Record actual platform evidence in the acceptance matrix; never equate a cross-compile with native runtime verification.
+Run the relevant native and Rust tests locally. Legacy workflows are inactive under `.github/workflow-archive/2026-11-08/`; do not dispatch or restore them. The weekly tagged-release smoke policy in AGENTS.md supersedes older CI descriptions. Direct commits are permitted. Record actual platform evidence in the acceptance matrix; never equate a cross-compile with native runtime verification.

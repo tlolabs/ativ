@@ -105,6 +105,21 @@ class PublishTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'missing application or runtime'):
                 verify_package(missing,'0.3.0')
 
+    def test_collect_licenses_from_outside_repo(self):
+        import sys
+        script=Path(__file__).with_name('collect_licenses.py').resolve()
+        with tempfile.TemporaryDirectory() as directory:
+            for destination in (Path(directory)/'absolute licenses', Path('relative licenses')):
+                with self.subTest(destination=destination):
+                    subprocess.run([sys.executable,str(script),str(destination)],cwd=directory,check=True)
+                    dest=Path(directory)/destination
+                    index=json.loads((dest/'index.json').read_text())
+                    core=next(item for item in index if item['name']=='avid-core')
+                    self.assertTrue(core['files'])
+                    self.assertTrue((dest.parent/'AVID_CORE_LICENSE.txt').is_file())
+                    for name in core['files']:
+                        self.assertTrue((dest/(core['name']+'-'+core['version'])/name).is_file())
+
 class SigningSetupTests(unittest.TestCase):
     def test_only_a_single_developer_id_application_identity_is_accepted(self):
         from configure_macos_signing import developer_identity

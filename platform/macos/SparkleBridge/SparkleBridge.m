@@ -12,7 +12,7 @@ static BOOL ATIVWorkInProgress;
 @end
 @implementation ATIVUpdateDelegate
 - (BOOL)updater:(id)updater mayPerformUpdateCheck:(NSInteger)check error:(NSError **)error {
-    if (ATIVWorkInProgress && error) *error = [NSError errorWithDomain:@"com.tlolabs.ativ.updates" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Finish the current export before updating."}];
+    if (ATIVWorkInProgress && error) *error = [NSError errorWithDomain:@"com.tlolabs.ativ.updates" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Finish the current media or transcription operation before updating."}];
     return !ATIVWorkInProgress;
 }
 - (BOOL)updater:(id)updater shouldProceedWithUpdate:(id)item updateCheck:(NSInteger)check error:(NSError **)error {

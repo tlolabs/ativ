@@ -52,6 +52,41 @@ The exact Rust dependency versions and checksums are in Cargo.lock. The followin
 
 Build-only and target-specific dependencies may not all be present in a particular binary. Release source/notice review must include the locked dependency source archives and their license files alongside the exact FFmpeg source/build information.
 
+## Optional Apple transcription helper
+
+Apple silicon packages include the separately deployed AVID Core Apple
+transcription libraries from the immutable source archive recorded in
+`vendor/avid-transcription`. The archive, manifest, and change report preserve
+source identity and attribution; this source snapshot is independent of the Rust
+AVID Core revision. Its Core license, `MODEL_NOTICES.md`, and
+`THIRD_PARTY_NOTICES.md` are included with the helper's license resources.
+
+The helper links WhisperKit / Argmax OSS Swift (MIT), FluidAudio (Apache-2.0),
+MLX Audio Swift (MIT), MLX Swift (MIT), and the transitive packages identified in
+`platform/transcription-helper/Package.resolved`. Original upstream license texts
+are copied from the resolved dependency checkouts into the helper package.
+Core's adapted Whisper tokenizer retains the Argmax copyright and MIT permission
+notice. These SDK terms do not license the downloaded model weights.
+
+Model weights are optional downloads rather than app-bundle contents. Preserve
+the catalog's actual model notices when redistributing installed models:
+
+- Whisper Core ML conversions retain Argmax MIT notices and the pinned OpenAI
+  large-v3/tokenizer Apache-2.0 notices. The combined installation is identified
+  as `MIT AND Apache-2.0`; the Turbo source's MIT terms do not remove the shared
+  tokenizer's Apache-2.0 terms.
+- Parakeet TDT v3 retains NVIDIA and FluidInference attribution, the original
+  model's CC-BY-4.0 terms and license link, and conversion/quantization notices.
+  FluidAudio's Apache-2.0 SDK license is separate from the model license.
+- Qwen3 ASR and forced-aligner models retain Qwen Team/Alibaba Cloud and MLX
+  Community attribution, Apache-2.0 license/NOTICE obligations, and conversion
+  and quantization provenance.
+
+The authoritative model notices are in the verified source archive and packaged
+`MODEL_NOTICES.md`. Their upstream links, exact repositories and revisions are
+preserved in the catalog; changes require an explicit catalog/source refresh.
+See [transcription integration](docs/transcription-integration.md).
+
 ## Native updates and packaging
 
 Sparkle 2.9.6 is redistributed in macOS bundles under its upstream permissive license; its framework distribution includes license notices. Source: https://github.com/sparkle-project/Sparkle. The ATIV updater uses ring (ISC/MIT/OpenSSL-derived notices), rustls (Apache-2.0/ISC/MIT), reqwest (MIT/Apache-2.0), serde, serde_json, base64, sha2, semver and tempfile under their upstream licenses. Cargo.lock records exact resolved versions.

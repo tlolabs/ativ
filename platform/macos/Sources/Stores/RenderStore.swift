@@ -21,7 +21,7 @@ final class RenderStore: ObservableObject {
     @Published var previewFailed = false
     @Published var progress = 0.0
     @Published var status = "Loading media engine…"
-    @Published var isRendering = false { didSet { ATIVSetUpdateWorkInProgress(isRendering) } }
+    @Published var isRendering = false { didSet { updateWorkState() } }
     @Published var errorMessage: String?
     @Published var showOverwriteConfirmation = false
     @Published var showDiagnostics = false
@@ -43,13 +43,20 @@ final class RenderStore: ObservableObject {
     private var normalizingSelection = false
     private var terminating = false
     private var lastAnnouncedStage: String?
+    // Optional workers must drain before Sparkle replaces this application.
+    var additionalWorkInProgress: () -> Bool = { false }
+    var drainAdditionalWork: (@escaping () -> Void) -> Void = { completion in completion() }
+
+    func updateWorkState() {
+        ATIVSetUpdateWorkInProgress(isRendering || additionalWorkInProgress())
+    }
 
     private(set) var platforms: [String] = []
     private(set) var aspects: [String] = []
     private(set) var resolutions: [Preset] = []
     var canRender: Bool {
         imageURL != nil && audioURL != nil && outputURL != nil && selectedPreset != nil && !isRendering
-        && outputURL != imageURL && outputURL != audioURL && !terminating
+        && !isSourceURL(outputURL) && !terminating
     }
 
 
@@ -108,7 +115,7 @@ final class RenderStore: ObservableObject {
             errorMessage = "Choose an image, audio recording, output destination, and format."
             return
         }
-        guard outputURL != imageURL && outputURL != audioURL else {
+        guard !isSourceURL(outputURL) else {
             errorMessage = "The output destination must be separate from the image and audio source files."
             return
         }
@@ -157,7 +164,7 @@ final class RenderStore: ObservableObject {
     }
 
     func requestTermination() -> NSApplication.TerminateReply {
-        guard isRendering || engine.hasPendingWork else { return .terminateNow }
+        guard isRendering || engine.hasPendingWork || additionalWorkInProgress() else { return .terminateNow }
         // Sparkle may request termination without its postponement callback.
         // Join every engine worker before its application/runtime is replaced.
         terminating = true
@@ -174,7 +181,11 @@ final class RenderStore: ObservableObject {
 
     private func finishTerminationWhenIdle() {
         engine.whenIdle {
-            DispatchQueue.main.async { NSApp.reply(toApplicationShouldTerminate: true) }
+            DispatchQueue.main.async {
+                self.drainAdditionalWork {
+                    NSApp.reply(toApplicationShouldTerminate: true)
+                }
+            }
         }
     }
 
@@ -239,16 +250,36 @@ final class RenderStore: ObservableObject {
         }
     }
 
+    private func isSourceURL(_ url: URL?) -> Bool {
+        guard let url else { return false }
+        let candidate = url.standardizedFileURL.resolvingSymlinksInPath()
+        let identifier = try? candidate.resourceValues(forKeys: [.fileResourceIdentifierKey]).fileResourceIdentifier
+        return [imageURL, audioURL].compactMap { $0 }.contains { source in
+            let source = source.standardizedFileURL.resolvingSymlinksInPath()
+            if candidate == source { return true }
+            // Existing aliases and hard links can identify the same file with different URLs.
+            guard let identifier = identifier as? NSObject,
+                  let sourceIdentifier = try? source.resourceValues(forKeys: [.fileResourceIdentifierKey]).fileResourceIdentifier else { return false }
+            return identifier.isEqual(sourceIdentifier)
+        }
+    }
+
     private var suggestedOutput: URL? {
         guard let source = audioURL ?? imageURL else { return nil }
+        let dir = source.deletingLastPathComponent()
+        var stem = source.deletingPathExtension().lastPathComponent
         if source.pathExtension.lowercased() == "mp4" {
-            let stem = source.deletingPathExtension().lastPathComponent
-            return source.deletingLastPathComponent().appendingPathComponent("\(stem)-video.mp4")
+            stem += "-video"
         }
-        return source.deletingPathExtension().appendingPathExtension("mp4")
+        var candidate = dir.appendingPathComponent("\(stem).mp4")
+        while isSourceURL(candidate) {
+            stem += "-video"
+            candidate = dir.appendingPathComponent("\(stem).mp4")
+        }
+        return candidate
     }
     private func suggestOutputIfNeeded() {
-        if outputURL == nil || outputURL == audioURL || outputURL == imageURL {
+        if outputURL == nil || isSourceURL(outputURL) {
             outputURL = suggestedOutput
         }
     }

@@ -6,6 +6,8 @@
 /dist/
 /packages/
 /platform/macos/.build/
+/platform/transcription-helper/.build/
+/platform/transcription-helper/.swiftpm/
 # CMake and Qt output (build/ covers standard outputs)
 .qt/
 CMakeUserPresets.json

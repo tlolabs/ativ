@@ -39,6 +39,9 @@ cp "${ROOT_DIR}/platform/macos/Info.plist" "${CONTENTS}/Info.plist"
 cp "${ROOT_DIR}/platform/macos/Resources/ATIV.icns" "${RESOURCES}/ATIV.icns"
 cp "${ROOT_DIR}/LICENSE" "${RESOURCES}/LICENSE"
 cp "${ROOT_DIR}/THIRD_PARTY_NOTICES.md" "${RESOURCES}/THIRD_PARTY_NOTICES.md"
+if [[ "$ARCH" == arm64 ]]; then
+  python3 "$ROOT_DIR/script/transcription_runtime.py" stage "$APP" --identity "$SIGN_IDENTITY"
+fi
 chmod +x "${MACOS}/ATIV" "${MACOS}/ativ-engine" "${MACOS}/ffmpeg" "${MACOS}/ffprobe"
 
 

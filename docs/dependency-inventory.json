@@ -12,7 +12,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.7"
+      "version": "0.2.8"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -21,7 +21,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.7"
+      "version": "0.2.8"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -33,7 +33,7 @@
         "linux-x64",
         "linux-arm64"
       ],
-      "version": "0.2.7"
+      "version": "0.2.8"
     },
     {
       "checksum": "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0",
@@ -2147,13 +2147,345 @@
         "linux-arm64"
       ],
       "version": "6.8.2"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Reviewed frozen Apple source; baseline commit does not contain these uncommitted packages",
+      "license": "GPL-3.0-or-later",
+      "minimumOS": "macOS 14.0",
+      "name": "AVID Core Apple transcription snapshot",
+      "reviewSnapshotSHA256": "0cac6c3611b74b7a65cb1ccae27bcc39a712c1602c31bf4c85c52d505451dfdd",
+      "scope": "optional",
+      "sha256": "f4555615571d54b96d714be26caf0484f6049835065d7215820c3244bf761c5a",
+      "source": "vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_SOURCE.tar.gz",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "f4555615571d54b96d714be26caf0484f6049835065d7215820c3244bf761c5a"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "license": "MIT",
+      "minimumOS": "macOS 14.0",
+      "name": "argmax-oss-swift",
+      "revision": "9f99b5cb6a907730543823ad271b82532782a899",
+      "scope": "optional",
+      "source": "https://github.com/argmaxinc/argmax-oss-swift.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "9f99b5cb6a907730543823ad271b82532782a899"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "eventsource",
+      "revision": "bb4b61273b5a976bb571859c17f903ebc3439df1",
+      "scope": "optional",
+      "source": "https://github.com/mattt/EventSource.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.6.0"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "license": "Apache-2.0",
+      "minimumOS": "macOS 14.0",
+      "name": "fluidaudio",
+      "revision": "ee78635d23d52379117554ba72358b65a0612447",
+      "scope": "optional",
+      "source": "https://github.com/FluidInference/FluidAudio.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "ee78635d23d52379117554ba72358b65a0612447"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "license": "MIT",
+      "minimumOS": "macOS 14.0",
+      "name": "mlx-audio-swift",
+      "revision": "df2a2546705f50ca267037702a34cd63aa6e35a6",
+      "scope": "optional",
+      "source": "https://github.com/Blaizzy/mlx-audio-swift.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "df2a2546705f50ca267037702a34cd63aa6e35a6"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "license": "MIT",
+      "minimumOS": "macOS 14.0",
+      "name": "mlx-swift",
+      "revision": "7ede4fd6d05f63305c1c0ebf4f8c1909a637c574",
+      "scope": "optional",
+      "source": "https://github.com/ml-explore/mlx-swift.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "0.33.0"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-argument-parser",
+      "revision": "6a52f3251125d74daf04fcbd5e6f08a75d074382",
+      "scope": "optional",
+      "source": "https://github.com/apple/swift-argument-parser.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.8.2"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-asn1",
+      "revision": "917b472dbe53ba699cbb0495f9a95a084bc6364d",
+      "scope": "optional",
+      "source": "https://github.com/apple/swift-asn1.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.7.4"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-collections",
+      "revision": "f96b909e1a9e469620bc5037c1e24e00153f376f",
+      "scope": "optional",
+      "source": "https://github.com/apple/swift-collections.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.7.5"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-crypto",
+      "revision": "da9d28d69ebe3894b18376c8f2395c2f37b8448f",
+      "scope": "optional",
+      "source": "https://github.com/apple/swift-crypto.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "4.5.2"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-huggingface",
+      "revision": "f0a0cb43cb1b402d2bbf6fb10d8981328c449c48",
+      "scope": "optional",
+      "source": "https://github.com/huggingface/swift-huggingface.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "0.13.0"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-jinja",
+      "revision": "a091d6ae559ee97e904a0f3c2890b21949d0306f",
+      "scope": "optional",
+      "source": "https://github.com/huggingface/swift-jinja.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "3.0.0"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-numerics",
+      "revision": "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+      "scope": "optional",
+      "source": "https://github.com/apple/swift-numerics",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.1.1"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "swift-transformers",
+      "revision": "402a8a1105f52038b0949d9596981fc9e32bed17",
+      "scope": "optional",
+      "source": "https://github.com/huggingface/swift-transformers.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.4.0"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "yyjson",
+      "revision": "6447536015f3d600f3d65323b10976103b337ca7",
+      "scope": "optional",
+      "source": "https://github.com/ibireme/yyjson.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "0.13.0"
+    },
+    {
+      "delivery": "shipped in transcription helper",
+      "description": "Locked transcription helper dependency; licenses/notices bundled from the exact source checkout",
+      "ecosystem": "SwiftPM",
+      "minimumOS": "macOS 14.0",
+      "name": "zstd",
+      "revision": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+      "scope": "optional",
+      "source": "https://github.com/facebook/zstd.git",
+      "targets": [
+        "macos-arm64"
+      ],
+      "version": "1.5.7"
+    }
+  ],
+  "optionalModelDownloads": [
+    {
+      "artifactCount": 22,
+      "catalogSHA256": "99e463edfce532caa3c3ed7c82e9721a8e1119d830e014c1fd5220228156eca4",
+      "delivery": "optional anonymous upstream download; weights are not bundled",
+      "displayName": "Whisper large-v3 \u00b7 Quality",
+      "downloadBytes": 3093084631,
+      "id": "whisper-large-v3",
+      "license": {
+        "identifier": "MIT AND Apache-2.0",
+        "notice": "Whisper Core ML conversion: Argmax, Inc. (MIT, as declared by the converted model repository). Original Whisper large-v3 model/tokenizer: OpenAI (Apache-2.0, as declared by its pinned model card). Retain both upstream notices; see MODEL_NOTICES.md.",
+        "url": "https://huggingface.co/argmaxinc/whisperkit-coreml"
+      },
+      "minimumOS": "macOS 14.0",
+      "repository": "argmaxinc/whisperkit-coreml",
+      "revision": "0f63a7800b00dd0226abd051b906c246e1907482",
+      "role": "recognizer",
+      "targets": [
+        "macos-arm64"
+      ]
+    },
+    {
+      "artifactCount": 23,
+      "catalogSHA256": "99e463edfce532caa3c3ed7c82e9721a8e1119d830e014c1fd5220228156eca4",
+      "delivery": "optional anonymous upstream download; weights are not bundled",
+      "displayName": "Whisper large-v3 Turbo \u00b7 Faster",
+      "downloadBytes": 1622295995,
+      "id": "whisper-large-v3-turbo",
+      "license": {
+        "identifier": "MIT AND Apache-2.0",
+        "notice": "Whisper Core ML conversion: Argmax, Inc. (MIT, as declared by the converted model repository). Original Whisper large-v3 model/tokenizer: OpenAI (Apache-2.0, as declared by its pinned model card). Retain both upstream notices; see MODEL_NOTICES.md.",
+        "url": "https://huggingface.co/argmaxinc/whisperkit-coreml"
+      },
+      "minimumOS": "macOS 14.0",
+      "repository": "argmaxinc/whisperkit-coreml",
+      "revision": "0f63a7800b00dd0226abd051b906c246e1907482",
+      "role": "recognizer",
+      "targets": [
+        "macos-arm64"
+      ]
+    },
+    {
+      "artifactCount": 21,
+      "catalogSHA256": "99e463edfce532caa3c3ed7c82e9721a8e1119d830e014c1fd5220228156eca4",
+      "delivery": "optional anonymous upstream download; weights are not bundled",
+      "displayName": "Parakeet TDT 0.6B v3",
+      "downloadBytes": 632170204,
+      "id": "parakeet-tdt-v3",
+      "license": {
+        "identifier": "CC-BY-4.0",
+        "notice": "Parakeet TDT 0.6B v3: NVIDIA. Core ML conversion: FluidInference. Licensed under Creative Commons Attribution 4.0; credit NVIDIA and FluidInference, link to CC-BY-4.0, and indicate conversion/quantization changes. The FluidAudio SDK's Apache-2.0 license is separate.",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "minimumOS": "macOS 14.0",
+      "repository": "FluidInference/parakeet-tdt-0.6b-v3-coreml",
+      "revision": "7dd20fe6b1797d35f5e3307e8b1732d9a178edfe",
+      "role": "recognizer",
+      "targets": [
+        "macos-arm64"
+      ]
+    },
+    {
+      "artifactCount": 9,
+      "catalogSHA256": "99e463edfce532caa3c3ed7c82e9721a8e1119d830e014c1fd5220228156eca4",
+      "delivery": "optional anonymous upstream download; weights are not bundled",
+      "displayName": "Qwen3-ASR 1.7B \u00b7 4-bit",
+      "downloadBytes": 1607630579,
+      "id": "qwen3-asr-1.7b-4bit",
+      "license": {
+        "identifier": "Apache-2.0",
+        "notice": "Qwen3-ASR / Qwen3-ForcedAligner: Qwen Team, Alibaba Cloud. MLX conversion and 4-bit quantization: MLX Community. Apache License 2.0. Retain license, copyright, and any upstream NOTICE files; indicate conversion/quantization changes.",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0"
+      },
+      "minimumOS": "macOS 14.0",
+      "repository": "mlx-community/Qwen3-ASR-1.7B-4bit",
+      "revision": "78a389c776a5483b2d0d4ea5494e11012e0d6159",
+      "role": "recognizer",
+      "targets": [
+        "macos-arm64"
+      ]
+    },
+    {
+      "artifactCount": 9,
+      "catalogSHA256": "99e463edfce532caa3c3ed7c82e9721a8e1119d830e014c1fd5220228156eca4",
+      "delivery": "optional anonymous upstream download; weights are not bundled",
+      "displayName": "Qwen3 ForcedAligner 0.6B \u00b7 4-bit",
+      "downloadBytes": 975854832,
+      "id": "qwen3-forced-aligner-0.6b-4bit",
+      "license": {
+        "identifier": "Apache-2.0",
+        "notice": "Qwen3-ASR / Qwen3-ForcedAligner: Qwen Team, Alibaba Cloud. MLX conversion and 4-bit quantization: MLX Community. Apache License 2.0. Retain license, copyright, and any upstream NOTICE files; indicate conversion/quantization changes.",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0"
+      },
+      "minimumOS": "macOS 14.0",
+      "repository": "mlx-community/Qwen3-ForcedAligner-0.6B-4bit",
+      "revision": "2f652af86ae0c73fe189b9429225c908ce4bf020",
+      "role": "aligner",
+      "targets": [
+        "macos-arm64"
+      ]
     }
   ],
   "project": "ATIV",
-  "projectVersion": "0.2.7",
+  "projectVersion": "0.2.8",
   "schema": 1,
   "source": {
     "cargo": "Cargo.lock",
-    "ffmpeg": "runtime/platform-runtimes.json"
+    "ffmpeg": "runtime/platform-runtimes.json",
+    "transcription": "vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json"
   }
 }

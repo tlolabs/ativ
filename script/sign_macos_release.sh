@@ -20,7 +20,11 @@ fi
 # Verify the tested payload before signing can change or bless executable hashes.
 TARGET="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["target"])' "$APP/Contents/Resources/FFmpeg/build.json")"
 python3 "$ROOT/script/ffmpeg_runtime.py" validate "$TARGET" --binary "$APP/Contents/MacOS" --metadata "$APP/Contents/Resources/FFmpeg"
+python3 "$ROOT/script/transcription_runtime.py" validate "$APP" "macos-$ARCH"
 sign() { codesign --force --sign "$IDENTITY" --options runtime --timestamp "$@"; }
+if [[ "$ARCH" == arm64 ]]; then
+  python3 "$ROOT/script/transcription_runtime.py" sign "$APP/Contents/Helpers/ATIVTranscriptionHelper.app" --identity "$IDENTITY"
+fi
 for binary in "$APP/Contents/MacOS/"*; do
   if [[ -f "$binary" ]] && file -b "$binary" | grep -q 'Mach-O'; then sign "$binary"; fi
 done
@@ -60,5 +64,6 @@ codesign --verify --deep --strict "$VERIFY/ATIV.app"
 xcrun stapler validate "$VERIFY/ATIV.app"
 spctl --assess --type execute --verbose=2 "$VERIFY/ATIV.app"
 python3 "$ROOT/script/ffmpeg_runtime.py" validate "$TARGET" --binary "$VERIFY/ATIV.app/Contents/MacOS" --metadata "$VERIFY/ATIV.app/Contents/Resources/FFmpeg"
+python3 "$ROOT/script/transcription_runtime.py" validate "$VERIFY/ATIV.app" "macos-$ARCH"
 (cd "$(dirname "$ZIP")" && shasum -a 256 "$(basename "$ZIP")") > "$ZIP.sha256"
 printf '%s\n' "$ZIP"

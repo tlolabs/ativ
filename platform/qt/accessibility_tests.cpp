@@ -15,10 +15,16 @@
 #include <QShortcut>
 #include <QToolButton>
 #include <QtTest>
+#include <QTemporaryDir>
 
 class AccessibilityTests : public QObject {
     Q_OBJECT
+    QTemporaryDir preferences;
 private slots:
+    void initTestCase() {
+        QVERIFY(preferences.isValid());
+        qputenv("ATIV_PREFERENCES_DIR", preferences.path().toUtf8());
+    }
     void compactWindowKeepsDestinationReachable() {
         MainWindow window("/missing/ativ-engine");
         QFont large = window.font();

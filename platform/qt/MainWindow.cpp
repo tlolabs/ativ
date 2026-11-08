@@ -6,6 +6,22 @@
 #include <QUrl>
 #include <QStyleHints>
 #include <QAccessible>
+#include <filesystem>
+
+static bool pathsReferToSameFile(const QString &left, const QString &right) {
+    if (left.isEmpty() || right.isEmpty()) return false;
+    const QFileInfo leftInfo(left), rightInfo(right);
+    std::error_code error;
+    const bool sameFile = std::filesystem::equivalent(leftInfo.filesystemFilePath(), rightInfo.filesystemFilePath(), error);
+    if (!error) return sameFile;
+    // New destinations have no file identity yet. Resolve existing parents before
+    // comparing names: lexical cleanup of "symlink/.." can identify the wrong file.
+    const auto resolvedPath = [](const QFileInfo &info) {
+        const QString parent = info.dir().canonicalPath();
+        return parent.isEmpty() ? info.absoluteFilePath() : QDir(parent).filePath(info.fileName());
+    };
+    return resolvedPath(leftInfo) == resolvedPath(rightInfo);
+}
 
 static QString plainToolTip(const QString &text) {
     return Qt::mightBeRichText(text) ? text.toHtmlEscaped() : text;
@@ -676,13 +692,25 @@ void MainWindow::setStatus(const QString &message, bool announce) {
 }
 
 void MainWindow::suggestOutput(const QString &sourcePath) {
-    if (!outputPath->text().trimmed().isEmpty() || sourcePath.trimmed().isEmpty()) return;
-    QFileInfo info(sourcePath);
-    QString suggested;
+    const QString currentOut = outputPath ? outputPath->text() : QString();
+    const QString currentImg = imagePath ? imagePath->text() : QString();
+    const QString currentAud = audioPath ? audioPath->text() : QString();
+    const bool shouldSuggest = currentOut.isEmpty() ||
+        pathsReferToSameFile(currentOut, currentImg) || pathsReferToSameFile(currentOut, currentAud);
+    if (!shouldSuggest) return;
+
+    const QString chosenSource = !currentAud.isEmpty() ? currentAud : (!currentImg.isEmpty() ? currentImg : sourcePath);
+    if (chosenSource.isEmpty()) return;
+
+    QFileInfo info(chosenSource);
+    QString base = info.completeBaseName();
     if (info.suffix().compare("mp4", Qt::CaseInsensitive) == 0) {
-        suggested = info.dir().filePath(info.completeBaseName() + "-video.mp4");
-    } else {
-        suggested = info.dir().filePath(info.completeBaseName() + ".mp4");
+        base += "-video";
+    }
+    QString suggested = info.dir().filePath(base + ".mp4");
+    while (pathsReferToSameFile(suggested, currentImg) || pathsReferToSameFile(suggested, currentAud)) {
+        base += "-video";
+        suggested = info.dir().filePath(base + ".mp4");
     }
     outputPath->setText(suggested);
     outputPath->setToolTip(plainToolTip(suggested));
@@ -835,13 +863,12 @@ void MainWindow::updateEnabled() {
     cancel->setVisible(rendering);
     cancel->setEnabled(rendering);
 
-    const QString img = imagePath ? imagePath->text().trimmed() : QString();
-    const QString aud = audioPath ? audioPath->text().trimmed() : QString();
-    const QString out = outputPath ? outputPath->text().trimmed() : QString();
+    const QString img = imagePath ? imagePath->text() : QString();
+    const QString aud = audioPath ? audioPath->text() : QString();
+    const QString out = outputPath ? outputPath->text() : QString();
 
     const bool pathsDistinct = !out.isEmpty() &&
-        out.compare(img, Qt::CaseInsensitive) != 0 &&
-        out.compare(aud, Qt::CaseInsensitive) != 0;
+        !pathsReferToSameFile(out, img) && !pathsReferToSameFile(out, aud);
 
     const bool canRender = presetsLoaded && resolution && resolution->currentIndex() >= 0 &&
                            !img.isEmpty() && !aud.isEmpty() && pathsDistinct &&

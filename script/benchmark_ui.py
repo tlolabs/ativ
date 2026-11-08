@@ -21,11 +21,13 @@ import statistics
 import subprocess
 import sys
 import time
+import tomllib
 import wave
 
 ROOT = Path(__file__).resolve().parents[1]
+VERSION = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
 ARTIFACTS = {
-    'swiftui': ('packages/ATIV-0.2.7-macos-arm64.zip', 'ATIV.app', 'ATIV'),
+    'swiftui': (f'packages/ATIV-{VERSION}-macos-arm64.zip', 'ATIV.app', 'ATIV'),
     'qt': ('build/qt-macos/ATIV-Qt-macos-arm64.zip', 'ATIV Qt.app', 'ATIV Qt'),
 }
 ALL = tuple(ARTIFACTS)

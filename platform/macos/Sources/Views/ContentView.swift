@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @ObservedObject var store: RenderStore
+    @ObservedObject var transcription: TranscriptionStore
     @SceneStorage("sourceMediaExpanded") private var sourceMediaExpanded = true
     @SceneStorage("formatExpanded") private var formatExpanded = false
     @SceneStorage("destinationExpanded") private var destinationExpanded = false
@@ -30,7 +31,14 @@ struct ContentView: View {
         }
         .navigationTitle(Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "ATIV")
         .task { store.start() }
-        .onDisappear { if store.isRendering { store.cancel() } }
+        .onDisappear {
+            if store.isRendering { store.cancel() }
+            transcription.close()
+        }
+        .onAppear { synchronizeTranscriptionSource() }
+        .onChange(of: store.audioURL) { _ in synchronizeTranscriptionSource() }
+        .onChange(of: store.imageURL) { _ in synchronizeTranscriptionProtection() }
+        .onChange(of: store.outputURL) { _ in synchronizeTranscriptionProtection() }
         .onOpenURL { url in
             let type = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType
             if type?.conforms(to: .audio) == true { store.setAudio(url) }
@@ -114,7 +122,18 @@ struct ContentView: View {
                 }
                 .padding(8)
             }
+
+            TranscriptionView(store: transcription)
         }
+    }
+
+    private func synchronizeTranscriptionSource() {
+        synchronizeTranscriptionProtection()
+        transcription.setSource(store.audioURL)
+    }
+
+    private func synchronizeTranscriptionProtection() {
+        transcription.protectedMediaURLs = [store.imageURL, store.audioURL, store.outputURL].compactMap { $0 }
     }
 
     private var renderButton: some View {
@@ -287,13 +306,37 @@ private struct FormatRow<Content: View>: View {
     }
 }
 
-private struct FileSelectionRow: View {
+struct FileSelectionRow: View {
     let title: String
     let systemImage: String
     let url: URL?
     var detail: String?
     let action: () -> Void
     let onDrop: (URL) -> Void
+
+    static func url(from droppedItem: Any?) -> URL? {
+        if let url = droppedItem as? URL {
+            if url.isFileURL { return url.path.hasPrefix("/") ? url : nil }
+            guard url.scheme == nil, url.path.hasPrefix("/") else { return nil }
+            return URL(fileURLWithPath: url.path)
+        }
+
+        let representation: String
+        if let data = droppedItem as? Data, let text = String(data: data, encoding: .utf8) {
+            representation = text
+        } else if let text = droppedItem as? String {
+            representation = text
+        } else {
+            return nil
+        }
+        guard !representation.contains("\0") else { return nil }
+        // Raw paths are not URL syntax: preserve literal %, #, ? and filename spaces.
+        if representation.hasPrefix("/") {
+            return URL(fileURLWithPath: representation)
+        }
+        guard let url = URL(string: representation), url.isFileURL, url.path.hasPrefix("/") else { return nil }
+        return url
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -310,8 +353,9 @@ private struct FileSelectionRow: View {
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                let data = item as? Data
-                if let data, let url = URL(dataRepresentation: data, relativeTo: nil) { DispatchQueue.main.async { onDrop(url) } }
+                if let url = Self.url(from: item) {
+                    DispatchQueue.main.async { onDrop(url) }
+                }
             }
             return true
         }
