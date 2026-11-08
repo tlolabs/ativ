@@ -262,6 +262,7 @@ echo '{duration}'
 ''')
                 tool(fake_ffmpeg, f'''if [ "$1" = -version ]; then echo 'ffmpeg version test'; exit; fi
 if [ "$2" = -encoders ]; then echo ' V..... libx264 software'; exit; fi
+if [ "$2" = -filters ]; then echo ' ... setsar V->V Set sample aspect ratio'; exit; fi
 for arg in "$@"; do output="$arg"; done
 printf partial > "$output"
 printf 'out_time_us=1000000\\nspeed=2x\\nprogress=continue\\n'

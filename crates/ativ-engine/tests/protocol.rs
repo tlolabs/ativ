@@ -57,10 +57,10 @@ fn build_info_reports_the_resolved_core() {
     let result = engine(&["build-info"]);
     assert!(result.status.success());
     let info: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert_eq!(info["avid_core"]["version"], "0.3.1");
+    assert_eq!(info["avid_core"]["version"], "0.3.2");
     assert_eq!(
         info["avid_core"]["revision"],
-        "15f28236142c100d0a83bf19154ed6f9f5b44e75"
+        "8296a9e623c6924c12e456b5fe9e7c10b59dfbde"
     );
     assert_eq!(info["avid_core"]["source"], ativ_core::CORE_SOURCE);
 }

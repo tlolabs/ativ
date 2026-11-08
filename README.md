@@ -1,23 +1,23 @@
 # ATIV — Artwork + Tracks Into Video
 
-[![Native builds](https://github.com/tlolabs/ativ/actions/workflows/native-release.yml/badge.svg)](https://github.com/tlolabs/ativ/actions/workflows/native-release.yml)
+[![Weekly release smoke](https://github.com/tlolabs/ativ/actions/workflows/weekly-release-smoke.yml/badge.svg)](https://github.com/tlolabs/ativ/actions/workflows/weekly-release-smoke.yml)
 [![Latest release](https://img.shields.io/github/v/release/tlolabs/ativ)](https://github.com/tlolabs/ativ/releases/latest)
 
 ATIV combines one still image and one audio track into an H.264/AAC MP4. Choose artwork and audio, select one of 27 format presets, preview the composition, and export. Horizontal/vertical flips, frame rate, audio bitrate, progress and safe cancellation are available on every platform.
 
 A TLO Labs open-source project maintained by Thomas Lothian.
 
-**[Download the latest stable release](https://github.com/tlolabs/ativ/releases/latest)** · [Verified development builds](https://github.com/tlolabs/ativ/releases)
+**[Download the latest stable release](https://github.com/tlolabs/ativ/releases/latest)** · [All releases](https://github.com/tlolabs/ativ/releases)
 
 ATIV processes media locally. No accounts, analytics, hosted crash reports, uploads, cloud processing, or project format. Network access is used for application updates; automatic checks can be disabled in native preferences.
 
-| CI build/test target | Minimum | Current release packaging |
+| Supported native target | Minimum | Package format |
 | --- | --- | --- |
 | macOS (ARM64/x64) | macOS 13 | ZIP; Sparkle updates |
 | Windows (x64/ARM64) | Windows 10 1809 | Portable ZIP |
 | Linux (x64/ARM64) | Ubuntu 24.04 packaging baseline | AppImage |
 
-Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe configured CI build and test targets, not personal hands-on testing. Release assets show verified platforms; GitHub Actions and the consolidated CI/CD issue show failed or pending targets. The next release uses ZIP on macOS and Windows, and AppImage on Linux; see [release operations](docs/RELEASING.md) for target verification and publication rules.
+Thomas Lothian personally tests primarily macOS (ARM64). Other entries describe supported native targets, not personal hands-on testing or current release qualification. Check each release's assets and notes for available platforms and actual verification. Automatic CI runs a weekly Linux/Windows smoke check for a new stable source-release tag; it does not publish packages. See [release operations](docs/RELEASING.md) for target verification and publication rules.
 
 All distribution packages contain the Rust engine, FFmpeg and ffprobe. End users do not install media tools separately. Package availability depends on which targets passed native verification.
 
@@ -45,7 +45,7 @@ The interfaces use SwiftUI/AppKit on production macOS and one shared Qt 6 Widget
 
 ## Development
 
-Cargo fetches the AVID Core 0.3.1 at its pinned commit; no sibling checkout is needed. ATIV embeds the matched, authenticated [AVID Core runtime](docs/ffmpeg-source-runtime.md). Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms. Run the bundled `ativ-engine build-info` to identify the compiled Core version and commit.
+Cargo fetches AVID Core 0.3.2 at its pinned commit; no sibling checkout is needed. ATIV embeds the matched, authenticated [AVID Core runtime](docs/ffmpeg-source-runtime.md), whose release identity is independent of the Rust source pin. Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms, and the [Core integration record](docs/core-0.3.2-integration.md) for source identity and verification. Run the bundled `ativ-engine build-info` to identify the compiled Core version and commit.
 
 Completed exports are staged beside the destination and published only after successful rendering. Failed or cancelled exports preserve existing output and never change the selected source files.
 

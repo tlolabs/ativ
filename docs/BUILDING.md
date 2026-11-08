@@ -2,7 +2,7 @@
 
 ## Checkouts and toolchains
 
-Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.1 API at the immutable revision recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified.
+Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.2 API at immutable revision `8296a9e623c6924c12e456b5fe9e7c10b59dfbde`, recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified. See the [integration record](core-0.3.2-integration.md) for verification scope.
 
 Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. The archived CI recipes document each platform's requirements; install them locally for native qualification.
 
@@ -20,9 +20,9 @@ Python is build/test tooling only; no Python runtime ships in ATIV. The maintain
 
 ## Media tools
 
-AVID Core owns source selection and builds for FFmpeg and ffprobe. ATIV acquires its exact matched runtime from the published `ffmpeg-9.0.1-r7.1` release through the shared authenticated verifier. Install GitHub CLI and authenticate it before provisioning; the verifier checks the release manifest's artifact attestation. See [runtime acquisition](ffmpeg-source-runtime.md). No FFmpeg compiler toolchain or sibling Core checkout is required.
+AVID Core owns source selection and builds for FFmpeg and ffprobe. ATIV defaults to the authenticated per-platform releases pinned in `runtime/platform-runtimes.json`, acquired through `script/platform_runtime.py` and the shared Core verifier. Install GitHub CLI and authenticate it before provisioning; acquisition verifies the pinned release, provider attestation, archive, metadata, executable and corresponding-source identities. See [runtime acquisition](ffmpeg-source-runtime.md). No FFmpeg compiler toolchain or sibling Core checkout is required.
 
-The separately pinned per-platform acquisition path is in `script/platform_runtime.py`. Current AVID Core direct-download releases lack the attestation it requires, so it is not used by application packaging. This does not block the established development publisher or other platform builds; see the provider requirements in [runtime acquisition](ffmpeg-source-runtime.md).
+The Rust source pin and media-runtime publication have independent identities. Updating Core's Rust API does not replace the authenticated FFmpeg runtime. The older `ffmpeg-9.0.1-r7.1` pin remains an explicit compatibility path selected with `ATIV_CORE_RUNTIME_SOURCE=legacy`; ordinary builds use the platform default and never fall back silently.
 
 ```sh
 python3 script/ffmpeg_runtime.py provision macos-arm64
@@ -35,7 +35,7 @@ python3 script/ffmpeg_runtime.py provision macos-arm64
 
 Packaging verifies Core's runtime and corresponding source before signing and verifies the packaged binaries afterward. There is no system/PATH production fallback. Both explicit engine `--ffmpeg`/`--ffprobe` paths remain available for deliberate development tests. Candidate qualification remains available only through explicit local/manual `AVID_CORE_QUALIFICATION=1` builds; ordinary builds acquire the published release.
 
-ATIV retains native SwiftUI/AppKit for production macOS and uses shared Qt 6 Widgets for Windows/Linux. Final packages remain a signed/notarized macOS ZIP, an Azure Authenticode Windows portable ZIP, and an attested Linux AppImage. All native package validators run bundled discovery with an empty PATH and representative exports/previews through the actual packaged engine.
+ATIV retains native SwiftUI/AppKit for production macOS and uses shared Qt 6 Widgets for Windows/Linux. Package formats are macOS ZIP, Windows portable ZIP and Linux AppImage. Direct downloads may be unsigned or unnotarized; record their actual signing state. Before publication, qualify each artifact with native build, package integrity, architecture, runtime dependency, launch and functional checks. Package validators check bundled discovery with an empty PATH; run representative exports/previews through the actual packaged engine as well. A source-release tag or scheduled smoke result does not establish artifact qualification.
 
 ## Optional Apple transcription helper
 

@@ -17,7 +17,7 @@ description = "A TLO Labs open-source project for turning artwork and audio into
 rust-version = "1.88"
 
 [workspace.dependencies]
-avid-core = { git = "https://github.com/tlolabs/avid-core.git", rev = "15f28236142c100d0a83bf19154ed6f9f5b44e75", version = "=0.3.1" }
+avid-core = { git = "https://github.com/tlolabs/avid-core.git", rev = "8296a9e623c6924c12e456b5fe9e7c10b59dfbde", version = "=0.3.2" }
 
 [profile.release]
 lto = "thin"

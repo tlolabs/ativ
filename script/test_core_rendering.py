@@ -79,12 +79,27 @@ def animated_gif(path):
     path.write_bytes(data + b';')
 
 
+def animated_png(path, plays):
+    """Two 0.5-second RGB frames with an explicit APNG playback count."""
+    width, height = 96, 64
+    def chunk(name, body):
+        return struct.pack('>I', len(body)) + name + body + struct.pack('>I', binascii.crc32(name + body))
+    data = (b'\x89PNG\r\n\x1a\n' +
+            chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)) +
+            chunk(b'acTL', struct.pack('>II', 2, plays)))
+    for index, color in enumerate((bytes([255, 0, 0]), bytes([0, 0, 255]))):
+        data += chunk(b'fcTL', struct.pack('>IIIIIHHBB', index, width, height, 0, 0, 1, 2, 0, 0))
+        pixels = zlib.compress((b'\0' + color * width) * height)
+        data += chunk(b'IDAT', pixels) if index == 0 else chunk(b'fdAT', struct.pack('>I', 2) + pixels)
+    path.write_bytes(data + chunk(b'IEND', b''))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--engine', type=Path, default=ROOT / 'target/debug/ativ-engine')
     parser.add_argument('--runtime', type=Path, required=True)
     parser.add_argument('--target', required=True)
-    parser.add_argument('--report', type=Path, default=ROOT / 'build/core-0.3.1/native-rendering.json')
+    parser.add_argument('--report', type=Path, default=ROOT / 'build/core-0.3.2/native-rendering.json')
     parser.add_argument('--rounds', type=int, default=3)
     options = parser.parse_args()
     if options.rounds < 1:
@@ -313,35 +328,59 @@ def main():
                 behavior = 'per-frame-compatibility' if suffix == 'jpg' else 'animation-preserved'
                 case(f'concatenated-{suffix}-{behavior}', concatenated_animation)
 
-            def animation_compatibility():
-                source = work / 'animated 赤青 ü.gif'
-                animated_gif(source)
-                assert probe(source)['streams'][0]['nb_read_frames'] == '2'
-                destination = work / 'animated destination.mp4'
-                results = {}
-                for mode in (None, 'current'):
-                    destination.write_bytes(b'previous animation destination')
-                    arguments = ['--image', source, '--audio', audio, '--output', destination,
-                                 '--width', 160, '--height', 90]
-                    if mode:
-                        arguments += ['--render-mode', mode]
-                    events = invoke('render', *arguments, status=1)
-                    timing, = [event for event in events if event['event'] == 'timing']
-                    assert timing['render_mode'] == 'current' and not timing['success'], timing
-                    assert events[-1]['code'] == 'media_tool_failed', events
-                    assert destination.read_bytes() == b'previous animation destination'
-                    results[mode or 'default'] = {'mode': timing['render_mode'], 'error': events[-1]['code']}
-                preview = work / 'animated preview.png'
-                invoke('preview', '--image', source, '--output', preview, '--width', 160, '--height', 90)
-                assert probe(preview)['streams'][0]['codec_name'] == 'png'
-                diagnostic = (work / 'private.log').read_text(errors='replace')
-                failure = next((line for line in diagnostic.splitlines() if 'Option loop not found' in line), None)
-                report.setdefault('known_limitations', []).append(
-                    'The exact runtime probes animated GIF and previews its first frame, but Core PerFrame GIF export fails; default remains PerFrame to preserve existing playback policy. ' + (failure or 'See native diagnostics.'))
-                no_staging()
-                return {'source_frames': 2, 'render_results': results,
-                        'first_frame_preview': 'passed', 'diagnostic': failure}
-            case('animated-gif-conservative-default-and-existing-export-limitation', animation_compatibility)
+            animation_audio = work / 'animation audio 音 ü.wav'
+            write_audio(animation_audio, 2.5)
+            source_hashes[animation_audio] = sha256(animation_audio)
+            for kind, plays in [('gif', 0), ('apng', 0), ('apng', 1), ('apng', 2)]:
+                def animation_compatibility(kind=kind, plays=plays):
+                    # Deliberately misleading suffixes exercise content detection
+                    # through both ATIV's default policy and Core's demuxer choice.
+                    suffix = 'png' if kind == 'gif' else 'gif'
+                    source = work / f'animated {kind}-{plays} 赤青 ü.{suffix}'
+                    animated_gif(source) if kind == 'gif' else animated_png(source, plays)
+                    source_hashes[source] = sha256(source)
+                    assert probe(source)['streams'][0]['nb_read_frames'] == '2'
+                    results, decoded = {}, {}
+                    for mode in (None, 'current', 'simple'):
+                        label = mode or 'default'
+                        destination = work / f'animated-{kind}-{plays}-{label}.mp4'
+                        destination.write_bytes(b'previous animation destination')
+                        timing = render(destination, source=source, mode=mode, sound=animation_audio)
+                        assert timing['render_mode'] == ('simple' if mode == 'simple' else 'current'), timing
+                        streams = probe(destination)['streams']
+                        video = next(stream for stream in streams if stream['codec_type'] == 'video')
+                        sound = next(stream for stream in streams if stream['codec_type'] == 'audio')
+                        assert video['codec_name'] == 'h264' and sound['codec_name'] == 'aac', streams
+                        assert video['avg_frame_rate'] == '30/1' and int(video['nb_read_frames']) == 75, video
+                        assert abs(float(video['duration']) - 2.5) < .05, video
+                        assert abs(float(sound['duration']) - 2.5) < .05, sound
+                        pixels = decode(destination)
+                        decoded[label] = pixels
+                        frame_size = 160 * 90 * 3
+                        assert len(pixels) == frame_size * 75
+                        samples = []
+                        for second in (.1, .6, 1.1, 1.6, 2.1):
+                            offset = round(second * 30) * frame_size
+                            red_minus_blue = (sum(pixels[offset:offset + frame_size:3]) -
+                                              sum(pixels[offset + 2:offset + frame_size:3])) / (160 * 90)
+                            blue = int(second * 2) % 2 == 1 or (plays > 0 and second >= plays)
+                            expected_blue = blue and mode != 'simple'
+                            assert red_minus_blue < -200 if expected_blue else red_minus_blue > 200, (
+                                kind, plays, label, second, red_minus_blue)
+                            samples.append(red_minus_blue)
+                        results[label] = {'timing': timing, 'frames': 75,
+                                          'sample_mean_red_minus_blue': samples}
+                    assert decoded['default'] == decoded['current'], 'Default changed PerFrame pixels'
+                    preview = work / f'animated-{kind}-{plays}-preview.png'
+                    invoke('preview', '--image', source, '--output', preview, '--width', 160, '--height', 90)
+                    assert probe(preview)['streams'][0]['codec_name'] == 'png'
+                    pixels = decode(preview)
+                    assert (sum(pixels[::3]) - sum(pixels[2::3])) / (160 * 90) > 200
+                    no_staging()
+                    return {'source_frames': 2, 'play_count': plays, 'render_results': results,
+                            'default_matches_per_frame_decoded_pixels': True,
+                            'first_frame_preview': 'passed'}
+                case(f'animated-{kind}-{plays}-playback-timing-and-simple-freeze', animation_compatibility)
 
             corrupt, oversized = work / 'corrupt ü.png', work / 'oversized ü.png'
             corrupt.write_bytes(b'not an image')

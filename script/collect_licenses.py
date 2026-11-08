@@ -28,7 +28,9 @@ index = []
 helper_licenses = a.destination.parent.parent / 'Helpers/ATIVTranscriptionHelper.app/Contents/Resources/licenses'
 if helper_licenses.is_dir():
     shutil.copytree(helper_licenses, a.destination / 'avid-transcription', dirs_exist_ok=True)
-    index.append(dict(name='AVID transcription helper', version='reviewed-20261102',
+    transcription_source = json.loads((ROOT / 'vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json').read_text())
+    index.append(dict(name='AVID transcription helper',
+                      version=transcription_source['source_release_tag'] + '-' + transcription_source['source_revision'],
                       license='GPL-3.0-or-later and bundled dependency notices',
                       repository='vendor/avid-transcription',
                       files=[str(p.relative_to(helper_licenses)) for p in sorted(helper_licenses.rglob('*')) if p.is_file()]))
@@ -46,6 +48,16 @@ for package in metadata['packages']:
         if source.is_file() and source.name.upper().startswith(('LICENSE', 'COPYING', 'COPYRIGHT', 'NOTICE')):
             (folder / source.name).write_bytes(source.read_bytes())
             texts.append(source.name)
+    if package['name'] == 'avid-core':
+        # Core's source-built image codecs carry native notices below the crate
+        # root; wrapper licenses alone do not cover libjpeg-turbo/libdeflate.
+        notices = root / 'THIRD_PARTY_NOTICES.md'
+        (folder / notices.name).write_bytes(notices.read_bytes())
+        texts.append(notices.name)
+        codec_notices = root / 'licenses/image-optimization'
+        shutil.copytree(codec_notices, folder / 'licenses/image-optimization', dirs_exist_ok=True)
+        texts.extend(str(source.relative_to(root)) for source in sorted(codec_notices.rglob('*'))
+                     if source.is_file())
     index.append(dict(
         name=package['name'],
         version=package['version'],

@@ -18,7 +18,7 @@ import uuid
 ROOT = Path(__file__).resolve().parent.parent
 INVENTORY = ROOT / "docs/dependency-inventory.json"
 UUID_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-TRANSCRIPTION_BUNDLE_SHA256 = "f4555615571d54b96d714be26caf0484f6049835065d7215820c3244bf761c5a"
+TRANSCRIPTION_BUNDLE_SHA256 = "a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937"
 
 # Crates that are only compiled into ativ-update (shipped on Windows and Linux, omitted on macOS prod)
 UPDATER_ONLY_CRATES = {
@@ -62,7 +62,7 @@ def format_cyclonedx_licenses(license_str):
 
 
 def transcription_inventory():
-    """Read exact reviewed inputs without requiring an extracted checkout or SDK cache."""
+    """Read exact released inputs without requiring an extracted checkout or SDK cache."""
     folder = ROOT / "vendor/avid-transcription"
     manifest = json.loads((folder / "AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json").read_text())
     bundle = folder / manifest["source_bundle"]
@@ -95,8 +95,10 @@ def transcription_inventory():
         "sha256": actual,
         "license": "GPL-3.0-or-later",
         "source": str(bundle.relative_to(ROOT)),
-        "reviewSnapshotSHA256": manifest["review_snapshot_sha256"],
-        "description": "Reviewed frozen Apple source; baseline commit does not contain these uncommitted packages",
+        "revision": manifest["source_revision"],
+        "sourceRelease": manifest["source_release_tag"],
+        "sourceRepository": manifest["repository"],
+        "description": "Unmodified Apple source exported from the published AVID Core release; original handoff audit is historical",
     }]
     # Direct licenses are established by the frozen THIRD_PARTY_NOTICES.md.
     # Transitive license texts are collected from their pinned build checkouts by packaging.
@@ -374,7 +376,7 @@ def sbom(data, target=None):
         if package.get("source", "").startswith("https://"):
             component["externalReferences"] = [{"type": "vcs", "url": package["source"]}]
         properties = [{"name": "ativ:" + field, "value": str(package[field])}
-                      for field in ("revision", "minimumOS", "delivery", "reviewSnapshotSHA256")
+                      for field in ("revision", "minimumOS", "delivery", "sourceRelease", "sourceRepository", "reviewSnapshotSHA256")
                       if field in package]
         if properties:
             component["properties"] = properties

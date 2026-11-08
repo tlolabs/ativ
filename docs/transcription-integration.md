@@ -7,28 +7,38 @@ rendering: this implementation does not burn captions into exported video.
 
 ## Source identities and compatibility
 
-The Rust media dependency remains AVID Core 0.3.1 at
-`15f28236142c100d0a83bf19154ed6f9f5b44e75`. Its authenticated FFmpeg runtime pin
-is unchanged. The Apple transcription implementation is a separate, unmodified
-dependency, supplied by the reviewed source archive in
+The Rust media dependency is AVID Core 0.3.2 at
+`8296a9e623c6924c12e456b5fe9e7c10b59dfbde`. Its authenticated FFmpeg platform
+runtime pins are unchanged. The Apple transcription implementation is a separate,
+unmodified source export from that same published `v0.3.2` commit, supplied by the
+pinned archive in
 [`vendor/avid-transcription`](../vendor/avid-transcription/README.md).
 
-- Archive SHA-256: `f4555615571d54b96d714be26caf0484f6049835065d7215820c3244bf761c5a`.
-- Upstream baseline: `7e124a3387349e38cc99e5db7e89a73cc23068ad`; that commit
-  alone does not contain the new Apple packages.
-- Reviewed source snapshot SHA-256:
-  `0cac6c3611b74b7a65cb1ccae27bcc39a712c1602c31bf4c85c52d505451dfdd`.
-- Upstream review: Antigravity round 3, task
-  `desktop-transcription-20261102-e8b98234`, complete with no findings. This is
-  upstream evidence, not verification of ATIV's application integration.
+- Archive SHA-256: `a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937`.
+- All 34 exported files are identified by path, byte count and SHA-256 in the
+  source manifest, alongside the published upstream repository, release and commit.
+- The original November 2 archive, manifest and review report remain under
+  [`history/2026-11-02`](../vendor/avid-transcription/history/2026-11-02/AVID_CORE_TRANSCRIPTION_CHANGE_REPORT.md).
+  Its completed Antigravity round 3 review, task
+  `desktop-transcription-20261102-e8b98234`, applies only to that historical
+  source snapshot; it does not certify the refreshed archive or current ATIV build.
+
+The [refresh report](../vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_CHANGE_REPORT.md)
+describes the released model-store provisioning and verification changes. Scoped
+verification retains the model lease and runs on a utility queue; the upstream
+CLI uses the explicit local/offline/download provisioning API. Catalog/model
+pins, engine SDK locks, deployment targets and third-party notices remain
+byte-identical to the former handoff. Current application verification is recorded
+separately in the [Core 0.3.2 integration record](core-0.3.2-integration.md).
 
 `script/transcription_runtime.py acquire` verifies the archive and every exported
 file against its manifest, then materializes the dependency at
 `build/transcription-core`. Both nested Swift packages stay together beneath
 `apple/`. A sibling development checkout, floating branch, or unpublished Git
 revision is not used to acquire transcription source. The archive is a dependency
-snapshot, not an app-owned fork; refresh it deliberately with a new reviewed
-archive, manifest, hash, dependency lock, notices, and validation evidence.
+snapshot, not an app-owned fork; refresh it deliberately with a new archive,
+manifest, hash, dependency lock, notices, and separate review and validation
+evidence. An earlier source review does not cover changed bytes.
 
 | Target | Existing video workflow | New local inference |
 | --- | --- | --- |
@@ -196,16 +206,22 @@ highlight alone cannot establish video burn-in.
 
 ## Validation record and remaining limits
 
-Application validation and the Antigravity-first review are recorded by the
-integration task. Upstream's 45 automated checks and short real-model smoke
-record are retained in the vendored change report; they must not be counted as
-ATIV-specific checks. Run the commands in [building](BUILDING.md) and
-[testing](TESTING.md), plus the acquired Core package/catalog and helper tests.
+Current application validation and independent-review evidence are recorded in
+the [Core 0.3.2 integration record](core-0.3.2-integration.md). The released
+`apple/VERIFICATION.md` and archived handoff report retain upstream checks and
+their source-specific limits; those results must not be counted as current
+ATIV-specific checks. In particular, the later upstream performance audit did
+not establish a complete engine rebuild or new real-model inference. Run the
+commands in [building](BUILDING.md) and [testing](TESTING.md), plus the acquired
+Core package/catalog and helper tests, and record actual outcomes against the
+current source and packaged bytes.
 
 Remaining qualification includes native Intel/macOS-13 behavior, Windows/Linux
 regressions on their own runners, representative-language and long-form accuracy,
 acoustic boundary error, peak memory, and any installed-model/packaged-inference
 checks not explicitly recorded by this task. A short known-English sample is
-functional smoke evidence, not an accuracy benchmark. Six-platform automation
-and nonblocking development policy remain in force. No release publication or
-authenticated update-feed change is authorized by this integration.
+functional smoke evidence, not an accuracy benchmark. Weekly Linux/Windows smoke
+CI is diagnostic and does not qualify native packages or publish releases;
+deliberate native qualification and the nonblocking development policy remain
+in force. Updating the transcription dependency does not itself publish a
+release or change an authenticated update feed.

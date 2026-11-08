@@ -8,8 +8,8 @@ class OwnershipTests(unittest.TestCase):
         pin=json.loads((ROOT/'runtime/core-runtime.json').read_text())
         dependency=tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['dependencies']['avid-core']
         # Updating the Rust library does not replace the authenticated runtime.
-        self.assertEqual(dependency['rev'],'15f28236142c100d0a83bf19154ed6f9f5b44e75')
-        self.assertEqual(dependency['version'],'=0.3.1')
+        self.assertEqual(dependency['rev'],'8296a9e623c6924c12e456b5fe9e7c10b59dfbde')
+        self.assertEqual(dependency['version'],'=0.3.2')
         self.assertEqual(pin['build_revision'],'25d19098a22936638b0e2a70616083d929fe409c')
         self.assertEqual(set(pin['targets']),{'macos-arm64','macos-x86_64','windows-arm64','windows-x86_64','linux-arm64','linux-x86_64'})
         verifier=json.loads((ROOT/'runtime/core-acquirer.json').read_text())
@@ -20,7 +20,7 @@ class OwnershipTests(unittest.TestCase):
         self.assertEqual(core['version'],dependency['version'][1:])
         self.assertEqual(core['source'],f"git+{dependency['git']}?rev={dependency['rev']}#{dependency['rev']}")
         from ffmpeg_runtime import core_identity
-        self.assertEqual(core_identity(),dict(version='0.3.1',revision=dependency['rev'],source=core['source']))
+        self.assertEqual(core_identity(),dict(version='0.3.2',revision=dependency['rev'],source=core['source']))
     def test_distribution_names_resolve_only_to_exact_core_targets(self):
         from ffmpeg_runtime import target_id
         for name,target in [('macos-intel','macos-x86_64'),('windows-x64','windows-x86_64'),('linux-x64-appimage','linux-x86_64'),('linux-arm64-appimage','linux-arm64')]:

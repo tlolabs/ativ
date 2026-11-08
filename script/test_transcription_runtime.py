@@ -18,7 +18,7 @@ class TranscriptionRuntimeTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def test_reviewed_archive_acquires_and_revalidates_every_file(self):
+    def test_pinned_release_archive_acquires_and_revalidates_every_file(self):
         destination = self.root / 'reviewed'
         self.assertEqual(runtime.acquire(destination=destination), destination)
         self.assertEqual(runtime.acquire(destination=destination), destination)
@@ -36,7 +36,7 @@ class TranscriptionRuntimeTests(unittest.TestCase):
             runtime.acquire(vendor=vendor, destination=destination)
         self.assertFalse(destination.exists())
 
-    def test_unreviewed_source_in_existing_checkout_is_rejected(self):
+    def test_unexpected_source_in_existing_checkout_is_rejected(self):
         destination = self.root / 'reviewed'
         runtime.acquire(destination=destination)
         (destination / 'apple/AVIDTranscription/Sources/AVIDTranscription/Unreviewed.swift').write_text('// unreviewed')
