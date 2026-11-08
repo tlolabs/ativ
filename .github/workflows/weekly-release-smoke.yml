@@ -1,0 +1,216 @@
+name: Weekly tagged release smoke
+
+# 16:17 UTC is 08:17 PST / 09:17 PDT on Sunday.
+on:
+  schedule:
+    - cron: '17 16 * * 0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-release-smoke
+  cancel-in-progress: false
+
+jobs:
+  select:
+    if: github.run_attempt == 1
+    name: Find new release tags
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      statuses: write
+      actions: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      has_new: ${{ steps.select.outputs.has_new }}
+    steps:
+      - name: Check out the current controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Select unattempted source releases
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 control/.github/scripts/weekly_release_smoke.py select
+          --pattern '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          --baseline-file control/.github/weekly-smoke-baseline.json
+          --targets linux-x64,linux-arm64,windows-x64,windows-arm64 --claim
+
+  smoke:
+    name: Smoke ${{ matrix.tag }} (${{ matrix.target }})
+    needs: select
+    if: github.run_attempt == 1 && needs.select.outputs.has_new == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ${{ matrix.target == 'linux-x64' && 'ubuntu-24.04' || matrix.target == 'linux-arm64' && 'ubuntu-24.04-arm' || matrix.target == 'windows-x64' && 'windows-2025' || 'windows-11-arm' }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      attestations: read
+    defaults:
+      run:
+        shell: bash
+        working-directory: source
+    env:
+      ATIV_BUILD_ONLY: '1'
+      ATIV_CHANNEL: stable
+      ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
+      CARGO_TERM_COLOR: always
+      GH_TOKEN: ${{ github.token }}
+      CORE_TARGET: ${{ matrix.target == 'linux-x64' && 'linux-x86_64' || matrix.target == 'linux-arm64' && 'linux-arm64' || matrix.target == 'windows-x64' && 'windows-x86_64' || 'windows-arm64' }}
+      BUILD_ARCH: ${{ matrix.target == 'linux-x64' && 'x86_64' || matrix.target == 'linux-arm64' && 'aarch64' || matrix.target == 'windows-x64' && 'x64' || 'ARM64' }}
+    steps:
+      - name: Check out the exact release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.sha }}
+          path: source
+          persist-credentials: false
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: Check application version against the selected tag
+        env:
+          RELEASE_TAG: ${{ matrix.tag }}
+        run: |
+          python3 - <<'PYVERSION'
+          import os, tomllib
+          with open('Cargo.toml', 'rb') as source:
+              version = tomllib.load(source)['workspace']['package']['version']
+          if os.environ['RELEASE_TAG'] != 'v' + version:
+              raise SystemExit('Release tag does not match the application version')
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('ATIV_VERSION=' + version + '\n')
+          PYVERSION
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xz-utils patchelf file desktop-file-utils libgdk-pixbuf2.0-bin librsvg2-common xvfb dbus-x11 squashfs-tools libfuse2t64 libfontconfig1 libice6 libsm6 qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev
+      - name: Install native Windows Qt
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: '6.8.2'
+          host: ${{ matrix.target == 'windows-arm64' && 'windows_arm64' || 'windows' }}
+          target: desktop
+          arch: ${{ matrix.target == 'windows-arm64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
+      - name: Acquire the exact authenticated Core runtime
+        # Same acquisition as the composite action, whose working directory is
+        # hardcoded to ATIV. This checkout intentionally uses source instead.
+        run: |
+          set -euo pipefail
+          runtime="$(python3 script/ffmpeg_runtime.py provision "$CORE_TARGET" | tail -n 1)"
+          if [[ "$RUNNER_OS" == Windows ]]; then runtime="$(cygpath -w "$runtime")"; fi
+          echo "ATIV_FFMPEG_RUNTIME=$runtime" >> "$GITHUB_ENV"
+      - name: Build the Linux application and AppImage
+        if: runner.os == 'Linux'
+        run: ./script/package_linux.sh "$BUILD_ARCH"
+      - name: Smoke-test the packaged Linux application
+        if: runner.os == 'Linux'
+        run: |
+          python3 - <<'PYSMOKE'
+          import json, os, signal, subprocess, time
+          from pathlib import Path
+          images = list(Path('packages').glob('*.AppImage'))
+          if len(images) != 1:
+              raise SystemExit('Expected exactly one native AppImage')
+          report = Path(os.environ['RUNNER_TEMP']) / 'ativ-weekly-smoke.json'
+          report.unlink(missing_ok=True)
+          env = dict(os.environ, ATIV_SMOKE_REPORT=str(report), APPIMAGE_EXTRACT_AND_RUN='1')
+          env.pop('ATIV_ENGINE_PATH', None)
+          log_path = Path(os.environ['RUNNER_TEMP']) / 'ativ-weekly-smoke.log'
+          with log_path.open('w') as log:
+              app = subprocess.Popen(
+                  ['xvfb-run', '-a', 'dbus-run-session', '--', str(images[0].resolve())],
+                  env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+              try:
+                  deadline = time.monotonic() + 30
+                  while time.monotonic() < deadline:
+                      if report.exists() and report.stat().st_size:
+                          data = json.loads(report.read_text())
+                          if data.get('startup') is not True or data.get('presets') != 27:
+                              raise RuntimeError('Application startup or engine preset smoke failed')
+                          break
+                      if app.poll() is not None:
+                          raise RuntimeError('AppImage exited before startup smoke completed')
+                      time.sleep(0.25)
+                  else:
+                      raise RuntimeError('AppImage startup smoke timed out')
+              except Exception:
+                  log.flush()
+                  print(log_path.read_text())
+                  raise
+              finally:
+                  try:
+                      os.killpg(app.pid, signal.SIGTERM)
+                  except ProcessLookupError:
+                      pass
+                  try:
+                      app.wait(timeout=10)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(app.pid, signal.SIGKILL)
+                      app.wait()
+          PYSMOKE
+      - name: Build the Windows application and portable ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./script/package_windows.ps1 -Architecture $env:BUILD_ARCH
+      - name: Smoke-test the extracted Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packages = @(Get-ChildItem packages -Filter '*-windows-*.zip')
+          if ($packages.Count -ne 1) { throw 'Expected exactly one native portable ZIP' }
+          $installed = Join-Path $env:RUNNER_TEMP 'ativ-weekly-portable'
+          Expand-Archive -LiteralPath $packages[0].FullName -DestinationPath $installed
+          $previousPath = $env:PATH
+          try {
+              $env:PATH = ''
+              & (Join-Path $installed 'ativ-engine.exe') check
+              if ($LASTEXITCODE -ne 0) { throw 'Extracted portable runtime discovery failed' }
+          } finally { $env:PATH = $previousPath }
+          Remove-Item Env:ATIV_ENGINE_PATH -ErrorAction SilentlyContinue
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $env:ATIV_SMOKE_REPORT = Join-Path $env:RUNNER_TEMP 'ativ-weekly-smoke.json'
+          Remove-Item $env:ATIV_SMOKE_REPORT -ErrorAction SilentlyContinue
+          $app = Start-Process (Join-Path $installed 'ATIV.exe') -PassThru
+          try {
+              for ($i = 0; $i -lt 30 -and !(Test-Path $env:ATIV_SMOKE_REPORT); $i++) {
+                  if ($app.HasExited) { throw 'Application exited before startup smoke completed' }
+                  Start-Sleep -Seconds 1
+              }
+              if (!(Test-Path $env:ATIV_SMOKE_REPORT)) { throw 'Application startup smoke timed out' }
+              $report = Get-Content -Raw $env:ATIV_SMOKE_REPORT | ConvertFrom-Json
+              if ($report.startup -ne $true -or $report.presets -ne 27) {
+                  throw 'Application startup or engine preset smoke failed'
+              }
+          } finally { if (!$app.HasExited) { Stop-Process -Id $app.Id } }
+
+  finalize:
+    needs: [select, smoke]
+    if: always() && github.run_attempt == 1 && needs.select.outputs.has_new == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          persist-credentials: false
+      - name: Record each native target outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SMOKE_MATRIX: ${{ needs.select.outputs.matrix }}
+        run: python3 control/.github/scripts/weekly_release_smoke.py finalize --matrix-env SMOKE_MATRIX

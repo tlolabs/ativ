@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "repository": "tlolabs/ativ",
+  "captured_at": "2026-11-08T01:13:36Z",
+  "entries": [
+    {
+      "tag": "v0.1.0",
+      "sha": "8f136dee98dce973f453295467413bcb4e450f64",
+      "target": "linux-x64"
+    },
+    {
+      "tag": "v0.1.0",
+      "sha": "8f136dee98dce973f453295467413bcb4e450f64",
+      "target": "linux-arm64"
+    },
+    {
+      "tag": "v0.1.0",
+      "sha": "8f136dee98dce973f453295467413bcb4e450f64",
+      "target": "windows-x64"
+    },
+    {
+      "tag": "v0.1.0",
+      "sha": "8f136dee98dce973f453295467413bcb4e450f64",
+      "target": "windows-arm64"
+    },
+    {
+      "tag": "v0.2.2",
+      "sha": "cad2b847a4fc6c0c0feb73eec5cdea320c01ad77",
+      "target": "linux-x64"
+    },
+    {
+      "tag": "v0.2.2",
+      "sha": "cad2b847a4fc6c0c0feb73eec5cdea320c01ad77",
+      "target": "linux-arm64"
+    },
+    {
+      "tag": "v0.2.2",
+      "sha": "cad2b847a4fc6c0c0feb73eec5cdea320c01ad77",
+      "target": "windows-x64"
+    },
+    {
+      "tag": "v0.2.2",
+      "sha": "cad2b847a4fc6c0c0feb73eec5cdea320c01ad77",
+      "target": "windows-arm64"
+    },
+    {
+      "tag": "v0.2.3",
+      "sha": "030c17809da14263a19705402ec95db428681d39",
+      "target": "linux-x64"
+    },
+    {
+      "tag": "v0.2.3",
+      "sha": "030c17809da14263a19705402ec95db428681d39",
+      "target": "linux-arm64"
+    },
+    {
+      "tag": "v0.2.3",
+      "sha": "030c17809da14263a19705402ec95db428681d39",
+      "target": "windows-x64"
+    },
+    {
+      "tag": "v0.2.3",
+      "sha": "030c17809da14263a19705402ec95db428681d39",
+      "target": "windows-arm64"
+    },
+    {
+      "tag": "v0.2.4",
+      "sha": "2a2421b4a58a1248fbb515576aa074060b772df6",
+      "target": "linux-x64"
+    },
+    {
+      "tag": "v0.2.4",
+      "sha": "2a2421b4a58a1248fbb515576aa074060b772df6",
+      "target": "linux-arm64"
+    },
+    {
+      "tag": "v0.2.4",
+      "sha": "2a2421b4a58a1248fbb515576aa074060b772df6",
+      "target": "windows-x64"
+    },
+    {
+      "tag": "v0.2.4",
+      "sha": "2a2421b4a58a1248fbb515576aa074060b772df6",
+      "target": "windows-arm64"
+    },
+    {
+      "tag": "v0.2.7",
+      "sha": "25c245f49270b663a116ff7f823e977798d81491",
+      "target": "linux-x64"
+    },
+    {
+      "tag": "v0.2.7",
+      "sha": "25c245f49270b663a116ff7f823e977798d81491",
+      "target": "linux-arm64"
+    },
+    {
+      "tag": "v0.2.7",
+      "sha": "25c245f49270b663a116ff7f823e977798d81491",
+      "target": "windows-x64"
+    },
+    {
+      "tag": "v0.2.7",
+      "sha": "25c245f49270b663a116ff7f823e977798d81491",
+      "target": "windows-arm64"
+    }
+  ]
+}
