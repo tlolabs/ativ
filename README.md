@@ -45,7 +45,7 @@ The interfaces use SwiftUI/AppKit on production macOS and one shared Qt 6 Widget
 
 ## Development
 
-Cargo fetches AVID Core 0.3.2 at its pinned commit; no sibling checkout is needed. ATIV embeds the matched, authenticated [AVID Core runtime](docs/ffmpeg-source-runtime.md), whose release identity is independent of the Rust source pin. Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms, and the [Core integration record](docs/core-0.3.2-integration.md) for source identity and verification. Run the bundled `ativ-engine build-info` to identify the compiled Core version and commit.
+Cargo uses AVID Core 0.3.3 at its immutable commit through the checked-in, unmodified source snapshot; no sibling checkout or upstream publication is needed. ATIV embeds the matched, authenticated [AVID Core runtime](docs/ffmpeg-source-runtime.md), whose release identity is independent of the Rust source pin. Run `cargo test --workspace --locked`. On macOS, `./script/build_and_run.sh` builds and launches the native app. See the build guide for prerequisites and all platforms, and the [Core integration record](docs/core-0.3.3-integration.md) for source identity and verification. Run the bundled `ativ-engine build-info` to identify the compiled Core version and commit.
 
 Completed exports are staged beside the destination and published only after successful rendering. Failed or cancelled exports preserve existing output and never change the selected source files.
 

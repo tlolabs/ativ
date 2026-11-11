@@ -4,12 +4,13 @@ ATIV pins the Rust graph in `Cargo.lock` and its direct AVID Core Git revision i
 
 | Direct dependency | Purpose and source | License and distribution |
 | --- | --- | --- |
-| AVID Core 0.3.1 | Shared media model/rendering from `tlolabs/avid-core`, pinned Git commit | GPL-3.0-or-later, linked into the engine. |
+| AVID Core 0.3.3 | Shared media model/rendering from `tlolabs/avid-core`, exact local Git commit with unmodified checked-in source replacement | GPL-3.0-or-later, linked into the engine. |
 | AVID Core Apple transcription snapshot | Immutable reviewed archive in `vendor/avid-transcription`, acquired under `build/transcription-core`; separate from the Rust pin | Core GPL-3.0-or-later plus preserved SDK/model notices; linked only into the optional Apple silicon/macOS-14 helper. |
 | WhisperKit / Argmax OSS Swift | Revision `9f99b5cb6a907730543823ad271b82532782a899` | MIT; original license and adapted-tokenizer notice retained. |
 | FluidAudio | Revision `ee78635d23d52379117554ba72358b65a0612447` | Apache-2.0 SDK; model-weight licenses tracked separately. |
 | MLX Audio Swift / MLX Swift | `df2a2546705f50ca267037702a34cd63aa6e35a6` / exact MLX `0.33.0`; transitive identities in helper `Package.resolved` | MIT SDKs; upstream licenses packaged. |
-| FFmpeg 9.0.1 / ffprobe | Local media decode, composition and export; authenticated Core runtime release `ffmpeg-9.0.1-r7.1` | Configured GPL-2.0-or-later executable, bundled with corresponding source and notices. |
+| TurboJPEG / OxiPNG | Core-owned JPEG/PNG implementation, transitively locked since 0.3.2; no independent ATIV optimizer | Original wrapper/native notices bundled by `collect_licenses.py`; see Core image notices. |
+| FFmpeg 9.0.1 / ffprobe | Local media decode, composition and export; authenticated independent platform releases in `runtime/platform-runtimes.json`, with explicit legacy `ffmpeg-9.0.1-r7.1` compatibility selection | Configured GPL-2.0-or-later executable, bundled with corresponding source and notices. |
 | x264 | H.264 encoder, pinned upstream source archive | GPL-2.0-or-later, statically linked into FFmpeg. |
 | x265 | HEVC encoder in the shared Core runtime | GPL-2.0-or-later, statically linked into FFmpeg. |
 | LAME | MP3 encoder in the shared Core runtime | LGPL-2.0-or-later, statically linked into FFmpeg. |
@@ -23,9 +24,8 @@ ATIV pins the Rust graph in `Cargo.lock` and its direct AVID Core Git revision i
 Windows and Apple operating-system frameworks are platform dependencies. CI and package scripts acquire additional compilers and tools; their versions should be recorded in build provenance. The inventory is exhaustive for the locked Rust graph and enumerates the direct native/source inputs; it does not substitute for a final scan of binary contents or final binary notice coverage. The [older Windows App SDK audit](WINDOWS_LICENSING.md) applies only to published legacy ZIPs.
 
 The transcription archive SHA-256 is
-`f4555615571d54b96d714be26caf0484f6049835065d7215820c3244bf761c5a`.
-Its manifest records all reviewed files; it does not establish a published upstream
-commit or package release. The installed-model catalog pins weights, tokenizers,
+`4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae`.
+Its manifest records all 34 files from local Core 0.3.3; it does not establish GitHub publication. The Apple code, model catalog, SDK pins and notices are unchanged from 0.3.2. The installed-model catalog pins weights, tokenizers,
 capabilities, and notices independently of SDK code. Weights are optional and not
 shipped in ATIV by default. The shared model cache can be reused by EnCAP without
 changing artifact verification or cross-process leases. See

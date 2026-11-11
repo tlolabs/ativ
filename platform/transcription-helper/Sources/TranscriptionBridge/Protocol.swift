@@ -91,8 +91,11 @@ public struct CaptionOptionsInput: Codable, Sendable {
     public let maximumDurationSeconds: Double?
     public let maximumPauseSeconds: Double?
     public var value: CaptionOptions {
-        CaptionOptions(maximumCharacters: maximumCharacters ?? 42, maximumWords: maximumWords ?? 6,
-            maximumDurationSeconds: maximumDurationSeconds ?? 3, maximumPauseSeconds: maximumPauseSeconds ?? 0.6)
+        let defaults = CaptionOptions()
+        return CaptionOptions(maximumCharacters: maximumCharacters ?? defaults.maximumCharacters,
+            maximumWords: maximumWords ?? defaults.maximumWords,
+            maximumDurationSeconds: maximumDurationSeconds ?? defaults.maximumDurationSeconds,
+            maximumPauseSeconds: maximumPauseSeconds ?? defaults.maximumPauseSeconds)
     }
 }
 
@@ -101,8 +104,10 @@ public struct CaptionWindowInput: Codable, Sendable {
     public let sourceEndSeconds: Double?
     public let timelineStartSeconds: Double?
     public var value: CaptionWindow {
-        CaptionWindow(sourceStartSeconds: sourceStartSeconds ?? 0, sourceEndSeconds: sourceEndSeconds,
-            timelineStartSeconds: timelineStartSeconds ?? 0)
+        let defaults = CaptionWindow()
+        return CaptionWindow(sourceStartSeconds: sourceStartSeconds ?? defaults.sourceStartSeconds,
+            sourceEndSeconds: sourceEndSeconds ?? defaults.sourceEndSeconds,
+            timelineStartSeconds: timelineStartSeconds ?? defaults.timelineStartSeconds)
     }
 }
 

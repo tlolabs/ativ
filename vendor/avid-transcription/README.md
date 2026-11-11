@@ -1,13 +1,15 @@
-# AVID Core 0.3.2 transcription source
+# AVID Core 0.3.3 transcription source
 
 This directory contains an unmodified export of 34 Apple transcription, catalog,
-documentation, policy, and license files from published AVID Core `v0.3.2`,
-commit [`8296a9e623c6924c12e456b5fe9e7c10b59dfbde`](https://github.com/tlolabs/avid-core/tree/8296a9e623c6924c12e456b5fe9e7c10b59dfbde). It is a pinned
-source dependency, not an application-owned transcription fork. The manifest
+documentation, policy, and license files from the local AVID Core `v0.3.3` source-release commit,
+commit [`8e27a86ec106028d93130de35a35c0eeda7a9ce3`](https://github.com/tlolabs/avid-core/tree/8e27a86ec106028d93130de35a35c0eeda7a9ce3). It is a pinned
+source dependency, not an application-owned transcription fork. At integration time,
+GitHub still published `v0.3.2`; this local 0.3.3 snapshot is included for reproducible
+builds without requiring an unpublished Git revision to be remotely available. The manifest
 records the upstream repository, release, commit, and every exported file hash.
 
 Archive SHA-256:
-`a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937`.
+`4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae`.
 
 The original November 2 handoff archive, manifest, and report are retained under
 [`history/2026-11-02`](history/2026-11-02/AVID_CORE_TRANSCRIPTION_CHANGE_REPORT.md).

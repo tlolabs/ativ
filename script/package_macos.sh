@@ -9,7 +9,23 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARCH="${1:-$(uname -m)}"
 VERSION="$(sed -n 's/^version = "\([^"]*\)"/\1/p' "${ROOT_DIR}/Cargo.toml" | head -n 1)"
 VERSION="${ATIV_VERSION:-$VERSION}"
-SIGN_IDENTITY="${APPLE_SIGN_IDENTITY:--}"
+MODE="${2:---notarize}"
+case "$MODE" in
+  --notarize)
+    : "${APPLE_SIGN_IDENTITY:?Set APPLE_SIGN_IDENTITY to a Developer ID Application identity (or use --development explicitly)}"
+    : "${APPLE_NOTARY_PROFILE:?Set APPLE_NOTARY_PROFILE to an existing notarytool Keychain profile}"
+    SIGN_IDENTITY="$APPLE_SIGN_IDENTITY"
+    [[ "$SIGN_IDENTITY" != "-" ]] || { echo "Developer ID signing is required for distributable packages." >&2; exit 2; }
+    if ! security find-identity -v -p codesigning | grep 'Developer ID Application:' | grep -F -- "$SIGN_IDENTITY" >/dev/null; then
+      echo "A valid Developer ID Application identity is required." >&2; exit 2
+    fi
+    # Validate the saved profile without uploading an app or changing credentials.
+    xcrun notarytool history --keychain-profile "$APPLE_NOTARY_PROFILE" --output-format json >/dev/null
+    ;;
+  --development) SIGN_IDENTITY=- ;;
+  *) echo "usage: $0 [arm64|x86_64] [--notarize|--development]" >&2; exit 2 ;;
+esac
+[[ "$#" -le 2 ]] || { echo "Too many arguments." >&2; exit 2; }
 case "${ARCH}" in
   arm64|aarch64) ARCH="arm64"; RUST_TARGET="aarch64-apple-darwin" ;;
   x86_64) RUST_TARGET="x86_64-apple-darwin" ;;
@@ -26,7 +42,7 @@ SWIFT_BUILD="${ROOT_DIR}/build/swift-release-${ARCH}"
 PACKAGES="${ROOT_DIR}/packages"
 
 rustup target add "${RUST_TARGET}"
-cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked --target "${RUST_TARGET}" -p ativ-engine
+cargo --config "${ROOT_DIR}/.cargo/config.toml" build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked --target "${RUST_TARGET}" -p ativ-engine
 swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD}" -c release --arch "${ARCH}"
 SWIFT_BIN="$(swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD}" -c release --arch "${ARCH}" --show-bin-path)/ATIV"
 
@@ -73,15 +89,16 @@ codesign --verify --deep --strict "${APP}"
 python3 "$ROOT_DIR/script/validate_package.py" "$APP" "macos-$LABEL"
 
 LABEL="$ARCH"; [[ "$ARCH" != x86_64 ]] || LABEL=intel
-ZIP="${PACKAGES}/ATIV-${VERSION}-macos-${LABEL}.zip"
+SUFFIX=""; [[ "$MODE" != --development ]] || SUFFIX="-development-unnotarized"
+ZIP="${PACKAGES}/ATIV-${VERSION}-macos-${LABEL}${SUFFIX}.zip"
 rm -f "${ZIP}"
 # Submit a ZIP of the signed app, then staple the accepted app and package it.
-if [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
+if [[ "$MODE" == --notarize ]]; then
   [[ "${SIGN_IDENTITY}" != "-" ]] || { echo "Notarization requires a Developer ID signing identity." >&2; exit 2; }
   ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
   NOTARY_RESULT="${ROOT_DIR}/build/notary-${ARCH}-${VERSION}.json"
   xcrun notarytool submit "$ZIP" --keychain-profile "$APPLE_NOTARY_PROFILE" --wait --output-format json > "$NOTARY_RESULT"
-  python3 -c 'import json,sys; report=json.load(open(sys.argv[1])); assert report["status"]=="Accepted", "Notarization was not accepted"' "$NOTARY_RESULT"
+  python3 -c 'import json,sys; report=json.load(open(sys.argv[1])); sys.exit(0 if report.get("status")=="Accepted" else "Notarization was not accepted")' "$NOTARY_RESULT"
   xcrun stapler staple "$APP"
   xcrun stapler validate "$APP"
   spctl --assess --type execute --verbose=2 "$APP"
@@ -92,7 +109,7 @@ trap 'rm -rf "$VERIFY"' EXIT
 ditto -x -k "$ZIP" "$VERIFY"
 codesign --verify --deep --strict "$VERIFY/ATIV.app"
 python3 "$ROOT_DIR/script/validate_package.py" "$VERIFY/ATIV.app" "macos-$LABEL"
-if [[ -n "${APPLE_NOTARY_PROFILE:-}" ]]; then
+if [[ "$MODE" == --notarize ]]; then
   xcrun stapler validate "$VERIFY/ATIV.app"
   spctl --assess --type execute --verbose=2 "$VERIFY/ATIV.app"
 fi

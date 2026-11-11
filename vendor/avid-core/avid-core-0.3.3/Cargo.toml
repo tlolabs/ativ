@@ -1,0 +1,37 @@
+[package]
+name = "avid-core"
+version = "0.3.3"
+edition = "2021"
+rust-version = "1.85"
+license = "GPL-3.0-or-later"
+authors = ["Thomas Lothian"]
+homepage = "https://github.com/tlolabs/avid-core"
+repository = "https://github.com/tlolabs/avid-core"
+description = "Shared artwork-and-audio video composition engine for ATIV and EnCAP"
+
+# Embed the runtime specification used by `from_core_directory` in the crate.
+exclude = ["runtime/ffmpeg/qualification.json", "runtime/ffmpeg/baseline.json", "runtime/ffmpeg/keys/", "runtime/releases/", "scripts/", "script/", ".github/", "docs/ffmpeg/", "audit-reports/", "Screenshot*.png"]
+
+[features]
+# Opt-in diagnostics only: absent from default production builds.
+lifecycle-diagnostics = []
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.11"
+tempfile = "3.27"
+same-file = "1.0"
+# JPEG coefficient optimization and ImageOptim's PNG backend, built from source.
+turbojpeg = { version = "=1.5.1", default-features = false, features = ["cmake"] }
+oxipng = { version = "=9.1.5", default-features = false, features = ["zopfli"] }
+# Keep vendored native sources fixed even when a host resolves a fresh lockfile.
+turbojpeg-sys = { version = "=1.2.0", default-features = false }
+libdeflate-sys = { version = "=1.26.1", default-features = false }
+zopfli = { version = "=0.8.2", default-features = false, features = ["std", "zlib"] }
+# Decode album artwork alpha and independently verify optimized PNGs in tests.
+png = "=0.17.16"
+
+[[bench]]
+name = "perf_benchmark"
+harness = false

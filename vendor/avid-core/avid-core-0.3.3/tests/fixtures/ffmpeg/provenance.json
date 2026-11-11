@@ -1,0 +1,98 @@
+{
+  "purpose": "Small synthetic decode fixtures; generated locally, no third-party media content. Not release executables.",
+  "generator_sha256": "393e4c395020a1cb7cbd77fbe00599ce69d1c6466fee0dbd59d13f86a81a1611",
+  "files": [
+    {
+      "file": "vorbis.ogg",
+      "arguments": [
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-c:a",
+        "libvorbis",
+        "-map_metadata",
+        "-1",
+        "vorbis.ogg"
+      ],
+      "sha256": "c9712c5226eafcb4ea7bee954b6db27883abbce07421bfbf1da4f8419f269224"
+    },
+    {
+      "file": "audio.opus",
+      "arguments": [
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-c:a",
+        "libopus",
+        "-map_metadata",
+        "-1",
+        "audio.opus"
+      ],
+      "sha256": "68a05692f29995af1b8b4acd130351624237203efd943c9cbbe696ed03ad72e7"
+    },
+    {
+      "file": "audio.wma",
+      "arguments": [
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-c:a",
+        "wmav2",
+        "-map_metadata",
+        "-1",
+        "audio.wma"
+      ],
+      "sha256": "3dd1c7415245d409c6374765e6b0793858d9c4fc8f41b9f20bfd0d8cf77fed36"
+    },
+    {
+      "file": "alac.m4a",
+      "arguments": [
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-c:a",
+        "alac",
+        "-map_metadata",
+        "-1",
+        "alac.m4a"
+      ],
+      "sha256": "83dc7c48ab50882afa2f86784d38f3024b1b6338e4ff496eb2ebf2150134877e"
+    },
+    {
+      "file": "cover.webp",
+      "arguments": [
+        "-v",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=red:s=96x64",
+        "-frames:v",
+        "1",
+        "-c:v",
+        "libwebp",
+        "-map_metadata",
+        "-1",
+        "cover.webp"
+      ],
+      "sha256": "d9c012a4b392875f978fa00f70f8da5812ff6149ad72663360d849a2a8f90321"
+    }
+  ]
+}

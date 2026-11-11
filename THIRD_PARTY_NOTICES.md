@@ -2,7 +2,7 @@
 
 ## FFmpeg and FFprobe
 
-ATIV bundles FFmpeg 9.0.1 and ffprobe from AVID Core's authenticated `ffmpeg-9.0.1-r7.1` release. Core owns the official source verification, configure options and native builds. `runtime/core-runtime.json` pins the release, binary, metadata and corresponding-source hashes for all six targets.
+ATIV bundles FFmpeg 9.0.1 and ffprobe from AVID Core's authenticated per-platform releases pinned in `runtime/platform-runtimes.json` (with an explicitly selected, authenticated legacy `ffmpeg-9.0.1-r7.1` compatibility path). Core owns the official source verification, configure options and native builds. The platform pins and legacy `runtime/core-runtime.json` preserve release, binary, metadata and corresponding-source hashes for all six targets.
 
 The statically linked external libraries are x264 (GPL-2.0-or-later, stable commit b35605ace3ddf7c1a5d67a2eb553f034aef41d55), x265 4.1 (GPL-2.0-or-later), LAME 4.0 (LGPL-2.0-or-later), and zlib 1.3.1 (zlib license). The resulting FFmpeg executables are GPL-2.0-or-later; version3 and nonfree components are disabled. Packages preserve Core's complete corresponding-source archive, build scripts, original upstream notices in `licenses/`, and build/provenance records. On macOS these live in `Contents/Resources/FFmpeg`; on Windows/Linux they live in `ffmpeg-runtime/` beside the engine. Preserve these materials when redistributing. See [the runtime documentation](docs/ffmpeg-source-runtime.md).
 
@@ -39,7 +39,7 @@ Published v0.2.4 Windows ZIPs used WinUI and Microsoft Windows App SDK; earlier 
 
 ## AVID Core and Rust dependencies
 
-ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (0.3.1, `15f28236142c100d0a83bf19154ed6f9f5b44e75`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and this pinned revision declares GPL-3.0-or-later. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`.
+ATIV links `avid-core` from https://github.com/tlolabs/avid-core at the exact revision in Cargo.toml and Cargo.lock (0.3.3, `8e27a86ec106028d93130de35a35c0eeda7a9ce3`; unmodified local release source in `vendor/avid-core`); the bundled engine reports it with `build-info`. It contains reconciled ATIV and EnCAP video work and this pinned revision declares GPL-3.0-or-later. See the shared repository's `docs/provenance.md` for source attribution. Packages include its complete license as `AVID_CORE_LICENSE.txt`.
 
 The exact Rust dependency versions and checksums are in Cargo.lock. The following packages retain their upstream notices and licenses (source archives are available from https://crates.io):
 
@@ -51,6 +51,10 @@ The exact Rust dependency versions and checksums are in Cargo.lock. The followin
 - zmij: MIT.
 
 Build-only and target-specific dependencies may not all be present in a particular binary. Release source/notice review must include the locked dependency source archives and their license files alongside the exact FFmpeg source/build information.
+
+### Image optimization code in Core
+
+Core has included source-built TurboJPEG 1.5.1 / turbojpeg-sys 1.2.0 and OxiPNG 9.1.5 since 0.3.2, with libjpeg-turbo, libdeflate and Zopfli native components. ATIV has no separate optimizer or optimization UI. Original license texts and source identities are preserved under `vendor/avid-core/avid-core-0.3.3/licenses/image-optimization` and collected into packaged Core notices. This software is based in part on the work of the Independent JPEG Group. See Core's bundled `THIRD_PARTY_NOTICES.md` for each component's terms.
 
 ## Optional Apple transcription helper
 
@@ -91,6 +95,6 @@ See [transcription integration](docs/transcription-integration.md).
 
 Sparkle 2.9.6 is redistributed in macOS bundles under its upstream permissive license; its framework distribution includes license notices. Source: https://github.com/sparkle-project/Sparkle. The ATIV updater uses ring (ISC/MIT/OpenSSL-derived notices), rustls (Apache-2.0/ISC/MIT), reqwest (MIT/Apache-2.0), serde, serde_json, base64, sha2, semver and tempfile under their upstream licenses. Cargo.lock records exact resolved versions.
 
-`webpki-roots` 1.0.9, used by the TLS update stack, contains CA trust-anchor data derived from the Common CA Database under CDLA-Permissive-2.0. Its original data license must remain available with redistributed source and notices.
+`webpki-roots` 1.0.10, used by the TLS update stack, contains CA trust-anchor data derived from the Common CA Database under CDLA-Permissive-2.0. Its original data license must remain available with redistributed source and notices.
 
 Inno Setup (https://jrsoftware.org/isinfo.php) builds Windows installers. linuxdeploy and appimagetool (https://github.com/linuxdeploy/linuxdeploy, https://github.com/AppImage/appimagetool) package Linux AppImages; their runtime/tool licenses apply to redistributed components. Python, Pillow and cryptography are development/release tooling and are not bundled as application runtimes. The native production macOS UI retains its platform license boundaries.

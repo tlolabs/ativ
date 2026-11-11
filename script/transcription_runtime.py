@@ -21,7 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 VENDOR = ROOT / 'vendor/avid-transcription'
 ARCHIVE = 'AVID_CORE_TRANSCRIPTION_SOURCE.tar.gz'
 MANIFEST = 'AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json'
-SOURCE_SHA256 = 'a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937'
+SOURCE_REVISION = '8e27a86ec106028d93130de35a35c0eeda7a9ce3'
+SOURCE_RELEASE = 'v0.3.3'
+SOURCE_SHA256 = '4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae'
 SOURCE = ROOT / 'build/transcription-core'
 HELPER_NAME = 'ATIVTranscriptionHelper'
 PACKAGE_MANIFEST = 'transcription-package.json'
@@ -86,6 +88,9 @@ def verify_source(directory, manifest):
 def acquire(vendor=VENDOR, destination=SOURCE):
     manifest = json.loads((vendor / MANIFEST).read_text())
     archive = vendor / ARCHIVE
+    if (manifest['source_revision'] != SOURCE_REVISION or
+            manifest['source_release_tag'] != SOURCE_RELEASE):
+        raise ValueError('Reviewed transcription source release identity mismatch')
     if manifest['source_bundle_sha256'] != SOURCE_SHA256 or sha256(archive) != SOURCE_SHA256:
         raise ValueError('Reviewed transcription archive SHA-256 mismatch')
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -270,7 +275,7 @@ def seal(directory):
     manifest.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n')
 
 
-def sign(directory, identity='-'):
+def sign(directory, identity='-', *, seal_payload=True):
     # Loose SwiftPM resource bundles contain resources, not executables. Sign each
     # native executable/library first; enclosing ATIV.app is signed by its caller.
     command = ['/usr/bin/codesign', '--force', '--options', 'runtime', '--sign', identity]
@@ -282,7 +287,8 @@ def sign(directory, identity='-'):
     for bundle in sorted((directory / 'Contents/Resources').glob('*.bundle')):
         subprocess.run(command + [str(bundle)], check=True)
     subprocess.run(command + [str(directory)], check=True)
-    seal(directory)
+    if seal_payload:
+        seal(directory)
 
 
 def stage(app, configuration='release', identity='-'):
@@ -367,6 +373,11 @@ def validate(app, target):
         catalog_data = json.loads((relocated / relative_catalog).read_text())
         catalog_data['models'][0]['displayName'] = 'ATIV packaged-resource lookup check'
         (relocated / relative_catalog).write_text(json.dumps(catalog_data))
+        # Changing a sealed resource invalidates a Developer ID signature and can
+        # stall macOS assessment before the diagnostic process starts. Re-sign
+        # only this disposable copy, including its nested code/resources, ad hoc.
+        # Keep the shipped helper and its outer integrity record untouched.
+        sign(relocated, seal_payload=False)
         request = root / 'request.json'
         request.write_text(json.dumps({'operation': 'catalog'}))
         env = {'PATH': '', 'HOME': str(root), 'TMPDIR': str(root), 'LANG': 'en_US.UTF-8'}

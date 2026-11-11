@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "scope": "Apple transcription components, catalog tooling, documentation, repository policy and license exported without source edits from the published AVID Core release; not the complete Rust repository or model weights",
+  "scope": "Apple transcription components, catalog tooling, documentation, repository policy and license exported without source edits from the local AVID Core 0.3.3 source-release commit (not yet published upstream); not the complete Rust repository or model weights",
   "repository": "https://github.com/tlolabs/avid-core",
-  "source_revision": "8296a9e623c6924c12e456b5fe9e7c10b59dfbde",
-  "source_release_tag": "v0.3.2",
-  "source_origin": "https://github.com/tlolabs/avid-core/tree/8296a9e623c6924c12e456b5fe9e7c10b59dfbde",
+  "source_revision": "8e27a86ec106028d93130de35a35c0eeda7a9ce3",
+  "source_release_tag": "v0.3.3",
+  "source_origin": "https://github.com/tlolabs/avid-core/tree/8e27a86ec106028d93130de35a35c0eeda7a9ce3",
   "source_bundle": "AVID_CORE_TRANSCRIPTION_SOURCE.tar.gz",
-  "source_bundle_sha256": "a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937",
+  "source_bundle_sha256": "4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae",
   "historical_handoff": {
     "manifest": "history/2026-11-02/AVID_CORE_TRANSCRIPTION_SOURCE_MANIFEST.json",
     "report": "history/2026-11-02/AVID_CORE_TRANSCRIPTION_CHANGE_REPORT.md",
@@ -29,8 +29,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "6d61b8c58aedfb4e344edece96e5118a183ffbf6346c389a9fd66ef912012b62",
-      "size_bytes": 19253,
+      "sha256": "e81b0d2ecc05a629b5048b9713327cd0512e3fd0c5b86745d14138db7bfd3542",
+      "size_bytes": 19295,
       "mode": 420
     },
     {

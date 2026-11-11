@@ -16,7 +16,7 @@ mkdir -p "$OUT"
 # Refuse to replace a running experiment, which might be exporting a video.
 if pgrep -x 'ATIV Qt' >/dev/null; then echo 'Close ATIV Qt before rebuilding.' >&2; exit 1; fi
 RUNTIME="$(python3 "$ROOT/script/ffmpeg_runtime.py" provision "$TARGET")"
-cargo build --manifest-path "$ROOT/Cargo.toml" --release --locked -p ativ-engine
+cargo --config "${ROOT}/.cargo/config.toml" build --manifest-path "$ROOT/Cargo.toml" --release --locked -p ativ-engine
 cmake -S "$ROOT/platform/qt" -B "$OUT/cmake" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX" -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
 cmake --build "$OUT/cmake" --parallel 4
 STAGE="$(mktemp -d "$OUT/stage.XXXXXX")"

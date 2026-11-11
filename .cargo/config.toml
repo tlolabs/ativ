@@ -1,0 +1,8 @@
+# Exact local Core source release, exported without changes. See vendor/avid-core/README.md.
+[source.avid-core-0-3-3]
+git = "https://github.com/tlolabs/avid-core.git"
+rev = "8e27a86ec106028d93130de35a35c0eeda7a9ce3"
+replace-with = "vendored-avid-core"
+
+[source.vendored-avid-core]
+directory = "vendor/avid-core"

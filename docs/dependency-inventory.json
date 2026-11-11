@@ -34,7 +34,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.8"
+      "version": "0.2.9"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -43,7 +43,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.8"
+      "version": "0.2.9"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -55,7 +55,7 @@
         "linux-x64",
         "linux-arm64"
       ],
-      "version": "0.2.8"
+      "version": "0.2.9"
     },
     {
       "checksum": "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0",
@@ -72,11 +72,11 @@
       "license": "GPL-3.0-or-later",
       "name": "avid-core",
       "scope": "required",
-      "source": "git+https://github.com/tlolabs/avid-core.git?rev=8296a9e623c6924c12e456b5fe9e7c10b59dfbde#8296a9e623c6924c12e456b5fe9e7c10b59dfbde",
+      "source": "git+https://github.com/tlolabs/avid-core.git?rev=8e27a86ec106028d93130de35a35c0eeda7a9ce3#8e27a86ec106028d93130de35a35c0eeda7a9ce3",
       "targets": [
         "all"
       ],
-      "version": "0.3.2"
+      "version": "0.3.3"
     },
     {
       "checksum": "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6",
@@ -2458,20 +2458,20 @@
     },
     {
       "delivery": "shipped in transcription helper",
-      "description": "Unmodified Apple source exported from the published AVID Core release; original handoff audit is historical",
+      "description": "Unmodified Apple source exported from the local AVID Core 0.3.3 commit; no upstream publication claimed; original handoff audit is historical",
       "license": "GPL-3.0-or-later",
       "minimumOS": "macOS 14.0",
       "name": "AVID Core Apple transcription snapshot",
-      "revision": "8296a9e623c6924c12e456b5fe9e7c10b59dfbde",
+      "revision": "8e27a86ec106028d93130de35a35c0eeda7a9ce3",
       "scope": "optional",
-      "sha256": "a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937",
+      "sha256": "4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae",
       "source": "vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_SOURCE.tar.gz",
-      "sourceRelease": "v0.3.2",
+      "sourceRelease": "v0.3.3",
       "sourceRepository": "https://github.com/tlolabs/avid-core",
       "targets": [
         "macos-arm64"
       ],
-      "version": "a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937"
+      "version": "4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae"
     },
     {
       "delivery": "shipped in transcription helper",
@@ -2791,7 +2791,7 @@
     }
   ],
   "project": "ATIV",
-  "projectVersion": "0.2.8",
+  "projectVersion": "0.2.9",
   "schema": 1,
   "source": {
     "cargo": "Cargo.lock",

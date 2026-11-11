@@ -2,7 +2,7 @@
 
 ## Current Core integration
 
-ATIV 0.2.7 pins Core 0.3.1 at `15f28236142c100d0a83bf19154ed6f9f5b44e75`. This revision declares GPL-3.0-or-later. The authenticated FFmpeg runtime pins remain independent of the Rust source revision and unchanged. ATIV no longer owns an FFmpeg source recipe. Packages preserve Core's original source archive, notices and qualification metadata, and include its crate license. The current dependency disclosures are [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md). Windows and Linux use a shared Qt 6 Widgets presentation layer (LGPL-3.0 / GPL-3.0 dynamic linking) rather than WinUI, GTK, or Avalonia. Qt libraries and platform plugins are staged alongside the application in compliance with LGPL-3.0.
+ATIV 0.2.9 pins Core 0.3.3 at `8e27a86ec106028d93130de35a35c0eeda7a9ce3`, with its unmodified source and original notices checked in under `vendor/avid-core`. This revision declares GPL-3.0-or-later. The authenticated FFmpeg runtime pins remain independent of the Rust source revision and unchanged. ATIV no longer owns an FFmpeg source recipe. Packages preserve Core's original source archive, notices and qualification metadata, and include its crate license. The current dependency disclosures are [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md). Windows and Linux use a shared Qt 6 Widgets presentation layer (LGPL-3.0 / GPL-3.0 dynamic linking) rather than WinUI, GTK, or Avalonia. Qt libraries and platform plugins are staged alongside the application in compliance with LGPL-3.0.
 
 ## Historical review of ATIV 0.2.4
 

@@ -511,7 +511,7 @@ private slots:
     void authoritativeVersion() {
         const QString ver = Preferences::authoritativeVersion();
         QVERIFY(!ver.isEmpty());
-        QCOMPARE(ver, QString("0.2.8"));
+        QCOMPARE(ver, QString("0.2.9"));
     }
 };
 // Re-exec this native test binary instead of depending on Unix shells. Dispatch

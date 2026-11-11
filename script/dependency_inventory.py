@@ -18,7 +18,7 @@ import uuid
 ROOT = Path(__file__).resolve().parent.parent
 INVENTORY = ROOT / "docs/dependency-inventory.json"
 UUID_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-TRANSCRIPTION_BUNDLE_SHA256 = "a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937"
+TRANSCRIPTION_BUNDLE_SHA256 = "4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae"
 
 # Crates that are only compiled into ativ-update (shipped on Windows and Linux, omitted on macOS prod)
 UPDATER_ONLY_CRATES = {
@@ -98,7 +98,7 @@ def transcription_inventory():
         "revision": manifest["source_revision"],
         "sourceRelease": manifest["source_release_tag"],
         "sourceRepository": manifest["repository"],
-        "description": "Unmodified Apple source exported from the published AVID Core release; original handoff audit is historical",
+        "description": "Unmodified Apple source exported from the local AVID Core 0.3.3 commit; no upstream publication claimed; original handoff audit is historical",
     }]
     # Direct licenses are established by the frozen THIRD_PARTY_NOTICES.md.
     # Transitive license texts are collected from their pinned build checkouts by packaging.

@@ -7,16 +7,16 @@ rendering: this implementation does not burn captions into exported video.
 
 ## Source identities and compatibility
 
-The Rust media dependency is AVID Core 0.3.2 at
-`8296a9e623c6924c12e456b5fe9e7c10b59dfbde`. Its authenticated FFmpeg platform
+The Rust media dependency is AVID Core 0.3.3 at
+`8e27a86ec106028d93130de35a35c0eeda7a9ce3`. Its authenticated FFmpeg platform
 runtime pins are unchanged. The Apple transcription implementation is a separate,
-unmodified source export from that same published `v0.3.2` commit, supplied by the
+unmodified source export from that same local `v0.3.3` commit (not yet on GitHub), supplied by the
 pinned archive in
 [`vendor/avid-transcription`](../vendor/avid-transcription/README.md).
 
-- Archive SHA-256: `a302200860bde5c47cd4aeabacefedefa30e6112248302925164589ce9f45937`.
+- Archive SHA-256: `4234053bad548df25c68949265cb32b4052091856e6da6ad2d0710640f8f67ae`.
 - All 34 exported files are identified by path, byte count and SHA-256 in the
-  source manifest, alongside the published upstream repository, release and commit.
+  source manifest, alongside the upstream repository, local tag and immutable commit.
 - The original November 2 archive, manifest and review report remain under
   [`history/2026-11-02`](../vendor/avid-transcription/history/2026-11-02/AVID_CORE_TRANSCRIPTION_CHANGE_REPORT.md).
   Its completed Antigravity round 3 review, task
@@ -24,18 +24,17 @@ pinned archive in
   source snapshot; it does not certify the refreshed archive or current ATIV build.
 
 The [refresh report](../vendor/avid-transcription/AVID_CORE_TRANSCRIPTION_CHANGE_REPORT.md)
-describes the released model-store provisioning and verification changes. Scoped
+describes this source refresh. Apple code, model catalog, engine SDKs and notices are byte-identical to 0.3.2; only the exported root README changed. Scoped
 verification retains the model lease and runs on a utility queue; the upstream
 CLI uses the explicit local/offline/download provisioning API. Catalog/model
 pins, engine SDK locks, deployment targets and third-party notices remain
 byte-identical to the former handoff. Current application verification is recorded
-separately in the [Core 0.3.2 integration record](core-0.3.2-integration.md).
+separately in the [Core 0.3.3 integration record](core-0.3.3-integration.md).
 
 `script/transcription_runtime.py acquire` verifies the archive and every exported
 file against its manifest, then materializes the dependency at
 `build/transcription-core`. Both nested Swift packages stay together beneath
-`apple/`. A sibling development checkout, floating branch, or unpublished Git
-revision is not used to acquire transcription source. The archive is a dependency
+`apple/`. A sibling development checkout or floating branch is not used to acquire transcription source; the checked-in archive makes the local release reproducible. The archive is a dependency
 snapshot, not an app-owned fork; refresh it deliberately with a new archive,
 manifest, hash, dependency lock, notices, and separate review and validation
 evidence. An earlier source review does not cover changed bytes.
@@ -207,7 +206,7 @@ highlight alone cannot establish video burn-in.
 ## Validation record and remaining limits
 
 Current application validation and independent-review evidence are recorded in
-the [Core 0.3.2 integration record](core-0.3.2-integration.md). The released
+the [Core 0.3.3 integration record](core-0.3.3-integration.md). The pinned
 `apple/VERIFICATION.md` and archived handoff report retain upstream checks and
 their source-specific limits; those results must not be counted as current
 ATIV-specific checks. In particular, the later upstream performance audit did

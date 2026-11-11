@@ -1,1 +1,4 @@
 script/core_runtime.py text eol=lf
+
+# Preserve byte identities in the unmodified Cargo source replacement on every OS.
+vendor/avid-core/** -text

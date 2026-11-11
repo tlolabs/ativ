@@ -2,13 +2,19 @@
 
 Notable changes to ATIV are recorded here using a [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style and [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.9] — 2026-11-11
 
 ### Added
 
 - Optional offline transcription on Apple silicon with macOS 14+, using the verified shared AVID Core model catalog and model cache through an isolated helper.
 - Native model installation/import/verification, transcript corrections and realignment, versioned source-bound documents, word-highlight caption preview, and SRT/WebVTT sidecars.
 - Reproducible reviewed-source acquisition, nested helper resources and Swift runtime packaging, dependency/model notices, cancellation and update/quit coordination.
+
+### Changed
+
+- Integrate local AVID Core 0.3.3 at `8e27a86ec106028d93130de35a35c0eeda7a9ce3` through an unmodified checked-in Cargo source replacement and refreshed Apple archive; preserve independently authenticated FFmpeg platform pins.
+- Derive caption bridge defaults from Core and add probe-cache replacement/cancellation and source-integrity regressions. Record the capability audit and remaining host responsibilities.
+- Bump workspace and Qt versions to 0.2.9 and qualify a Developer ID-signed, Apple-notarized macOS arm64 ZIP. Re-sign only disposable helper-resource probe copies after modifying their catalog, preserving the shipped signature and integrity seal.
 
 ### Limitations
 

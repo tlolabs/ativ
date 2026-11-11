@@ -154,7 +154,7 @@ QString Preferences::authoritativeVersion() {
 #if defined(ATIV_VERSION_STRING)
     QString version = ATIV_VERSION_STRING;
 #else
-    QString version = "0.2.8";
+    QString version = "0.2.9";
 #endif
     if (isDevelopmentBuild() && !version.contains("-dev")) {
         version += "-dev";

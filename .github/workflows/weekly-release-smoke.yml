@@ -59,6 +59,7 @@ jobs:
         shell: bash
         working-directory: source
     env:
+      RUSTUP_TOOLCHAIN: "1.99.1"
       ATIV_BUILD_ONLY: '1'
       ATIV_CHANNEL: stable
       ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
@@ -75,6 +76,8 @@ jobs:
           persist-credentials: false
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: "1.99.1"
       - name: Check application version against the selected tag
         env:
           RELEASE_TAG: ${{ matrix.tag }}

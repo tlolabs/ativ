@@ -16,7 +16,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "ativ-core"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "avid-core",
  "toml",
@@ -24,7 +24,7 @@ dependencies = [
 
 [[package]]
 name = "ativ-engine"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "ativ-core",
  "fs2",
@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "ativ-update"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "tlo-updater",
 ]
@@ -47,8 +47,8 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "avid-core"
-version = "0.3.2"
-source = "git+https://github.com/tlolabs/avid-core.git?rev=8296a9e623c6924c12e456b5fe9e7c10b59dfbde#8296a9e623c6924c12e456b5fe9e7c10b59dfbde"
+version = "0.3.3"
+source = "git+https://github.com/tlolabs/avid-core.git?rev=8e27a86ec106028d93130de35a35c0eeda7a9ce3#8e27a86ec106028d93130de35a35c0eeda7a9ce3"
 dependencies = [
  "libdeflate-sys",
  "oxipng",

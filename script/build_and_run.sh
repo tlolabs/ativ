@@ -33,7 +33,7 @@ if pgrep -x "$APP_NAME" >/dev/null; then
   fi
 fi
 
-cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --locked -p ativ-engine
+cargo --config "${ROOT_DIR}/.cargo/config.toml" build --manifest-path "${ROOT_DIR}/Cargo.toml" --locked -p ativ-engine
 swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD_DIR}"
 SWIFT_BIN_DIR="$(swift build --package-path "${ROOT_DIR}/platform/macos" --scratch-path "${SWIFT_BUILD_DIR}" --show-bin-path)"
 

@@ -86,6 +86,25 @@ final class ProtocolTests: XCTestCase {
         XCTAssertEqual(try input.requiredTranscript().segments[0].words[0].startSeconds, 12.5)
     }
 
+    func testPartialCaptionSettingsInheritCoreDefaultsAndPreserveExplicitValues() throws {
+        let defaults = CaptionOptions()
+        let window = CaptionWindow()
+        let input = try request(["operation": "captions", "transcript": transcriptObject(),
+            "captionOptions": ["maximumWords": 1, "maximumPauseSeconds": 0],
+            "captionWindow": ["timelineStartSeconds": 2]])
+        XCTAssertEqual(input.captionOptions?.value, CaptionOptions(
+            maximumCharacters: defaults.maximumCharacters, maximumWords: 1,
+            maximumDurationSeconds: defaults.maximumDurationSeconds, maximumPauseSeconds: 0))
+        XCTAssertEqual(input.captionWindow?.value, CaptionWindow(
+            sourceStartSeconds: window.sourceStartSeconds, sourceEndSeconds: window.sourceEndSeconds,
+            timelineStartSeconds: 2))
+        let empty = try request(["operation": "captions", "transcript": transcriptObject(),
+            "captionOptions": [:], "captionWindow": [:]])
+        XCTAssertEqual(empty.captionOptions?.value, defaults)
+        XCTAssertEqual(empty.captionWindow?.value, window)
+        XCTAssertEqual(try empty.captionResult().cues, try CaptionBuilder.cues(from: empty.requiredTranscript()))
+    }
+
     func testCanonicalDecoderRejectsMalformedTimestampsAndUnknownTiming() throws {
         var transcript = try transcriptObject()
         transcript["segments"] = [["text": "bad", "words": [["text": "bad", "startSeconds": 4, "endSeconds": 2]]]]

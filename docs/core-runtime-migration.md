@@ -1,6 +1,6 @@
 # ATIV Core integration reports
 
-Current source pin and verification record: [AVID Core 0.3.2](core-0.3.2-integration.md), revision `8296a9e623c6924c12e456b5fe9e7c10b59dfbde`. The [Core 0.3.1 integration](core-0.3.1-integration.md) remains historical evidence for its own source and tested artifacts.
+Current source pin and verification record: [AVID Core 0.3.3](core-0.3.3-integration.md), revision `8e27a86ec106028d93130de35a35c0eeda7a9ce3`. The [Core 0.3.1 integration](core-0.3.1-integration.md) remains historical evidence for its own source and tested artifacts.
 
 The reports below are historical; source and runtime identities are now independent.
 

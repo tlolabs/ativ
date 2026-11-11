@@ -17,7 +17,7 @@ $ffmpegRuntime = & python (Join-Path $root "script/ffmpeg_runtime.py") provision
 if ($LASTEXITCODE -ne 0) { throw "ATIV FFmpeg runtime unavailable" }
 
 rustup target add $rustTarget
-cargo build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p ativ-engine -p ativ-update
+cargo --config (Join-Path $root ".cargo/config.toml") build --manifest-path (Join-Path $root "Cargo.toml") --release --locked --target $rustTarget -p ativ-engine -p ativ-update
 if ($LASTEXITCODE -ne 0) { throw "Rust build failed" }
 if (Test-Path $build) { Remove-Item -Recurse -Force $build }
 New-Item -ItemType Directory -Force -Path $publish, $packages | Out-Null

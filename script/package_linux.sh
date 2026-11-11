@@ -25,7 +25,7 @@ PACKAGES="${ROOT_DIR}/packages"
 rm -rf "${BUILD_DIR}" "${PACKAGE_ROOT}"
 mkdir -p "${PACKAGE_ROOT}/usr/lib/ativ" "${PACKAGE_ROOT}/usr/share/doc/ativ" "${PACKAGES}"
 
-cargo build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked -p ativ-engine -p ativ-update
+cargo --config "${ROOT_DIR}/.cargo/config.toml" build --manifest-path "${ROOT_DIR}/Cargo.toml" --release --locked -p ativ-engine -p ativ-update
 
 cmake -S "${ROOT_DIR}/platform/qt" -B "${BUILD_DIR}/cmake" -DCMAKE_BUILD_TYPE=Release
 cmake --build "${BUILD_DIR}/cmake" --parallel

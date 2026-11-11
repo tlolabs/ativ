@@ -56,3 +56,75 @@ fn shared_renderer_caches_probes_and_invalidates_changed_artwork() {
     assert_eq!(fs::read(&probes).unwrap(), b"xxx");
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn shared_cache_preserves_unknown_duration_and_detects_same_size_replacements() {
+    let root = std::env::temp_dir().join(format!(
+        "ativ-cache-replacement-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).unwrap();
+    let image = root.join("image.png");
+    let audio = root.join("audio.wav");
+    let probes = root.join("probes");
+    let ffmpeg = root.join("ffmpeg");
+    let ffprobe = root.join("ffprobe");
+    fs::write(&image, b"4x2").unwrap();
+    fs::write(&audio, b"N/A").unwrap();
+    fs::write(
+        &ffmpeg,
+        "#!/bin/sh\necho 'ffmpeg version cache-replacement-test'\n",
+    )
+    .unwrap();
+    fs::write(
+        &ffprobe,
+        format!(
+            "#!/bin/sh\nif [ \"$1\" = -version ]; then echo 'ffprobe version cache-replacement-test'; exit; fi\nprintf x >> {}\nfor path do :; done\ncat \"$path\"\n",
+            quote(&probes)
+        ),
+    )
+    .unwrap();
+    for tool in [&ffmpeg, &ffprobe] {
+        fs::set_permissions(tool, fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    let token = CancellationToken::default();
+    let renderer = Renderer::new(MediaTools::from_paths(&ffmpeg, &ffprobe, &token).unwrap());
+    let clone = renderer.clone();
+    for host in [&renderer, &clone] {
+        assert_eq!(host.inspect_image(&image, &token).unwrap(), (4, 2));
+        assert_eq!(host.probe_audio_duration(&audio, &token).unwrap(), None);
+    }
+    assert_eq!(fs::read(&probes).unwrap(), b"xx");
+
+    // A user/editor can replace media while retaining its length and mtime.
+    // Core 0.3.3's bounded cache must still compare the complete file identity,
+    // and caching an unknown duration must not turn it into a permanent value.
+    for (path, bytes) in [(&image, b"8x6"), (&audio, b"2.0")] {
+        let original = fs::metadata(path).unwrap();
+        let replacement = path.with_extension("replacement");
+        fs::write(&replacement, bytes).unwrap();
+        fs::File::open(&replacement)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(original.modified().unwrap()))
+            .unwrap();
+        assert_eq!(fs::metadata(&replacement).unwrap().len(), original.len());
+        fs::rename(replacement, path).unwrap();
+    }
+    for host in [&clone, &renderer] {
+        assert_eq!(host.inspect_image(&image, &token).unwrap(), (8, 6));
+        assert_eq!(
+            host.probe_audio_duration(&audio, &token).unwrap(),
+            Some(2.0)
+        );
+    }
+    assert_eq!(fs::read(&probes).unwrap(), b"xxxx");
+    token.cancel();
+    assert!(renderer.inspect_image(&image, &token).is_err());
+    assert!(renderer.probe_audio_duration(&audio, &token).is_err());
+    assert_eq!(fs::read(&probes).unwrap(), b"xxxx");
+    fs::remove_dir_all(root).unwrap();
+}

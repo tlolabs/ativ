@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "future_video": {"preserve": [1, "two", null]},
+  "compositions": [{"kind": "future-layer", "keyframes": [0, 2]}],
+  "export_settings": {
+    "platform": "Generic", "aspect": "4:5", "width": 1080, "height": 1350,
+    "codec": "hevc", "encoding": "software", "audio_bitrate": "192k", "fps": 30,
+    "flip_horizontal": true, "flip_vertical": false, "preview_quality": "high",
+    "selected_chapter_ids": ["second", "first"], "selection_initialized": true,
+    "future_setting": {"opaque": true}
+  }
+}

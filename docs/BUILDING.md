@@ -2,9 +2,9 @@
 
 ## Checkouts and toolchains
 
-Clone `tlolabs/ativ`. Cargo fetches the AVID Core 0.3.2 API at immutable revision `8296a9e623c6924c12e456b5fe9e7c10b59dfbde`, recorded in Cargo.toml and Cargo.lock. No sibling Core or EnCAP checkout is required or modified. See the [integration record](core-0.3.2-integration.md) for verification scope.
+Clone `tlolabs/ativ`. Cargo uses AVID Core 0.3.3 at immutable revision `8e27a86ec106028d93130de35a35c0eeda7a9ce3`, recorded in Cargo.toml and Cargo.lock. The unmodified source snapshot in `vendor/avid-core` replaces that exact Git source through `.cargo/config.toml`, so this local Core release does not need to be published upstream first. Run Cargo from this checkout root; see [snapshot verification](../vendor/avid-core/README.md). No sibling Core or EnCAP checkout is required or modified. See the [integration record](core-0.3.3-integration.md) for verification scope.
 
-Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. The archived CI recipes document each platform's requirements; install them locally for native qualification.
+Use a Rust toolchain satisfying the workspace minimum (Rust 1.88+) and the checked-in Cargo.lock. AVID Core remains compatible with its own declared toolchain; the independent ATIV updater includes TLS dependencies with newer toolchain requirements (Rust 1.88 minimum). macOS production builds need Xcode for SwiftUI/AppKit. Core's source-built image codecs also require a target C compiler and CMake on every platform; the selected scalar libjpeg-turbo build does not require NASM. The shared Windows and Linux presentation layer uses Qt 6 Widgets and C++17 via CMake. On Windows, MSVC or clang-cl with CMake is used alongside windeployqt. On Linux, `qt6-base-dev` and standard C++ build tools are used, and Linux AppImage creation uses linuxdeploy and appimagetool. The archived CI recipes document each platform's requirements; install them locally for native qualification.
 
 ```sh
 cargo fmt --all -- --check
@@ -35,7 +35,7 @@ python3 script/ffmpeg_runtime.py provision macos-arm64
 
 Packaging verifies Core's runtime and corresponding source before signing and verifies the packaged binaries afterward. There is no system/PATH production fallback. Both explicit engine `--ffmpeg`/`--ffprobe` paths remain available for deliberate development tests. Candidate qualification remains available only through explicit local/manual `AVID_CORE_QUALIFICATION=1` builds; ordinary builds acquire the published release.
 
-ATIV retains native SwiftUI/AppKit for production macOS and uses shared Qt 6 Widgets for Windows/Linux. Package formats are macOS ZIP, Windows portable ZIP and Linux AppImage. Direct downloads may be unsigned or unnotarized; record their actual signing state. Before publication, qualify each artifact with native build, package integrity, architecture, runtime dependency, launch and functional checks. Package validators check bundled discovery with an empty PATH; run representative exports/previews through the actual packaged engine as well. A source-release tag or scheduled smoke result does not establish artifact qualification.
+ATIV retains native SwiftUI/AppKit for production macOS and uses shared Qt 6 Widgets for Windows/Linux. Package formats are macOS ZIP, Windows portable ZIP and Linux AppImage. macOS distributable app packages require Developer ID signing and notarization; other platforms retain their existing signing policy. Before publication, qualify each artifact with native build, package integrity, architecture, runtime dependency, launch and functional checks. Package validators check bundled discovery with an empty PATH; run representative exports/previews through the actual packaged engine as well. A source-release tag or scheduled smoke result does not establish artifact qualification.
 
 ## Optional Apple transcription helper
 
@@ -89,3 +89,15 @@ python3 script/smoke_transcription.py \
 `assets/icons/ATIV-light.png`, `ATIV-dark.png`, and the editable Icon Composer document are authoritative. `build/release-tools/bin/python script/generate_icons.py` performs deterministic format/resolution conversion. Do not redraw the identity. Generated small native resources are tracked; FFmpeg, frameworks, packages and caches are ignored.
 
 Run the relevant native and Rust tests locally. Legacy workflows are inactive under `.github/workflow-archive/2026-11-08/`; do not dispatch or restore them. The weekly tagged-release smoke policy in AGENTS.md supersedes older CI descriptions. Direct commits are permitted. Record actual platform evidence in the acceptance matrix; never equate a cross-compile with native runtime verification.
+
+### Standard local macOS packaging
+
+Set `APPLE_SIGN_IDENTITY` to the existing Developer ID Application identity and
+`APPLE_NOTARY_PROFILE` to an existing Keychain profile, then run
+`./script/package_macos.sh arm64` (or `x86_64` on that native host). The command
+requires Apple acceptance, staples the app, rebuilds the ZIP, and verifies the
+extracted bundle. No profile is enrolled automatically.
+
+`./script/package_macos.sh arm64 --development` explicitly produces an ad-hoc,
+unnotarized `-development-unnotarized.zip`, unsuitable for distribution or an
+authenticated update feed. Ordinary `build_and_run.sh` debug/test use is unchanged.
