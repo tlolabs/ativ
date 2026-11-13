@@ -15,7 +15,7 @@ ATIV pins the Rust graph in `Cargo.lock` and its direct AVID Core Git revision i
 | x265 | HEVC encoder in the shared Core runtime | GPL-2.0-or-later, statically linked into FFmpeg. |
 | LAME | MP3 encoder in the shared Core runtime | LGPL-2.0-or-later, statically linked into FFmpeg. |
 | zlib | Compression support, pinned upstream source archive | zlib license, statically linked into FFmpeg. |
-| Sparkle 2.9.6 | macOS GitHub Release update checks | Permissive upstream license; framework and notice bundled. |
+| Sparkle 2.10.1 | macOS GitHub Release update checks | Permissive upstream license; framework and notice bundled. |
 | Qt 6 Widgets | Shared Windows/Linux presentation and internal macOS reference | LGPL-3.0 / GPL-3.0; dynamically linked libraries and plugins deployed with application. |
 | Rust crates (`serde`, `reqwest`, `ring`, etc.) | Serialization, signed updates, TLS and local file handling from crates.io | Exact versions and checksums in `Cargo.lock`; package license files are copied into releases. |
 | Python build requirements | Icon generation, update metadata signing and release tooling; pinned in `script/requirements-build.txt` | Build-time only; not shipped as an application runtime. |

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION=2.9.6
-SHA256=52bf9e88cdd972fc0c81501377a880e90d47031bd8ca5462488f843e2609e192
+VERSION=2.10.1
+SHA256=1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27
 CACHE="$ROOT_DIR/build/sparkle/$VERSION"
 mkdir -p "$CACHE"
 if [[ ! -f "$CACHE/Sparkle.tar.xz" ]]; then
