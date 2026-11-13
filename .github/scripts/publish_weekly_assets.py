@@ -22,19 +22,19 @@ def identity(tag, target):
         raise ValueError('Invalid stable tag')
     if target not in ('linux-x64', 'linux-arm64', 'windows-x64', 'windows-arm64'):
         raise ValueError('Invalid target')
-    return f'ATIV-{tag[1:]}-{target}.' + ('zip' if target.startswith('windows') else 'AppImage')
+    return f'ATIV-{tag[1:]}-{target}' + ('-unsigned.zip' if target.startswith('windows') else '.AppImage')
 
 
 def stage(directory, packages, tag, sha, target):
     name = identity(tag, target)
-    source = packages / name
+    source = packages / (name.replace('-unsigned.zip', '.zip') if target.startswith('windows') else name)
     if not re.fullmatch(r'[0-9a-f]{40}', sha) or not source.is_file() or source.is_symlink():
         raise ValueError('Missing exact qualified package or invalid source SHA')
     directory.mkdir(parents=True, exist_ok=False)
     shutil.copyfile(source, directory / name)
     value = digest(directory / name)
     (directory / (name + '.sha256')).write_text(f'{value}  {name}\n')
-    (directory / 'qualification.json').write_text(json.dumps(dict(tag=tag, sha=sha, target=target, name=name, sha256=value)))
+    (directory / 'qualification.json').write_text(json.dumps(dict(tag=tag, sha=sha, target=target, name=name, sha256=value, signing='unsigned' if target.startswith('windows') else 'not-applicable')))
 
 
 def gh(*args):
@@ -79,7 +79,7 @@ def publication_release(repo, tag, sha):
 def publish(directory, tag, sha, target):
     name = identity(tag, target)
     meta = json.loads((directory / 'qualification.json').read_text())
-    expected = dict(tag=tag, sha=sha, target=target, name=name, sha256=digest(directory / name))
+    expected = dict(tag=tag, sha=sha, target=target, name=name, sha256=digest(directory / name), signing='unsigned' if target.startswith('windows') else 'not-applicable')
     if meta != expected or not re.fullmatch(r'[0-9a-f]{40}', sha):
         raise ValueError('Qualification identity or checksum mismatch')
     if (directory / (name + '.sha256')).read_text() != f'{meta["sha256"]}  {name}\n':

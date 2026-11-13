@@ -27,12 +27,27 @@ class Assets(unittest.TestCase):
             meta=json.loads((root/'stage/qualification.json').read_text())
             self.assertEqual(meta['sha256'],release.digest(root/name))
             with self.assertRaises(FileExistsError): release.stage(root/'stage',root,'v1.2.3',SHA,'linux-x64')
+    def test_windows_identity_and_metadata_are_explicitly_unsigned(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            name=release.identity('v1.2.3','windows-x64')
+            self.assertEqual(name,'ATIV-1.2.3-windows-x64-unsigned.zip')
+            (root/'ATIV-1.2.3-windows-x64.zip').write_bytes(b'qualified unsigned ZIP')
+            release.stage(root/'stage',root,'v1.2.3',SHA,'windows-x64')
+            meta=json.loads((root/'stage/qualification.json').read_text())
+            self.assertEqual(meta['signing'],'unsigned')
+            self.assertEqual(meta['name'],name)
+            meta['signing']='signed'
+            (root/'stage/qualification.json').write_text(json.dumps(meta))
+            with patch.object(release,'gh') as api:
+                with self.assertRaises(ValueError):release.publish(root/'stage','v1.2.3',SHA,'windows-x64')
+                api.assert_not_called()
     def test_invalid_target(self):
         for tag,target in [('v1.0.0','macos-arm64'),('../tag','linux-x64')]:
             with self.assertRaises(ValueError): release.identity(tag,target)
     def test_reject_changed_metadata_without_network(self):
         with tempfile.TemporaryDirectory() as td:
-            root=Path(td); name=release.identity('v1.2.3','windows-arm64');(root/name).write_bytes(b'zip')
+            root=Path(td); name=release.identity('v1.2.3','windows-arm64');(root/name.replace('-unsigned.zip','.zip')).write_bytes(b'zip')
             release.stage(root/'stage',root,'v1.2.3',SHA,'windows-arm64')
             (root/'stage'/name).write_bytes(b'tampered')
             with patch.object(release,'gh') as api:

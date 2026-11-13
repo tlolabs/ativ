@@ -52,9 +52,6 @@ def configuration_reason(target, env):
         valid_key = False
     if not valid_key:
         return 'missing_or_invalid_update_public_key'
-    # Only a boolean is passed by Actions. Never read/print Azure secret values.
-    if target.startswith('windows-') and env.get('ATIV_WINDOWS_SIGNING_READY') != 'true':
-        return 'missing_windows_signing_prerequisites'
     return None
 
 
@@ -103,7 +100,11 @@ class PublicationEligibility:
         name = f"ATIV-{item['tag'][1:]}-{item['target']}." + ('zip' if item['target'].startswith('windows-') else 'AppImage')
         # Do not consume a fresh claim to rebuild an already published/partial
         # target. Different bytes cannot be overwritten by the publisher anyway.
-        if any(a['name'] in (name, name + '.sha256') for a in assets):
+        names = {name, name + '.sha256'}
+        if item['target'].startswith('windows-'):
+            unsigned = name.removesuffix('.zip') + '-unsigned.zip'
+            names.update({unsigned, unsigned + '.sha256'})
+        if any(a['name'] in names for a in assets):
             return 'target_asset_already_exists'
         if item['tag'] not in self.commits:
             commit = self.api.request(f"{self.api.root}/commits/{item['tag']}")

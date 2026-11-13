@@ -17,14 +17,14 @@ and publish successful platform direct downloads to the matching existing
 stable release. A raw build or smoke result alone is insufficient: preserve
 runtime acquisition, final-package integrity, target identity, dependencies,
 native launch and signature verification. Publish each qualified platform
-independently; fail closed on missing signing configuration. Do not overwrite
+independently; Windows direct downloads are explicitly unsigned until signing is configured. Do not overwrite
 assets, move tags, alter Latest or authenticated updater feeds, or automatically
 retry attempted tags. No macOS hosted build or event-driven CI is added.
 Before claiming any target, require an existing published stable release with an
 exact-version `ATIV-VERSION-macos-arm64.zip` or `-macos-intel.zip` asset in uploaded
 state, nonzero size and a GitHub SHA-256 digest. No per-release manual enrollment
 is needed. Raw tags, drafts/prereleases, missing Mac assets, invalid/missing update
-public key, and Windows without all existing Azure signing prerequisites are
+public key are
 reported as ineligible without status writes. An existing native asset or sidecar
 also skips that target without rebuilding or overwriting it.
 A nonempty repository variable `ATIV_WEEKLY_RELEASE_HOLD` pauses publication
@@ -52,3 +52,15 @@ Ordinary debug/test runs and explicitly named development/reference artifacts
 remain local and unnotarized. This supersedes older optional-notarization wording
 for macOS app distribution only. Windows/Linux policy, authenticated updates,
 DCO conventions, and the restricted weekly CI schedule are unchanged.
+
+## Unsigned Windows direct downloads (owner update, 2026-11-13)
+
+The owner permits unsigned Windows direct downloads until signing is configured.
+The active weekly path does not invoke Azure, read Azure credentials or request
+OIDC signing permissions. It verifies first-party binaries are unsigned, retains
+all native build, target identity, runtime provenance, package integrity and
+launch checks, and publishes `-unsigned.zip` assets/checksums with unsigned
+qualification metadata. This exception does not permit unsigned authenticated
+update feeds, changing update verification, macOS signing changes or silent
+fallback from a failed signing operation. Existing signing scripts and archived
+workflows remain available for an explicitly configured future signing path.

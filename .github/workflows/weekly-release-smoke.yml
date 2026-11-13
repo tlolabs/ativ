@@ -42,8 +42,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ATIV_UPDATE_PUBLIC_KEY: ${{ vars.ATIV_UPDATE_PUBLIC_KEY }}
           ATIV_WEEKLY_RELEASE_HOLD: ${{ vars.ATIV_WEEKLY_RELEASE_HOLD }}
-          # Presence only. Secret values are never passed to the selector.
-          ATIV_WINDOWS_SIGNING_READY: ${{ vars.AZURE_SIGNING_ENDPOINT != '' && vars.AZURE_SIGNING_ACCOUNT != '' && vars.AZURE_CERTIFICATE_PROFILE != '' && vars.AZURE_SIGNING_SUBJECT != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_SUBSCRIPTION_ID != '' }}
         run: >-
           python3 control/.github/scripts/weekly_release_smoke.py select
           --pattern '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
@@ -213,7 +211,6 @@ jobs:
     permissions:
       contents: read
       attestations: read
-      id-token: write
     defaults:
       run:
         shell: bash
@@ -277,57 +274,20 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./script/package_windows.ps1 -Architecture $env:BUILD_ARCH
-      - name: Require existing Windows signing configuration
+      - name: Verify explicitly unsigned Windows package
         if: runner.os == 'Windows'
         shell: pwsh
-        env:
-          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          AZURE_CERTIFICATE_PROFILE: ${{ vars.AZURE_CERTIFICATE_PROFILE }}
-          AZURE_SIGNING_SUBJECT: ${{ vars.AZURE_SIGNING_SUBJECT }}
-          CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          foreach ($name in @('AZURE_SIGNING_ENDPOINT','AZURE_SIGNING_ACCOUNT','AZURE_CERTIFICATE_PROFILE','AZURE_SIGNING_SUBJECT','CLIENT_ID','TENANT_ID','SUBSCRIPTION_ID')) {
-            if (![Environment]::GetEnvironmentVariable($name)) { throw "Missing existing signing configuration: $name" }
-          }
-      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906
-        if: runner.os == 'Windows'
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82
-        if: runner.os == 'Windows'
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_CERTIFICATE_PROFILE }}
-          files-folder: ${{ github.workspace }}/source/build/windows-${{ env.BUILD_ARCH }}/publish
-          files-folder-filter: exe
-          files-folder-recurse: true
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          exclude-environment-credential: true
-          exclude-managed-identity-credential: true
-          exclude-interactive-browser-credential: true
-      - name: Verify and archive final signed Windows bytes
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          EXPECTED_SUBJECT: ${{ vars.AZURE_SIGNING_SUBJECT }}
-        run: |
+          $ErrorActionPreference = 'Stop'
           $root = "build/windows-$env:BUILD_ARCH/publish"
-          ./script/verify_authenticode.ps1 -Folder $root -ExpectedSubject $env:EXPECTED_SUBJECT
-          python script/ffmpeg_runtime.py finish $env:CORE_TARGET --binary $root --metadata "$root/ffmpeg-runtime"
-          if ($LASTEXITCODE -ne 0) { throw 'Signed runtime recording failed' }
+          foreach ($name in @('ATIV.exe', 'ativ-engine.exe', 'ativ-update.exe', 'ativ-portable-update.exe')) {
+            $signature = Get-AuthenticodeSignature -LiteralPath (Join-Path $root $name)
+            if ($signature.Status -ne 'NotSigned') { throw "Expected explicitly unsigned first-party binary: $name" }
+          }
+          # Package/runtime integrity and authenticated runtime acquisition remain mandatory.
           python script/validate_package.py $root "windows-$($env:BUILD_ARCH.ToLowerInvariant())"
-          if ($LASTEXITCODE -ne 0) { throw 'Final signed package validation failed' }
-          $zip = "packages/ATIV-$env:ATIV_VERSION-windows-$($env:BUILD_ARCH.ToLowerInvariant()).zip"
-          Remove-Item -LiteralPath $zip
-          Compress-Archive -Path "$root/*" -DestinationPath $zip
+          if ($LASTEXITCODE -ne 0) { throw 'Final unsigned package validation failed' }
+          'Windows direct download is unsigned. Authenticated update feeds are not modified.' >> $env:GITHUB_STEP_SUMMARY
       - name: Smoke-test the extracted Windows application
         if: runner.os == 'Windows'
         shell: pwsh

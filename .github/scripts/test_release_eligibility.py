@@ -89,11 +89,11 @@ class Eligibility(unittest.TestCase):
         # Nonempty means held, even the literal "false". No implicit unholding.
         self.assert_ineligible(env={**READY,'ATIV_WEEKLY_RELEASE_HOLD':'false'}, reason='repository_hold')
 
-    def test_missing_azure_skips_windows_and_keeps_linux(self):
+    def test_missing_azure_does_not_block_explicitly_unsigned_windows(self):
         for readiness in ('', 'false', 'True', None):
             matrix,summary=select(ReleaseAPI(),{**READY,'ATIV_WINDOWS_SIGNING_READY':readiness})
-            self.assertEqual([i['target'] for i in matrix['include']], ['linux-x64','linux-arm64'])
-            self.assertEqual(summary['eligibility_reasons'],{'missing_windows_signing_prerequisites':2})
+            self.assertEqual([i['target'] for i in matrix['include']], TARGETS)
+            self.assertEqual(summary['ineligible'],0)
 
     def test_invalid_update_key_skips_all(self):
         for key in ('', 'not base64', base64.b64encode(bytes(31)).decode()):
@@ -107,6 +107,13 @@ class Eligibility(unittest.TestCase):
             self.assertNotIn('linux-x64',[i['target'] for i in matrix['include']])
             self.assertEqual(summary['eligibility_reasons'],{'target_asset_already_exists':1})
 
+    def test_existing_signed_or_unsigned_windows_asset_skips_target(self):
+        for suffix in ('.zip','.zip.sha256','-unsigned.zip','-unsigned.zip.sha256'):
+            matrix,summary=select(ReleaseAPI(assets=[mac_asset(),{'name':'ATIV-1.2.3-windows-x64'+suffix}]))
+            self.assertEqual(len(matrix['include']),3)
+            self.assertNotIn('windows-x64',[i['target'] for i in matrix['include']])
+            self.assertEqual(summary['eligibility_reasons'],{'target_asset_already_exists':1})
+
     def test_ambiguous_or_malformed_release_assets_skip(self):
         self.assert_ineligible(releases=[stable_release(), stable_release()],reason='ambiguous_release')
         self.assert_ineligible(assets=[mac_asset(),mac_asset()],reason='ambiguous_assets')
@@ -114,7 +121,7 @@ class Eligibility(unittest.TestCase):
         self.assert_ineligible(assets=[None],reason='invalid_assets')
 
     def test_ineligible_pairs_do_not_exhaust_matrix_limit(self):
-        matrix,_=select(ReleaseAPI(),{**READY,'ATIV_WINDOWS_SIGNING_READY':'false'},max_matrix=2)
+        matrix,_=select(ReleaseAPI(assets=[mac_asset(),{'name':'ATIV-1.2.3-windows-x64-unsigned.zip'},{'name':'ATIV-1.2.3-windows-arm64.zip'}]),max_matrix=2)
         self.assertEqual(len(matrix['include']),2)
 
     def test_api_errors_are_not_missing_releases_and_never_write(self):
@@ -134,7 +141,7 @@ class Eligibility(unittest.TestCase):
             self.assertFalse(api.writes)
 
     def test_all_pairs_preflight_before_first_claim(self):
-        api=ReleaseAPI();p=policy.PublicationEligibility(api,{**READY,'ATIV_WINDOWS_SIGNING_READY':'false'})
+        api=ReleaseAPI(assets=[mac_asset(),{'name':'ATIV-1.2.3-windows-x64-unsigned.zip'}]);p=policy.PublicationEligibility(api,READY)
         with self.assertRaises(gate.GateError):
             gate.Gate(api).claim({'include':[item(),item(target='windows-x64')]},URL,eligibility=p)
         self.assertFalse(api.writes)
@@ -198,5 +205,12 @@ class PublisherRaces(unittest.TestCase):
         self.assertIn('--require-publication --claim',workflow)
         self.assertIn("- cron: '17 16 * * 0'",workflow)
         self.assertNotIn('workflow_dispatch:',workflow)
+        self.assertNotIn('azure/',workflow)
+        self.assertNotIn('AZURE_',workflow)
+        self.assertNotIn('id-token:',workflow)
+        self.assertIn("Get-AuthenticodeSignature",workflow)
+        self.assertIn("$signature.Status -ne 'NotSigned'",workflow)
+        self.assertIn('script/validate_package.py',workflow)
+        self.assertIn('Smoke-test the extracted Windows application',workflow)
 
 if __name__=='__main__':unittest.main()
