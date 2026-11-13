@@ -10,9 +10,32 @@ Do not automatically retry the same release tag in scheduled CI. Preserve tests 
 
 ## Owner-directed weekly smoke CI
 
-Automatic CI runs once weekly on Sunday mornings Pacific time (16:17 UTC, 08:17 PST / 09:17 PDT), and native work runs only for a new stable `vMAJOR.MINOR.PATCH` source-release tag that has not already been attempted. Run only native Linux and Windows x86_64/arm64 compilation and basic smoke tests. Do not run macOS CI, push/PR/tag-triggered CI, automatic retries, full diagnostic suites, or release/publication jobs on the scheduled path. Retain broader test and signing tools for deliberate local use. CI remains diagnostic and nonblocking; do not add required checks or approval gates.
+Automatic CI runs once weekly on Sunday mornings Pacific time (16:17 UTC, 08:17 PST / 09:17 PDT), and native work runs only for a new stable `vMAJOR.MINOR.PATCH` source-release tag that has not already been attempted. Run only native Linux and Windows x86_64/arm64 compilation and basic smoke tests. Do not run macOS CI, push/PR/tag-triggered CI, automatic retries, full diagnostic suites, or unrelated diagnostic jobs on the scheduled path. Retain broader test and signing tools for deliberate local use. CI remains diagnostic and nonblocking; do not add required checks or approval gates.
 
-The scheduled smoke result is not release qualification. Preserve runtime acquisition, source and package integrity, target identity, and signature/update verification. Do not publish smoke artifacts as verified releases or change authenticated runtime/update contracts.
+Owner clarification (2026-11-12): the weekly native Windows/Linux jobs package
+and publish successful platform direct downloads to the matching existing
+stable release. A raw build or smoke result alone is insufficient: preserve
+runtime acquisition, final-package integrity, target identity, dependencies,
+native launch and signature verification. Publish each qualified platform
+independently; fail closed on missing signing configuration. Do not overwrite
+assets, move tags, alter Latest or authenticated updater feeds, or automatically
+retry attempted tags. No macOS hosted build or event-driven CI is added.
+Before claiming any target, require an existing published stable release with an
+exact-version `ATIV-VERSION-macos-arm64.zip` or `-macos-intel.zip` asset in uploaded
+state, nonzero size and a GitHub SHA-256 digest. No per-release manual enrollment
+is needed. Raw tags, drafts/prereleases, missing Mac assets, invalid/missing update
+public key, and Windows without all existing Azure signing prerequisites are
+reported as ineligible without status writes. An existing native asset or sidecar
+also skips that target without rebuilding or overwriting it.
+A nonempty repository variable `ATIV_WEEKLY_RELEASE_HOLD` pauses publication
+when captured by a job; clear it to resume eligibility. This captured configuration
+is not a reliable in-flight stop. A release-note marker `<!-- ativ-release-hold -->`
+(case-insensitive) holds that release and is freshly fetched before each asset
+operation. Remove the marker only when its hold is resolved. Selection rechecks
+prerequisites before the first claim; publication rechecks the current release
+and release-note hold, Mac asset and remote tag before each asset operation. API/enumeration errors fail closed, never masquerade as absent releases.
+Ineligible work is not an attempt; previously attempted/failed targets stay
+consumed and are never reset or automatically retried.
 
 ## Archived legacy automation
 
