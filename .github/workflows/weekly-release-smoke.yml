@@ -259,7 +259,7 @@ jobs:
           PYVERSION
       - name: Install native Windows Qt
         if: runner.os == 'Windows'
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: '6.8.2'
           host: ${{ matrix.target == 'windows-arm64' && 'windows_arm64' || 'windows' }}
