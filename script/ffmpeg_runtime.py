@@ -97,6 +97,13 @@ def verify(runtime, target, binary=None, signed=False):
     target = target_id(target)
     derivative=json.loads((runtime / 'signed-payload.json').read_text()) if signed else None
     plan=selected_plan(target, runtime=runtime, signed=derivative)
+    if (not signed and binary is None and plan is not PIN and
+            runtime.name == plan['targets'][target]['archive'].removesuffix('.tar.gz')):
+        # Cached verification already authenticates these exact tools, metadata
+        # and corresponding source. Reuse its build result rather than hashing
+        # the complete payload again. Overrides retain their separate checks.
+        from platform_runtime import verify_cached_build
+        return verify_cached_build(target, runtime.parent)[1]
     info=verify_directory(plan, target, runtime, binary=binary, signed=derivative)
     source=runtime / 'corresponding-source.tar.gz' if signed else runtime.parent / plan['targets'][target]['source_archive']
     if digest(source) != plan['targets'][target]['source_sha256']:

@@ -29,17 +29,29 @@ fn unavailable() -> AtivError {
 fn read_json(path: &Path) -> ativ_core::Result<Value> {
     serde_json::from_slice(&fs::read(path).map_err(|_| unavailable())?).map_err(|_| unavailable())
 }
-fn hash(path: &Path) -> ativ_core::Result<String> {
+fn check_cancelled(token: &CancellationToken) -> ativ_core::Result<()> {
+    if token.is_cancelled() {
+        Err(AtivError::cancelled())
+    } else {
+        Ok(())
+    }
+}
+fn hash(path: &Path, token: &CancellationToken) -> ativ_core::Result<String> {
+    check_cancelled(token)?;
     if !fs::symlink_metadata(path)
         .map_err(|_| unavailable())?
         .is_file()
     {
         return Err(unavailable());
     }
-    let mut file = fs::File::open(path).map_err(|_| unavailable())?;
+    let file = fs::File::open(path).map_err(|_| unavailable())?;
+    hash_reader(file, token)
+}
+fn hash_reader(mut file: impl Read, token: &CancellationToken) -> ativ_core::Result<String> {
     let mut digest = Sha256::new();
     let mut buffer = [0u8; 65536];
     loop {
+        check_cancelled(token)?;
         let count = file.read(&mut buffer).map_err(|_| unavailable())?;
         if count == 0 {
             break;
@@ -63,13 +75,16 @@ fn check_tree(
     root: &Path,
     directory: &Path,
     files: &HashMap<String, String>,
+    token: &CancellationToken,
 ) -> ativ_core::Result<()> {
+    check_cancelled(token)?;
     for entry in fs::read_dir(directory).map_err(|_| unavailable())? {
+        check_cancelled(token)?;
         let entry = entry.map_err(|_| unavailable())?;
         let file_type = entry.file_type().map_err(|_| unavailable())?;
         let path = entry.path();
         if file_type.is_dir() {
-            check_tree(root, &path, files)?;
+            check_tree(root, &path, files, token)?;
         } else if !file_type.is_file() {
             return Err(unavailable());
         } else {
@@ -114,7 +129,8 @@ fn hash_pair(
     })
 }
 
-fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
+fn packaged_pair(token: &CancellationToken) -> ativ_core::Result<(PathBuf, PathBuf, String)> {
+    check_cancelled(token)?;
     let executable = std::env::current_exe().map_err(|_| unavailable())?;
     let binary = executable.parent().ok_or_else(unavailable)?;
     let metadata = if cfg!(target_os = "macos") && binary.file_name().is_some_and(|n| n == "MacOS")
@@ -166,7 +182,7 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         } else {
             return Err(unavailable());
         };
-    if hash(&metadata.join("SHA256SUMS"))?
+    if hash(&metadata.join("SHA256SUMS"), token)?
         != record["checksums_sha256"]
             .as_str()
             .ok_or_else(unavailable)?
@@ -178,6 +194,7 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         .map_err(|_| unavailable())?
         .lines()
     {
+        check_cancelled(token)?;
         let (digest, name) = line.split_once("  ").ok_or_else(unavailable)?;
         if digest.len() != 64
             || !digest.bytes().all(|b| b.is_ascii_hexdigit())
@@ -191,11 +208,13 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
             return Err(unavailable());
         }
     }
-    check_tree(&metadata, &metadata, &files)?;
+    check_tree(&metadata, &metadata, &files, token)?;
     let ffmpeg_name = format!("ffmpeg{}", std::env::consts::EXE_SUFFIX);
     let ffprobe_name = format!("ffprobe{}", std::env::consts::EXE_SUFFIX);
     for (name, expected) in &files {
-        if name != &ffmpeg_name && name != &ffprobe_name && hash(&metadata.join(name))? != *expected
+        if name != &ffmpeg_name
+            && name != &ffprobe_name
+            && hash(&metadata.join(name), token)? != *expected
         {
             return Err(unavailable());
         }
@@ -212,7 +231,7 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
             != serde_json::json!({"schema":1,"owner":"AVID Core","ativ_version":ativ_core::VERSION,"avid_core":{"version":ativ_core::CORE_VERSION,"revision":ativ_core::CORE_REVISION,"source":ativ_core::CORE_SOURCE},"target":target})
         || signed["schema"] != 1
         || signed["target"] != target
-        || hash(&metadata.join("corresponding-source.tar.gz"))?
+        || hash(&metadata.join("corresponding-source.tar.gz"), token)?
             != source_sha256.as_str().ok_or_else(unavailable)?
     {
         return Err(unavailable());
@@ -231,8 +250,8 @@ fn packaged_pair() -> ativ_core::Result<(PathBuf, PathBuf, String)> {
         return Err(unavailable());
     }
     let (ffmpeg_hash, ffprobe_hash) = hash_pair(
-        || hash(&binary.join(&ffmpeg_name)),
-        || hash(&binary.join(&ffprobe_name)),
+        || hash(&binary.join(&ffmpeg_name), token),
+        || hash(&binary.join(&ffprobe_name), token),
     )?;
     if ffmpeg_hash != ffmpeg_expected || ffprobe_hash != ffprobe_expected {
         return Err(unavailable());
@@ -260,7 +279,7 @@ pub fn resolve(
             (ffmpeg, ffprobe, None)
         }
         (None, None) => {
-            let (ffmpeg, ffprobe, version) = packaged_pair()?;
+            let (ffmpeg, ffprobe, version) = packaged_pair(token)?;
             (ffmpeg, ffprobe, Some(version))
         }
         _ => {
@@ -330,6 +349,61 @@ mod tests {
     use super::*;
 
     #[test]
+    fn hashing_stops_before_another_read_after_cancellation() {
+        struct CancellingReader<'a> {
+            token: &'a CancellationToken,
+            reads: usize,
+        }
+        impl Read for CancellingReader<'_> {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                self.reads += 1;
+                assert_eq!(self.reads, 1, "cancelled hashing must not keep reading");
+                buffer.fill(42);
+                self.token.cancel();
+                Ok(buffer.len())
+            }
+        }
+        let token = CancellationToken::default();
+        let mut reader = CancellingReader {
+            token: &token,
+            reads: 0,
+        };
+        assert_eq!(
+            hash_reader(&mut reader, &token).unwrap_err().code(),
+            "cancelled"
+        );
+        assert_eq!(reader.reads, 1);
+        // An already-cancelled request must not even inspect a missing path.
+        assert_eq!(
+            hash(Path::new("missing-runtime-file"), &token)
+                .unwrap_err()
+                .code(),
+            "cancelled"
+        );
+        assert_eq!(
+            check_tree(
+                Path::new("missing-runtime"),
+                Path::new("missing-runtime"),
+                &HashMap::new(),
+                &token
+            )
+            .unwrap_err()
+            .code(),
+            "cancelled"
+        );
+    }
+
+    #[test]
+    fn hashing_still_verifies_every_chunk_without_cancellation() {
+        let bytes = vec![42; 2 * 65536 + 17];
+        let expected: [u8; 32] = Sha256::digest(&bytes).into();
+        assert_eq!(
+            hash_reader(bytes.as_slice(), &CancellationToken::default()).unwrap(),
+            hex_digest(&expected)
+        );
+    }
+
+    #[test]
     fn hex_is_fixed_lowercase_and_preserves_leading_zeros() {
         for seed in 0..=255u8 {
             let bytes = std::array::from_fn(|i| seed.wrapping_add(i as u8));
@@ -381,20 +455,21 @@ mod tests {
         fs::create_dir_all(directory.join("nested")).unwrap();
         fs::write(directory.join("nested/known"), b"payload").unwrap();
         let files = HashMap::from([("nested/known".into(), "hash".into())]);
-        assert!(check_tree(&directory, &directory, &files).is_ok());
+        let token = CancellationToken::default();
+        assert!(check_tree(&directory, &directory, &files, &token).is_ok());
         fs::write(directory.join("unknown"), b"payload").unwrap();
-        assert!(check_tree(&directory, &directory, &files).is_err());
+        assert!(check_tree(&directory, &directory, &files, &token).is_err());
         fs::remove_file(directory.join("unknown")).unwrap();
         #[cfg(unix)]
         {
             std::os::unix::fs::symlink(directory.join("nested"), directory.join("link")).unwrap();
-            assert!(check_tree(&directory, &directory, &files).is_err());
+            assert!(check_tree(&directory, &directory, &files, &token).is_err());
             fs::remove_file(directory.join("link")).unwrap();
             std::os::unix::fs::symlink(directory.join("missing"), directory.join("broken"))
                 .unwrap();
-            assert!(check_tree(&directory, &directory, &files).is_err());
+            assert!(check_tree(&directory, &directory, &files, &token).is_err());
         }
-        assert!(check_tree(&directory, &directory.join("absent"), &files).is_err());
+        assert!(check_tree(&directory, &directory.join("absent"), &files, &token).is_err());
         fs::remove_dir_all(directory).unwrap();
     }
 

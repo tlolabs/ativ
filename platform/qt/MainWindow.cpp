@@ -558,7 +558,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     });
 
     connect(&probeJob, &EngineJob::eventReceived, this, [this](const QJsonObject &event) {
-        if (probedPath != audioPath->text() || event["event"] != "probe") return;
+        if (probeRevision != audioRevision || event["event"] != "probe") return;
         const auto value = event["duration_seconds"];
         if (value.isDouble()) {
             const int seconds = qRound(value.toDouble());
@@ -580,7 +580,7 @@ MainWindow::MainWindow(const QString &engine, QWidget *parent)
     connect(&probeJob, &EngineJob::finished, this, [this](int code, const QString &error) {
         if (closing) { close(); return; }
         if (rendering || updating) return;
-        if (probedPath != audioPath->text()) { beginProbe(); return; }
+        if (probeRevision != audioRevision) { beginProbe(); return; }
         if (code != 0) {
             duration->setText("Could not read audio");
             setStatus("Could not read audio recording.", true);
@@ -727,6 +727,7 @@ void MainWindow::setImage(const QString &path) {
 
 void MainWindow::setAudio(const QString &path) {
     if (rendering || updating || path.isEmpty()) return;
+    ++audioRevision;
     audioPath->setText(path);
     audioPath->setToolTip(plainToolTip(path));
     duration->setText("Reading duration…");
@@ -851,6 +852,7 @@ void MainWindow::startPreview() {
 
 void MainWindow::beginProbe() {
     if (closing || updating || rendering) return;
+    probeRevision = audioRevision;
     probedPath = audioPath->text();
     if (!probedPath.isEmpty()) {
         probeJob.start({"probe", "--audio", probedPath});

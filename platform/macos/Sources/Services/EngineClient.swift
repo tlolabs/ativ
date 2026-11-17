@@ -49,15 +49,12 @@ final class EngineClient {
         }
     }
     private var currentRenderId: UUID?
-    private var cancelledRenderIds: Set<UUID> = []
     private var renderProcess: Process?
 
     private var currentPreviewId: UUID?
-    private var cancelledPreviewIds: Set<UUID> = []
     private var previewProcess: Process?
 
     private var currentProbeId: UUID?
-    private var cancelledProbeIds: Set<UUID> = []
     private var probeProcess: Process?
 
     private var engineURL: URL? {
@@ -88,13 +85,13 @@ final class EngineClient {
             guard let self else { return true }
             self.lock.lock()
             defer { self.lock.unlock() }
-            return self.cancelledProbeIds.contains(id) || self.currentProbeId != id
+            return self.currentProbeId != id
         }, assign: { [weak self] p in
             self?.lock.lock(); self?.probeProcess = p; self?.lock.unlock()
         }, clear: { [weak self] p in
             self?.lock.lock()
             if self?.probeProcess === p { self?.probeProcess = nil }
-            self?.cancelledProbeIds.remove(requestId)
+            if self?.currentProbeId == requestId { self?.currentProbeId = nil }
             self?.lock.unlock()
         }) { result in
             completion(result.map { $0.first(where: { $0.event == "probe" })?.durationSeconds })
@@ -103,7 +100,7 @@ final class EngineClient {
 
     func cancelProbe() {
         lock.lock()
-        if let id = currentProbeId { cancelledProbeIds.insert(id) }
+        currentProbeId = nil
         let process = probeProcess
         probeProcess = nil
         lock.unlock()
@@ -128,13 +125,13 @@ final class EngineClient {
             guard let self else { return true }
             self.lock.lock()
             defer { self.lock.unlock() }
-            return self.cancelledPreviewIds.contains(id) || self.currentPreviewId != id
+            return self.currentPreviewId != id
         }, assign: { [weak self] p in
             self?.lock.lock(); self?.previewProcess = p; self?.lock.unlock()
         }, clear: { [weak self] p in
             self?.lock.lock()
             if self?.previewProcess === p { self?.previewProcess = nil }
-            self?.cancelledPreviewIds.remove(requestId)
+            if self?.currentPreviewId == requestId { self?.currentPreviewId = nil }
             self?.lock.unlock()
         }) { result in
             switch result {
@@ -149,7 +146,7 @@ final class EngineClient {
 
     func cancelPreview() {
         lock.lock()
-        if let id = currentPreviewId { cancelledPreviewIds.insert(id) }
+        currentPreviewId = nil
         let process = previewProcess
         previewProcess = nil
         lock.unlock()
@@ -174,8 +171,7 @@ final class EngineClient {
 
         enqueue {
             self.lock.lock()
-            if self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId {
-                self.cancelledRenderIds.remove(requestId)
+            if self.currentRenderId != requestId {
                 self.lock.unlock()
                 completion(.failure(EngineClientError.cancelled))
                 return
@@ -195,14 +191,14 @@ final class EngineClient {
                 NSLog("ATIV media engine launch failed: %@", error.localizedDescription)
                 self.lock.lock()
                 if self.renderProcess === process { self.renderProcess = nil }
-                self.cancelledRenderIds.remove(requestId)
+                if self.currentRenderId == requestId { self.currentRenderId = nil }
                 self.lock.unlock()
                 completion(.failure(EngineClientError.launchFailed))
                 return
             }
 
             self.lock.lock()
-            let wasCancelledBeforeRun = self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId
+            let wasCancelledBeforeRun = self.currentRenderId != requestId
             self.lock.unlock()
             if wasCancelledBeforeRun {
                 self.terminateProcessGracefully(process)
@@ -219,8 +215,8 @@ final class EngineClient {
 
             self.lock.lock()
             if self.renderProcess === process { self.renderProcess = nil }
-            let isCancelled = self.cancelledRenderIds.contains(requestId) || self.currentRenderId != requestId
-            self.cancelledRenderIds.remove(requestId)
+            let isCancelled = self.currentRenderId != requestId
+            if self.currentRenderId == requestId { self.currentRenderId = nil }
             self.lock.unlock()
 
             // A late Stop cannot turn an already published output into a failure.
@@ -239,9 +235,7 @@ final class EngineClient {
 
     func cancelRender() {
         lock.lock()
-        if let id = currentRenderId {
-            cancelledRenderIds.insert(id)
-        }
+        currentRenderId = nil
         let process = renderProcess
         lock.unlock()
 
@@ -283,7 +277,11 @@ final class EngineClient {
                             assign: ((Process) -> Void)? = nil,
                             clear: ((Process?) -> Void)? = nil,
                             completion: @escaping (Result<[EngineEvent], Error>) -> Void) {
-        guard let engineURL else { completion(.failure(EngineClientError.missingEngine)); return }
+        guard let engineURL else {
+            clear?(nil)
+            completion(.failure(EngineClientError.missingEngine))
+            return
+        }
         enqueue {
             if let requestId, let isCancelled, isCancelled(requestId) {
                 if let clear { clear(nil) }

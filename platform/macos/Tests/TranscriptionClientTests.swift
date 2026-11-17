@@ -205,6 +205,34 @@ final class TranscriptionDocumentTests: XCTestCase {
         do { _ = try await TranscriptionDocument.read(from: future); XCTFail("Expected malformed rejection") }
         catch { XCTAssertEqual(error as? TranscriptionDocumentError, .malformed) }
     }
+    func testLargeDocumentReadPreservesCanonicalPayloadAndValidatesVersion() async throws {
+        let (root, audio) = try fixture()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = try await TranscriptionSourceIdentity.fingerprint(of: audio)
+        var payload = transcript.objectValue!
+        payload["segments"] = .array((0..<250).map { index in
+            .object(["text": .string("Segment \(index): こんにちは 🌏"),
+                     "words": .array([.object(["text": .string("こんにちは"), "startSeconds": .number(Double(index)), "endSeconds": .number(Double(index) + 0.5)])])])
+        })
+        payload["futureLargeField"] = .string(String(repeating: "preserved 🌏", count: 20_000))
+        let document = TranscriptionDocument(source: source, transcript: .object(payload))
+        let path = root.appendingPathComponent("large.json")
+        let data = try JSONEncoder().encode(document)
+        try data.write(to: path)
+        let reopened = try await TranscriptionDocument.read(from: path)
+        XCTAssertEqual(reopened, document)
+        XCTAssertEqual(try Data(contentsOf: path), data)
+
+        for version in ["null", "true", "\"1\"", "1.5"] {
+            try Data("{\"formatVersion\":\(version)}".utf8).write(to: path)
+            do { _ = try await TranscriptionDocument.read(from: path); XCTFail("Expected malformed version \(version)") }
+            catch { XCTAssertEqual(error as? TranscriptionDocumentError, .malformed) }
+        }
+        // A future format need not have the current format's required payload.
+        try Data("{\"formatVersion\":999,\"futureField\":\"\(String(repeating: "x", count: 200_000))\"}".utf8).write(to: path)
+        do { _ = try await TranscriptionDocument.read(from: path); XCTFail("Expected future version rejection") }
+        catch { XCTAssertEqual(error as? TranscriptionDocumentError, .unsupportedVersion(999)) }
+    }
     func testMalformedCaptionPreferencesAreRejectedAndLargeSafeLimitsRemainReadable() async throws {
         let (root, audio) = try fixture()
         defer { try? FileManager.default.removeItem(at: root) }

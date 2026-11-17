@@ -2,6 +2,27 @@
 
 Notable changes to ATIV are recorded here using a [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style and [Semantic Versioning](https://semver.org/).
 
+## [0.2.11] — 2026-11-16
+
+### Fixed
+
+- Restart superseded audio probes for repeated selections, including selecting the same path and rapid A → B → A changes in the Qt client.
+- Release completed native engine request identities instead of retaining cancellation records indefinitely.
+- Honor cancellation during ATIV packaged-runtime hashing and directory verification.
+
+### Changed
+
+- Recognize static JPEGs containing EXIF thumbnails without mistaking thumbnail markers for additional images, enabling the faster cached-frame rendering path while preserving conservative fallback for ambiguous or multi-image data.
+- Open transcript documents without decoding their entire contents twice; retain version checks and unknown canonical fields.
+- Reuse authenticated cached-runtime verification results to avoid hashing the complete payload twice, preserving integrity and provider-attestation checks.
+- Align workspace, Qt and dependency-inventory versions at 0.2.11; replace the stale Qt version-test constant with the compiled version.
+
+### Validation and limits
+
+- Local macOS arm64 checks passed: 47 Rust, 93 Python, 51 Swift and 25 Qt workflow tests, plus eight current-engine tampering checks and real-media integration.
+- Gemini and Copilot returned partial source reviews; full external audit coverage remains incomplete. Native Windows/Linux execution and interactive accessibility were not verified.
+- This is a source release. No native package from this revision is qualified or uploaded, and existing Latest and authenticated update routing remain unchanged.
+
 ## [0.2.9] — 2026-11-11
 
 ### Added

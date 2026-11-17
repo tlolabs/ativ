@@ -16,7 +16,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "ativ-core"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "avid-core",
  "toml",
@@ -24,7 +24,7 @@ dependencies = [
 
 [[package]]
 name = "ativ-engine"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "ativ-core",
  "fs2",
@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "ativ-update"
-version = "0.2.10"
+version = "0.2.11"
 dependencies = [
  "tlo-updater",
 ]

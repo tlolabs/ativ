@@ -93,6 +93,7 @@ private:
     QWidget *controls = nullptr;
     QAction *checkUpdatesAction = nullptr;
     QString probedPath, completedOutput;
+    quint64 audioRevision = 0, probeRevision = 0;
     int revision = 0, previewRevision = -1;
     bool rendering = false, closing = false, presetsLoaded = false, updating = false;
 };

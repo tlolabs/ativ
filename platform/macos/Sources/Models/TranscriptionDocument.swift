@@ -114,8 +114,13 @@ struct TranscriptionDocument: Codable, Equatable, Sendable {
     static func read(from url: URL) async throws -> TranscriptionDocument {
         try await transcriptionBackground {
             let data = try readBounded(from: url)
-            let header = try JSONDecoder().decode(JSONValue.self, from: data)
-            guard let version = header["formatVersion"]?.doubleValue, version.isFinite,
+            // Decode only the version before interpreting the current envelope.
+            // Materializing the full transcript here would decode every word twice.
+            struct VersionHeader: Decodable { let formatVersion: JSONValue? }
+            let header: VersionHeader
+            do { header = try JSONDecoder().decode(VersionHeader.self, from: data) }
+            catch { throw TranscriptionDocumentError.malformed }
+            guard let version = header.formatVersion?.doubleValue, version.isFinite,
                   version.rounded() == version, version >= Double(Int.min), version < Double(Int.max) else {
                 throw TranscriptionDocumentError.malformed
             }

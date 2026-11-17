@@ -193,8 +193,8 @@ def acquire(target, destination):
             shutil.rmtree(staging)
 
 
-def verify_cached(target, destination):
-    """Recheck cached bytes and the provider attestation before using a runtime."""
+def verify_cached_build(target, destination):
+    """Return the runtime and authenticated build after checking the complete cache."""
     record, base = record_for(target)
     destination = Path(destination)
     verify_origin(target, record, audit_live_build=False)
@@ -211,10 +211,15 @@ def verify_cached(target, destination):
                        'version': record['version'], 'recipe': record['recipe']},
             'Cached platform release receipt differs from pin')
     runtime = destination / base
-    verify_directory(plan_for(target, record), target, runtime)
+    build = verify_directory(plan_for(target, record), target, runtime)
     require(obj(runtime / 'SOURCE.json')['sha256'] == digest(destination / (base + '-sources.tar.gz')),
             'Cached corresponding source mismatch')
-    return runtime
+    return runtime, build
+
+
+def verify_cached(target, destination):
+    """Recheck cached bytes and the provider attestation before using a runtime."""
+    return verify_cached_build(target, destination)[0]
 
 
 if __name__ == '__main__':

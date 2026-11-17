@@ -5,6 +5,7 @@
 #include <QtTest>
 #include <QtWidgets>
 #include <QJsonDocument>
+#include <QScopeGuard>
 #include <filesystem>
 #include <cstdio>
 #include <cstring>
@@ -88,6 +89,29 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(secondDone.size(), 1, 5000);
         QCOMPARE(firstDone[0][0].toInt(), 0); QCOMPARE(secondDone[0][0].toInt(), 0);
         QCOMPARE(contents(log), QByteArray("start\nend\nstart\nend\n"));
+    }
+    void audioProbeReselectionUsesLatestGeneration() {
+        // A same-path reselection and A -> B -> A both supersede the running
+        // operation even though its original path equals the final selection.
+        for (const bool returnThroughOtherPath : {false, true}) {
+            const auto log = media.filePath(returnThroughOtherPath ? "probe-return.log" : "probe-same.log");
+            qputenv("ATIV_QT_AUDIO_DOUBLE_LOG", log.toUtf8());
+            const auto cleanup = qScopeGuard([] { qunsetenv("ATIV_QT_AUDIO_DOUBLE_LOG"); });
+            MainWindow window(QCoreApplication::applicationFilePath());
+            QSignalSpy ready(&window, &MainWindow::presetsReady);
+            window.show();
+            QTRY_COMPARE_WITH_TIMEOUT(ready.size(), 1, 5000);
+            window.setAudio(audio);
+            QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(log + ".started"), 5000);
+            if (returnThroughOtherPath) window.setAudio(media.filePath("other.wav"));
+            window.setAudio(audio);
+            auto *duration = window.findChild<QLabel *>("duration");
+            QVERIFY(duration);
+            QTRY_COMPARE_WITH_TIMEOUT(duration->text(), QString("00:02"), 5000);
+            QCOMPARE(contents(log), QByteArray("cancelled\nprobe\n"));
+            window.close();
+            QTRY_VERIFY_WITH_TIMEOUT(!window.isVisible(), 5000);
+        }
     }
     void publishedExportWinsOverLateCancellation() {
         EngineJob job(QCoreApplication::applicationFilePath()); QSignalSpy done(&job, &EngineJob::finished);
@@ -511,7 +535,7 @@ private slots:
     void authoritativeVersion() {
         const QString ver = Preferences::authoritativeVersion();
         QVERIFY(!ver.isEmpty());
-        QCOMPARE(ver, QString("0.2.9"));
+        QCOMPARE(ver, QString::fromLatin1(ATIV_VERSION_STRING));
     }
 };
 // Re-exec this native test binary instead of depending on Unix shells. Dispatch
@@ -544,6 +568,34 @@ static int runProcessDouble(const QString &mode, const QString &path) {
 }
 
 int main(int argc, char **argv) {
+    const QString audioDoubleLog = qEnvironmentVariable("ATIV_QT_AUDIO_DOUBLE_LOG");
+    if (!audioDoubleLog.isEmpty() && argc > 1) {
+        QCoreApplication app(argc, argv);
+        const auto args = app.arguments();
+        if (args.value(1) == "presets") {
+            std::fputs("{\"event\":\"presets\",\"items\":[{\"platform\":\"Test\",\"aspect\":\"wide\",\"width\":160,\"height\":90}]}\n", stdout);
+            return 0;
+        }
+        if (args.value(1) == "probe") {
+            QFile marker(audioDoubleLog + ".started");
+            QFile log(audioDoubleLog);
+            if (!log.open(QIODevice::WriteOnly | QIODevice::Append)) return 2;
+            if (!marker.exists()) {
+                if (!marker.open(QIODevice::WriteOnly)) return 2;
+                marker.close();
+                char cancellation[32];
+                if (!std::fgets(cancellation, sizeof cancellation, stdin)) return 2;
+                log.write("cancelled\n"); log.flush();
+                // An event from the canceled generation must not update duration.
+                std::fputs("{\"event\":\"probe\",\"duration_seconds\":999}\n", stdout);
+                return 130;
+            }
+            log.write("probe\n"); log.flush();
+            std::fputs("{\"event\":\"probe\",\"duration_seconds\":2}\n", stdout);
+            return 0;
+        }
+        return 2;
+    }
     const QString updateMode = qEnvironmentVariable("ATIV_QT_PROCESS_DOUBLE");
     if (!updateMode.isEmpty() || (argc > 1 && std::strcmp(argv[1], "--ativ-process-double") == 0)) {
         QCoreApplication app(argc, argv);

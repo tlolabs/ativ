@@ -255,6 +255,50 @@ final class EngineClientTests: XCTestCase {
         }
     }
 
+    func testSupersededProbeCannotClearLatestRequest() throws {
+        try withEngineDouble("""
+        if [ ! -e "$0.started" ]; then
+            echo started > "$0.started"
+            read cancellation
+            exit 130
+        fi
+        echo '{"event":"probe","duration_seconds":2}'
+        """) { root in
+            let client = EngineClient()
+            let first = expectation(description: "superseded probe")
+            client.probe(audio: root.appendingPathComponent("first.wav")) { result in
+                if case .failure(let error) = result { XCTAssertEqual(error as? EngineClientError, .cancelled) }
+                else { XCTFail("Expected the superseded probe to stop") }
+                first.fulfill()
+            }
+            let marker = root.appendingPathComponent("engine.started")
+            let deadline = ProcessInfo.processInfo.systemUptime + 3
+            while !FileManager.default.fileExists(atPath: marker.path), ProcessInfo.processInfo.systemUptime < deadline { usleep(1000) }
+            XCTAssertTrue(FileManager.default.fileExists(atPath: marker.path))
+            let latest = expectation(description: "latest probe survives older cleanup")
+            client.probe(audio: root.appendingPathComponent("latest.wav")) { result in
+                switch result {
+                case .success(let duration): XCTAssertEqual(duration, 2)
+                case .failure(let error): XCTFail("Latest probe failed: \(error)")
+                }
+                latest.fulfill()
+            }
+            wait(for: [first, latest], timeout: 5)
+
+            // Cancelling a completed request must leave subsequent work usable.
+            client.cancelProbe()
+            let next = expectation(description: "probe after completed cancellation")
+            client.probe(audio: root.appendingPathComponent("next.wav")) { result in
+                switch result {
+                case .success(let duration): XCTAssertEqual(duration, 2)
+                case .failure(let error): XCTFail("Subsequent probe failed: \(error)")
+                }
+                next.fulfill()
+            }
+            wait(for: [next], timeout: 5)
+        }
+    }
+
     @MainActor
     func testStaleAudioProbeCannotReplaceActiveExportStatus() throws {
         try withEngineDouble("exit 130\n") { root in
