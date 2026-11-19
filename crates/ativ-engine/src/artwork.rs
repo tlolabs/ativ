@@ -2,6 +2,8 @@
 //! dimension inspection and composition. Unknown/multi-image containers retain
 //! PerFrame so an accepted animation is never silently frozen by the default.
 use ativ_core::{CancellationToken, RenderMode};
+#[cfg(unix)]
+use std::os::unix::fs::OpenOptionsExt;
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read, Seek, SeekFrom},
@@ -17,10 +19,22 @@ pub fn default_mode(path: &Path, token: &CancellationToken) -> RenderMode {
 }
 
 fn static_container(path: &Path, token: &CancellationToken) -> std::io::Result<bool> {
-    let mut file = File::open(path)?;
+    if token.is_cancelled() {
+        return Ok(false);
+    }
+    let mut options = File::options();
+    options.read(true);
+    // A path can name a FIFO. Its open must return before we can check its type.
+    #[cfg(unix)]
+    options.custom_flags(libc::O_NONBLOCK);
+    let mut file = options.open(path)?;
+    let metadata = file.metadata()?;
+    if !metadata.is_file() {
+        return Ok(false);
+    }
     let mut header = [0; 8];
     file.read_exact(&mut header)?;
-    let length = file.metadata()?.len();
+    let length = metadata.len();
     if header.starts_with(&[0xff, 0xd8, 0xff]) {
         return static_jpeg(&mut file, length, token);
     }
@@ -138,7 +152,7 @@ fn jpeg_marker(
                 if buffer.is_empty() {
                     return Ok(None);
                 }
-                let marker = buffer.iter().position(|&byte| byte == 0xff);
+                let marker = memchr::memchr(0xff, buffer);
                 let consumed = marker.map_or(buffer.len(), |index| index + 1);
                 reader.consume(consumed);
                 *position += consumed as u64;
@@ -305,5 +319,16 @@ mod tests {
             assert_eq!(default_mode(&path, &CancellationToken::default()), expected);
         }
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cancelled_classification_skips_opening_the_input() {
+        let root =
+            std::env::temp_dir().join(format!("ativ-cancelled-artwork-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let token = CancellationToken::default();
+        token.cancel();
+        assert!(!static_container(&root.join("absent.png"), &token).unwrap());
+        std::fs::remove_dir(root).unwrap();
     }
 }

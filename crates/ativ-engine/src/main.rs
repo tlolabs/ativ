@@ -10,6 +10,7 @@ use ativ_core::{
 };
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::ffi::OsString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
@@ -40,11 +41,14 @@ fn main() -> ExitCode {
 }
 
 fn run() -> ativ_core::Result<()> {
-    let mut arguments = env::args().skip(1);
+    let mut arguments = env::args_os().skip(1);
     let command = arguments.next().unwrap_or_else(|| "help".into());
-    let parsed = Arguments::parse(arguments.collect())?;
+    let command = command.to_str().ok_or_else(|| {
+        AtivError::InvalidInput("Command must be valid UTF-8. Run ativ-engine help.".into())
+    })?;
+    let parsed = Arguments::parse(arguments)?;
     let token = if matches!(
-        command.as_str(),
+        command,
         "check" | "probe" | "inspect-image" | "preview" | "render"
     ) {
         stdin_cancellation()
@@ -54,14 +58,14 @@ fn run() -> ativ_core::Result<()> {
     // The GUI calls this process from application workers. A process-wide/user
     // permit also bounds multiple windows/instances and serializes destinations.
     let _worker = if matches!(
-        command.as_str(),
+        command,
         "check" | "probe" | "inspect-image" | "preview" | "render"
     ) {
         Some(worker::acquire(&token)?)
     } else {
         None
     };
-    match command.as_str() {
+    match command {
         "help" | "--help" | "-h" => {
             print_help();
             Ok(())
@@ -155,7 +159,7 @@ fn run() -> ativ_core::Result<()> {
         }
         "render" => {
             let started = Instant::now();
-            let requested_mode = match parsed.values.get("render-mode").map(String::as_str) {
+            let requested_mode = match parsed.text("render-mode")? {
                 None | Some("auto") => None,
                 Some("simple") => Some(RenderMode::Simple),
                 Some("current") => Some(RenderMode::PerFrame),
@@ -172,12 +176,8 @@ fn run() -> ativ_core::Result<()> {
                 output: parsed.required_path("output")?,
                 width: parsed.required_u32("width")?,
                 height: parsed.required_u32("height")?,
-                audio_bitrate: parsed
-                    .values
-                    .get("audio-bitrate")
-                    .cloned()
-                    .unwrap_or_else(|| "128k".into()),
-                fps: parsed.values.get("fps").map_or(Ok(30), |value| {
+                audio_bitrate: parsed.text("audio-bitrate")?.unwrap_or("128k").to_owned(),
+                fps: parsed.text("fps")?.map_or(Ok(30), |value| {
                     value.parse::<u32>().map_err(|_| {
                         AtivError::InvalidInput("FPS must be a positive integer.".into())
                     })
@@ -257,38 +257,36 @@ fn protected_paths(arguments: &Arguments, renderer: &Renderer) -> Vec<PathBuf> {
 
 #[derive(Default)]
 struct Arguments {
-    values: HashMap<String, String>,
+    values: HashMap<String, OsString>,
     flags: HashSet<String>,
     images: Vec<PathBuf>,
     protected: Vec<PathBuf>,
 }
 
 impl Arguments {
-    fn parse(raw: Vec<String>) -> ativ_core::Result<Self> {
+    fn parse(raw: impl IntoIterator<Item = OsString>) -> ativ_core::Result<Self> {
+        let mut raw = raw.into_iter();
         let mut parsed = Self::default();
-        let mut index = 0;
-        while index < raw.len() {
-            let key = raw[index]
-                .strip_prefix("--")
+        while let Some(argument) = raw.next() {
+            let key = argument
+                .to_str()
+                .and_then(|argument| argument.strip_prefix("--"))
                 .ok_or_else(|| {
                     AtivError::InvalidInput("Unexpected argument. Run ativ-engine help.".into())
                 })?
                 .to_owned();
             if matches!(key.as_str(), "flip-horizontal" | "flip-vertical") {
                 parsed.flags.insert(key);
-                index += 1;
             } else {
                 let value = raw
-                    .get(index + 1)
-                    .ok_or_else(|| AtivError::InvalidInput(format!("--{key} requires a value.")))?
-                    .to_owned();
+                    .next()
+                    .ok_or_else(|| AtivError::InvalidInput(format!("--{key} requires a value.")))?;
                 match key.as_str() {
                     "image" => parsed.images.push(PathBuf::from(&value)),
                     "protected-path" => parsed.protected.push(PathBuf::from(&value)),
                     _ => {}
                 }
                 parsed.values.insert(key, value);
-                index += 2;
             }
         }
         Ok(parsed)
@@ -300,9 +298,20 @@ impl Arguments {
             .map(PathBuf::from)
             .ok_or_else(|| AtivError::InvalidInput(format!("--{name} is required.")))
     }
-    fn required_u32(&self, name: &str) -> ativ_core::Result<u32> {
+
+    fn text(&self, name: &str) -> ativ_core::Result<Option<&str>> {
         self.values
             .get(name)
+            .map(|value| {
+                value.to_str().ok_or_else(|| {
+                    AtivError::InvalidInput(format!("--{name} must be valid UTF-8."))
+                })
+            })
+            .transpose()
+    }
+
+    fn required_u32(&self, name: &str) -> ativ_core::Result<u32> {
+        self.text(name)?
             .ok_or_else(|| AtivError::InvalidInput(format!("--{name} is required.")))?
             .parse()
             .map_err(|_| AtivError::InvalidInput(format!("--{name} must be a positive integer.")))
@@ -544,6 +553,27 @@ mod tests {
         .unwrap();
         assert_eq!(parsed.values["image"], "/tmp/my image.png");
         assert!(parsed.flags.contains("flip-horizontal"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn parser_preserves_native_path_bytes() {
+        use std::os::unix::ffi::OsStringExt;
+
+        let native = OsString::from_vec(b"artwork\xff.png".to_vec());
+        let parsed = Arguments::parse([
+            "--image".into(),
+            "first.png".into(),
+            "--image".into(),
+            native.clone(),
+            "--protected-path".into(),
+            native.clone(),
+        ])
+        .unwrap();
+        let path = PathBuf::from(native);
+        assert_eq!(parsed.required_path("image").unwrap(), path);
+        assert_eq!(parsed.images, [PathBuf::from("first.png"), path.clone()]);
+        assert_eq!(parsed.protected, [path]);
     }
 
     #[test]

@@ -1,8 +1,10 @@
+use std::ffi::OsStr;
 use std::process::Command;
 
-fn engine(args: &[&str]) -> std::process::Output {
+fn engine(args: &[impl AsRef<OsStr>]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_ativ-engine"))
         .args(args)
+        .env("ATIV_LOG_PATH", "") // Keep protocol tests out of the user’s diagnostics log.
         .output()
         .unwrap()
 }
@@ -49,6 +51,25 @@ fn invalid_render_mode_is_rejected_before_media_discovery() {
         String::from_utf8(result.stdout)
             .unwrap()
             .contains("--render-mode must be simple or current.")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn non_utf8_image_argument_retains_the_structured_error_protocol() {
+    use std::os::unix::ffi::OsStrExt;
+
+    let result = engine(&[
+        OsStr::new("render"),
+        OsStr::new("--render-mode"),
+        OsStr::new("typo"),
+        OsStr::new("--image"),
+        OsStr::from_bytes(b"artwork\xff.png"),
+    ]);
+    assert_eq!(result.status.code(), Some(1), "{result:?}");
+    assert_eq!(
+        String::from_utf8(result.stdout).unwrap(),
+        "{\"event\":\"error\",\"code\":\"invalid_input\",\"message\":\"--render-mode must be simple or current.\"}\n"
     );
 }
 

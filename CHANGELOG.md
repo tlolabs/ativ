@@ -2,6 +2,17 @@
 
 Notable changes to ATIV are recorded here using a [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style and [Semantic Versioning](https://semver.org/).
 
+## [0.2.12] — 2026-11-19
+
+### Fixed
+
+- Preserve native path arguments in the engine CLI and report invalid text arguments through the structured error protocol.
+- Honor cancellation before opening artwork and prevent Unix named pipes from blocking automatic artwork classification.
+
+### Changed
+
+- Accelerate automatic JPEG classification with a buffered byte search while preserving animation detection and cancellation behavior.
+
 ## [0.2.11] — 2026-11-16
 
 ### Fixed

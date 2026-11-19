@@ -34,7 +34,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.11"
+      "version": "0.2.12"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -43,7 +43,7 @@
       "targets": [
         "all"
       ],
-      "version": "0.2.11"
+      "version": "0.2.12"
     },
     {
       "license": "GPL-3.0-or-later",
@@ -55,7 +55,7 @@
         "linux-x64",
         "linux-arm64"
       ],
-      "version": "0.2.11"
+      "version": "0.2.12"
     },
     {
       "checksum": "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0",
@@ -2813,7 +2813,7 @@
     }
   ],
   "project": "ATIV",
-  "projectVersion": "0.2.11",
+  "projectVersion": "0.2.12",
   "schema": 1,
   "source": {
     "cargo": "Cargo.lock",

@@ -15,6 +15,10 @@ path = "src/main.rs"
 
 [dependencies]
 ativ-core = { path = "../ativ-core" }
+memchr = "2"
 serde_json = "1"
 sha2 = "0.11"
 fs2 = "0.4"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
